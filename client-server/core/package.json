@@ -1,0 +1,35 @@
+{
+    "name": "server",
+    "version": "0.1.0",
+    "description": "",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "cross-env NODE_ENV=development nodemon"
+    },
+    "keywords": [],
+    "author": "John Wakley <john.wakley@icloud.com>",
+    "license": "UNLICENSED",
+    "private": true,
+    "devDependencies": {
+        "@types/express": "^4.17.13",
+        "@types/node": "^20.7.2",
+        "@types/ws": "^8.5.3",
+        "cross-env": "^7.0.3",
+        "nodemon": "^3.0.1",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.2.2"
+    },
+    "dependencies": {
+        "express": "^4.18.1",
+        "ws": "^8.8.1"
+    },
+    "nodemonConfig": {
+        "watch": [
+            "src"
+        ],
+        "execMap": {
+            "ts": "ts-node"
+        }
+    }
+}

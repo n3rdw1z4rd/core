@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "es2020",
+        "moduleResolution": "node",
+        "noResolve": false,
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "preserveConstEnums": true,
+        "lib": [
+            "dom",
+            "es6"
+        ],
+        "rootDir": "src",
+        "jsx": "react-jsx",
+        "jsxImportSource": "preact",
+        "plugins": [
+            {
+                "name": "typescript-plugin-css-modules"
+            }
+        ]
+    },
+    "include": [
+        "./src/**/*.ts*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

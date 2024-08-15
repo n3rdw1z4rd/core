@@ -1,0 +1,35 @@
+.navHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 8px;
+    background-color: #222;
+}
+
+.navLink {
+    padding: 0 4px;
+    color: #aaa;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.navLink:hover {
+    color: #fff;
+    background-color: #777;
+}
+
+.buttonLink {
+    color: #aaa;
+    background: none !important;
+    border: none;
+    padding: 0 !important;
+}
+
+.buttonLink:hover {
+    color: #fff;
+    background-color: #777 !important;
+}
