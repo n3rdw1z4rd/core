@@ -1,11 +1,14 @@
-# client-server
+### core:
+    $ cd core
+    $ npm install
+    $ npm run dev
 
-### Server:
+### server:
     $ cd server
     $ npm install
     $ npm run dev
 
-### Client:
+### client:
     $ cd client
     $ npm install
     $ npm run dev
