@@ -11,3 +11,4 @@ export * from './renderer'
 export * from './rng';
 export * from './simplex-noise';
 export * from './three';
+export * from './types';

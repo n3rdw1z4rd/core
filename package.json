@@ -1,6 +1,6 @@
 {
     "name": "@n3rdw1z4rd/core",
-    "version": "0.1.0",
+    "version": "0.8.0",
     "description": "core library",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
@@ -9,6 +9,7 @@
         "dist"
     ],
     "scripts": {
+        "build-old": "tsup && shx cp -r ./src/css ./dist/",
         "build": "tsup",
         "dev": "tsup --watch"
     },
@@ -32,6 +33,7 @@
     "devDependencies": {
         "@types/gl-matrix": "^2.4.5",
         "@types/three": "^0.173.0",
+        "shx": "^0.3.4",
         "tsup": "^8.4.0",
         "typescript": "^5.7.3"
     }

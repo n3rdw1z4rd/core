@@ -3,6 +3,7 @@ import { AmbientLight, BoxGeometry, ColorRepresentation, DirectionalLight, GridH
 import { Clock } from '../clock';
 import { GlobalEmitter } from '../emitter';
 import { Input } from '../input';
+import { KeyValue } from '../types';
 import { rng } from '../rng';
 import { ThreeJsCameraRig } from './threejs-camera-rig';
 

@@ -1,5 +1,6 @@
 import { BufferAttribute, BufferGeometry } from 'three';
 import { Color } from '../renderer/webgl';
+import { vec3 } from 'gl-matrix';
 
 export function xyz2key(x: number, y: number, z: number): string {
     return `${x},${y},${z}`;
@@ -43,7 +44,7 @@ export class VoxelGeometry extends BufferGeometry {
         this._voxels.set(xyz2key(x, y, z), value);
     }
 
-    public getVoxelCoordsFromFaceIndex(faceIndex: number, size: number, height: number): VEC3 {
+    public getVoxelCoordsFromFaceIndex(faceIndex: number, size: number, height: number): vec3 {
         const facePerVoxel = 6; // 6 faces per voxel
         const triangleIndex = Math.floor(faceIndex / 2); // Two triangles per face
         const voxelIndex = Math.floor(triangleIndex / facePerVoxel); // Find voxel index
@@ -53,7 +54,7 @@ export class VoxelGeometry extends BufferGeometry {
         const y = Math.floor((voxelIndex / size) % height);
         const z = Math.floor(voxelIndex / (size * height));
 
-        return [x, y, z];
+        return vec3.fromValues(x, y, z);
     }
 
     // public changeVoxelColor(faceIndex: number, newColor: THREE.Color) {
