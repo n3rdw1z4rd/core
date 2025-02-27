@@ -1,0 +1,44 @@
+@import './reset.css';
+
+:root {
+    /* Colors */
+    --color-foreground: lightgray;
+    --color-background: #111;
+    --color-border: #444;
+
+    /* Common Variables */
+    --border-width: 1px;
+    --border-radius: 4px;
+    --padding-small: 4px;
+    --padding-medium: 8px;
+    --padding-large: 16px;
+    --margin-small: 4px;
+    --margin-medium: 8px;
+    --margin-large: 16px;
+    --border-style: var(--border-width) dashed var(--color-border);
+
+    /* Transparency Levels */
+    --background-opacity-light: rgba(0, 0, 0, 0.1);
+    --background-opacity-medium: rgba(0, 0, 0, 0.5);
+    --background-opacity-dark: rgba(0, 0, 0, 0.8);
+}
+
+* {
+    font: 14px monospace;
+}
+
+html {
+    color: var(--color-foreground);
+    background-color: var(--color-background);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body,
+#root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
