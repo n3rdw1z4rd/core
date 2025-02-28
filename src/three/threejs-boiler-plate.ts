@@ -1,7 +1,6 @@
 import '../css/main.css';
 import { AmbientLight, BoxGeometry, ColorRepresentation, DirectionalLight, GridHelper, Intersection, Mesh, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Scene, Vector2, WebGLRenderer, WebGLRendererParameters } from 'three';
 import { Clock } from '../clock';
-import { GlobalEmitter } from '../emitter';
 import { Input } from '../input';
 import { KeyValue } from '../types';
 import { rng } from '../rng';
@@ -12,6 +11,7 @@ export interface SetupBasicSceneParams {
     directionalLight?: boolean,
     gridHelper?: boolean,
     cameraDistance?: number,
+    enableControls?: boolean,
 }
 
 export interface ThreeJsBoilerPlateParams {
@@ -48,7 +48,7 @@ export class ThreeJsBoilerPlate {
 
         this.scene.add(this.cameraRig);
 
-        GlobalEmitter
+        this.input
             .on('mouse_move', ({ deltaX, deltaY }: KeyValue) => {
                 if (this.input.isMouseButtonDown(0)) {
                     this.cameraRig.orbit(deltaX, deltaY);
@@ -101,6 +101,18 @@ export class ThreeJsBoilerPlate {
         if (params.ambientLight !== false) this.scene.add(new AmbientLight());
         if (params.directionalLight !== false) this.scene.add(new DirectionalLight());
         if (params.gridHelper !== false) this.scene.add(new GridHelper(100, 100, 0xff0000));
+
+        if (params.enableControls === true) {
+            this.input.on('mouse_move', ({ deltaX, deltaY }: KeyValue) => {
+                if (this.input.isMouseButtonDown(0)) {
+                    this.cameraRig.orbit(deltaX, deltaY);
+                }
+            });
+
+            this.input.on('mouse_wheel', ({ deltaY }: KeyValue) => {
+                this.cameraRig.dolly(deltaY);
+            });
+        }
     }
 
     public pick(): Intersection | null {
