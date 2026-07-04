@@ -1,11 +1,17 @@
-import { vec2 } from 'gl-matrix';
+import { imul, PI, sin, cos, type VEC2 } from './math';
 
 export class Rng {
-    private _seed: number = Date.now();
-    private _uid_characters: string = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    private __seed: number;
+    private _seed: number;
+
+    private _uid_characters: string =
+        '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     constructor() {
+        this._seed = Date.now();
+        this.__seed = this._seed;
         this._uid_characters = this.shuffle(this._uid_characters) as string;
+
         this.seed = this.nexti;
     }
 
@@ -15,36 +21,46 @@ export class Rng {
 
     public set seed(value: number) {
         this._seed = value;
+        this.__seed = this._seed;
+    }
+
+    public get startingSeed(): number {
+        return this.__seed;
     }
 
     public get nextf(): number {
         // adapted from: https://github.com/bryc/code/blob/master/jshash/PRNGs.md#splitmix32
         this._seed |= 0;
-        this._seed = this._seed + 0x9e3779b9 | 0;
+        this._seed = (this._seed + 0x9e3779b9) | 0;
 
-        let t: number = this._seed ^ this._seed >>> 16;
-        t = Math.imul(t, 0x21f0aaad);
-        t = t ^ t >>> 15;
-        t = Math.imul(t, 0x735a2d97);
+        let t: number = this._seed ^ (this._seed >>> 16);
+        t = imul(t, 0x21f0aaad);
+        t = t ^ (t >>> 15);
+        t = imul(t, 0x735a2d97);
 
-        return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
+        return ((t = t ^ (t >>> 15)) >>> 0) / 4294967296;
     }
 
     public get nexti(): number {
         return (this.nextf * Number.MAX_SAFE_INTEGER) | 0;
     }
 
+    // NOTE: as of the core/apparatus consolidation, range(min, max) treats
+    // max as EXCLUSIVE (previous published versions of this package treated
+    // it as inclusive - if you're upgrading from an older @n3rdw1z4rd/core,
+    // range(0, 10) now returns [0, 10) instead of [0, 10]).
     public range(min: number, max?: number): number {
         if (max === undefined) {
-            if (min !== 0) {
-                max = min;
-                min = 0;
-            } else {
-                max = Number.MAX_SAFE_INTEGER;
-            }
+            max = min;
+            min = 0;
         }
 
-        return ((this.nextf * (max - min + 1)) + min) | 0;
+        return (min + this.nextf * (max - min)) | 0;
+    }
+
+    public randomUnitVector(): VEC2 {
+        const theta = this.nextf * 2 * PI;
+        return [cos(theta), sin(theta)];
     }
 
     public choose(...args: any[]): any {
@@ -89,11 +105,6 @@ export class Rng {
         }
 
         return rows;
-    }
-
-    public randomUnitVector(): vec2 {
-        const theta = rng.nextf * 2 * Math.PI;
-        return vec2.fromValues(Math.cos(theta), Math.sin(theta));
     }
 }
 

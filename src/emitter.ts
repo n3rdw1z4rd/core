@@ -25,6 +25,28 @@ export class Emitter {
 
         return this;
     }
+
+    public clear(eventName?: string): this {
+        if (eventName) {
+            this.listeners.delete(eventName);
+        } else {
+            this.listeners.clear();
+        }
+
+        return this;
+    }
 }
 
 export const GlobalEmitter = new Emitter();
+
+export class EventBus extends EventTarget {
+    emit(type: string, detail?: any) {
+        this.dispatchEvent(new CustomEvent(type, { detail }))
+    }
+
+    on(type: string, cb: (e: CustomEvent) => void) {
+        this.addEventListener(type, cb as EventListener)
+    }
+}
+
+export const eventBus = new EventBus()
