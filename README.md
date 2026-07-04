@@ -23,7 +23,7 @@ This package ships both CJS and ESM builds plus `.d.ts` types (built with `tsup`
 ## Quick start
 
 ```ts
-import { rng, clamp, log, Clock } from '@n3rdw1z4rd/core';
+import { rng, clamp, log, Clock } from "@n3rdw1z4rd/core";
 
 log(rng.range(0, 10));   // random int in [0, 10)
 log(clamp(15, 0, 10));   // 10
@@ -34,10 +34,10 @@ clock.run((dt) => {
 });
 ```
 
-Everything (including the `three/*` modules) is re-exported from the package root, so `import { ThreeJsBoilerPlate } from '@n3rdw1z4rd/core'` works. Import from the `three` subpath if you want to make the Three.js dependency explicit in your own code:
+Everything (including the `three/*` modules) is re-exported from the package root, so `import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core"` works. Import from the `three` subpath if you want to make the Three.js dependency explicit in your own code:
 
 ```ts
-import { ThreeJsBoilerPlate } from '@n3rdw1z4rd/core/three';
+import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core/three";
 ```
 
 ## What's in here

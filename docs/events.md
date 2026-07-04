@@ -1,6 +1,6 @@
 # Events
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## Emitter
 
@@ -19,7 +19,7 @@ const GlobalEmitter: Emitter; // a ready-to-use shared instance
 `on()` accepts multiple event names before the listener, so you can register one callback for several events at once:
 
 ```ts
-import { Emitter, log } from '@n3rdw1z4rd/core';
+import { Emitter, log } from "@n3rdw1z4rd/core";
 
 class Foo extends Emitter { }
 
@@ -45,7 +45,7 @@ const eventBus: EventBus; // a ready-to-use shared instance
 ```
 
 ```ts
-import { eventBus, log } from '@n3rdw1z4rd/core';
+import { eventBus, log } from "@n3rdw1z4rd/core";
 
 eventBus.on('score-changed', (e) => log(e.detail));
 eventBus.emit('score-changed', { score: 42 });

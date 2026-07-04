@@ -1,6 +1,6 @@
 # Noise
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## Noise
 
@@ -25,7 +25,7 @@ class Noise {
 ```
 
 ```ts
-import { Noise } from '@n3rdw1z4rd/core';
+import { Noise } from "@n3rdw1z4rd/core";
 
 const elevation = Noise.fractal2d(x * 0.01, y * 0.01, {
     octaves: 4,
@@ -53,7 +53,7 @@ class SimplexNoise {
 ```
 
 ```ts
-import { SimplexNoise } from '@n3rdw1z4rd/core';
+import { SimplexNoise } from "@n3rdw1z4rd/core";
 
 const noise = new SimplexNoise();
 const n = noise.noise2d(x * 0.05, y * 0.05);

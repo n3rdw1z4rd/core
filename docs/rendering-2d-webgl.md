@@ -1,6 +1,6 @@
 # 2D & Raw WebGL Rendering
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 These are the non-Three.js rendering helpers - for a game/scene that either draws with plain Canvas2D shapes or hand-rolled WebGL2, without pulling in Three.js at all.
 
@@ -55,7 +55,7 @@ function CreateProgramInfo(gl: WebGL2RenderingContext, vertexShaderSource: strin
 `CompileShader`/`CreateProgram` throw a plain string (not an `Error`) on compile/link failure, including the driver's info log - wrap calls in try/catch if you need structured error handling.
 
 ```ts
-import { CreateProgramInfo } from '@n3rdw1z4rd/core';
+import { CreateProgramInfo } from "@n3rdw1z4rd/core";
 
 const { program, attributes, uniforms } = CreateProgramInfo(gl, vertexSource, fragmentSource);
 gl.useProgram(program);

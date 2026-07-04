@@ -1,4 +1,4 @@
-import { floor } from './math';
+import { floor } from "./math";
 
 const DEFAULT_VALUE = -1;
 

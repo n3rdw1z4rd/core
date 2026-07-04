@@ -1,6 +1,6 @@
 # Particle Life
 
-`import { ... } from '@n3rdw1z4rd/core';` (the 3D variant also lives under `@n3rdw1z4rd/core/three`)
+`import { ... } from "@n3rdw1z4rd/core";` (the 3D variant also lives under `@n3rdw1z4rd/core/three`)
 
 "Particle life" is an emergent-behavior simulation: particles are assigned one of a handful of colors, and a randomized per-color-pair attraction matrix determines whether same/different-colored particles attract or repel at short range. The result is swarming/clustering behavior that looks alive despite a very simple update rule. This package has both a 2D (canvas) and 3D (Three.js) implementation, sharing the same force model.
 
@@ -80,7 +80,7 @@ class ParticleSystem2d {
 ```
 
 ```ts
-import { ParticleSystem2d, Renderer } from '@n3rdw1z4rd/core';
+import { ParticleSystem2d, Renderer } from "@n3rdw1z4rd/core";
 
 const renderer = new Renderer();
 renderer.appendTo(document.body);

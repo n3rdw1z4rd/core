@@ -1,4 +1,4 @@
-import { clamp } from './math';
+import { clamp } from "./math";
 
 export function isNullOrUndefined(target: any) {
     return (target === null || target === undefined);

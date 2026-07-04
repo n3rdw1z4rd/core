@@ -1,6 +1,6 @@
 # Math & RNG
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## math.ts
 
@@ -32,7 +32,7 @@ roundTo(value, digits, base = 10) // arbitrary-precision round; distinct from ro
 Also exports the constant `PI`. There are no vector types here - `Input.mousePosition`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `Rng.randomUnitVector` all just use plain `[number, number]`/`[number, number, number, number]` tuples inline rather than any named vector type or class.
 
 ```ts
-import { sin, cos, PI, clamp } from '@n3rdw1z4rd/core';
+import { sin, cos, PI, clamp } from "@n3rdw1z4rd/core";
 
 const x = cos(PI / 4);
 const y = clamp(someValue, 0, 1);
@@ -65,7 +65,7 @@ const rng: Rng;
 **`range(min, max)` is exclusive of `max`** (if you only pass one argument, it's treated as `max` with `min = 0`). This changed from inclusive in older published versions of this package - if you're upgrading, `rng.range(0, 10)` now returns a value in `[0, 10)` instead of `[0, 10]`.
 
 ```ts
-import { rng } from '@n3rdw1z4rd/core';
+import { rng } from "@n3rdw1z4rd/core";
 
 rng.seed = 12345;               // make it deterministic
 rng.range(0, 10);               // int in [0, 10)

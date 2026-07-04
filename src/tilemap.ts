@@ -1,4 +1,4 @@
-import { floor } from './math';
+import { floor } from "./math";
 
 export class Tilemap<T = number> {
     map: Map<string, T> = new Map();

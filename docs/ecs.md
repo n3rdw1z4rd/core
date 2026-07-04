@@ -7,7 +7,7 @@ This package intentionally ships **two unrelated ECS designs**. They were never 
 A component-template-registry singleton: you declare component *templates* once, then stamp out entities that reference them by name. Access it via `ECS.instance` (it's a singleton - there's no public constructor).
 
 ```ts
-import { ECS } from '@n3rdw1z4rd/core';
+import { ECS } from "@n3rdw1z4rd/core";
 
 ECS.instance
     .createComponent('position', { x: 0, y: 0 })
@@ -47,7 +47,7 @@ Component "data" can include function values, which are called with the componen
 
 ## Three.js-flavored ECS (`three/ecs.ts`)
 
-`import { ... } from '@n3rdw1z4rd/core/three';` (or the top-level barrel)
+`import { ... } from "@n3rdw1z4rd/core/three";` (or the top-level barrel)
 
 Stores components directly on a Three.js `Object3D`'s `userData`, so the scene graph itself doubles as the entity list - useful when you want `scene.traverse()` to double as entity iteration.
 
@@ -73,8 +73,8 @@ type ThreeSystem = (entities: Map<string, ThreeEntity>, delta: number, ...args: 
 ```
 
 ```ts
-import { CreateThreeEntity, AddThreeComponent, GetThreeComponent } from '@n3rdw1z4rd/core';
-import { Mesh, BoxGeometry, MeshBasicMaterial } from 'three';
+import { CreateThreeEntity, AddThreeComponent, GetThreeComponent } from "@n3rdw1z4rd/core";
+import { Mesh, BoxGeometry, MeshBasicMaterial } from "three";
 
 const mesh = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
 const entity = CreateThreeEntity(mesh);

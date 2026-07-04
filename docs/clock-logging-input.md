@@ -1,6 +1,6 @@
 # Clock, Logging & Input
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## Clock
 
@@ -29,7 +29,7 @@ class Clock {
 ```
 
 ```ts
-import { Clock } from '@n3rdw1z4rd/core';
+import { Clock } from "@n3rdw1z4rd/core";
 
 const clock = new Clock();
 
@@ -89,7 +89,7 @@ class Input extends Emitter {
 Events emitted: `key_down`, `key_up`, `key_pressed` (plus per-code variants like `space_down`/`space_up`/`space_pressed`, using `KeyboardEvent.code` lowercased), `mouse_button_down`, `mouse_button_up`, `mouse_button_clicked` (plus per-button variants like `mouse_button_0_down`), `mouse_move`, `mouse_wheel`.
 
 ```ts
-import { Input } from '@n3rdw1z4rd/core';
+import { Input } from "@n3rdw1z4rd/core";
 
 const input = new Input();
 

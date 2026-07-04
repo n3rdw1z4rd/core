@@ -1,4 +1,4 @@
-import { imul, PI, sin, cos, sqrt } from './math';
+import { imul, PI, sin, cos, sqrt } from "./math";
 
 export class Rng {
     private __seed: number;

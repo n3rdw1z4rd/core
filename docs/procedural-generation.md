@@ -1,6 +1,6 @@
 # Procedural Generation
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## AStar
 
@@ -21,7 +21,7 @@ class AStar {
 ```
 
 ```ts
-import { AStar, Map2D } from '@n3rdw1z4rd/core';
+import { AStar, Map2D } from "@n3rdw1z4rd/core";
 
 const map = new Map2D(-1); // -1 = wall/unset
 map.set(0, 0, 0);          // 0 = floor
@@ -46,7 +46,7 @@ function PoissonDiskSampler(
 ```
 
 ```ts
-import { PoissonDiskSampler } from '@n3rdw1z4rd/core';
+import { PoissonDiskSampler } from "@n3rdw1z4rd/core";
 
 const points = PoissonDiskSampler(500, 500, 20); // spread points at least 20px apart across a 500x500 area
 ```
@@ -91,7 +91,7 @@ function GenerateWalls(map: Map2D): XY[]; // all empty cells 8-directionally adj
 ```
 
 ```ts
-import { GenerateRooms, GenerateDoors, GenerateWalls } from '@n3rdw1z4rd/core';
+import { GenerateRooms, GenerateDoors, GenerateWalls } from "@n3rdw1z4rd/core";
 
 const { map, rooms, paths } = GenerateRooms({ rooms: { size: 80, minSize: 4, maxSize: 10 } });
 const doors = GenerateDoors(map, paths);

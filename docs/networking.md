@@ -1,6 +1,6 @@
 # Networking
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## WorkerInterface
 
@@ -15,7 +15,7 @@ class WorkerInterface extends Emitter {
 ```
 
 ```ts
-import { WorkerInterface, log, logerr } from '@n3rdw1z4rd/core';
+import { WorkerInterface, log, logerr } from "@n3rdw1z4rd/core";
 
 const worker = new WorkerInterface(new URL('./physics-worker.ts', import.meta.url));
 

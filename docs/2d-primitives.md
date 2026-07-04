@@ -1,6 +1,6 @@
 # 2D Primitives
 
-`import { ... } from '@n3rdw1z4rd/core';`
+`import { ... } from "@n3rdw1z4rd/core";`
 
 ## Vector
 
@@ -28,7 +28,7 @@ class Vector {
 ```
 
 ```ts
-import { Vector } from '@n3rdw1z4rd/core';
+import { Vector } from "@n3rdw1z4rd/core;
 
 const pos = new Vector(3, 4);
 pos.plus(Vector.EAST).plus(1, -1); // mutates pos in place, returns pos
@@ -101,7 +101,7 @@ class Tilemap<T = number> {
 ```
 
 ```ts
-import { Tilemap } from '@n3rdw1z4rd/core';
+import { Tilemap } from "@n3rdw1z4rd/core";
 
 interface Tile { type: string, discovered: boolean }
 
