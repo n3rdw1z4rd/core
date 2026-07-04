@@ -1,4 +1,4 @@
-import { distance2d } from './math';
+import { distance2d } from '.';
 
 export class Vector {
     x: number;
