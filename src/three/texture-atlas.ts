@@ -12,8 +12,9 @@ export function LoadTexture(url: string): Promise<TextureData> {
         (new TextureLoader()).load(
             url,
             (texture: Texture) => {
-                const width = texture.source.data.width;
-                const height = texture.source.data.height;
+                const data = texture.source.data as { width: number, height: number };
+                const width = data.width;
+                const height = data.height;
                 res({ width, height, texture });
             },
             (_ev) => { },
@@ -32,8 +33,9 @@ export function CreateSubTexture(
     texture.magFilter = NearestFilter;
     texture.wrapS = RepeatWrapping;
 
-    const textureWidth: number = texture.source.data.width;
-    const textureHeight: number = texture.source.data.height;
+    const data = texture.source.data as { width: number, height: number };
+    const textureWidth: number = data.width;
+    const textureHeight: number = data.height;
 
     w /= textureWidth;
     h /= textureHeight;

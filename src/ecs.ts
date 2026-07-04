@@ -36,7 +36,7 @@ export class ECS {
 
     public uid(length: number = 8): string {
         const numBytes: number = Math.ceil(length / 2);
-        const buffer: Uint8Array = new Uint8Array(numBytes);
+        const buffer = new Uint8Array(numBytes);
 
         window.crypto.getRandomValues(buffer);
 
