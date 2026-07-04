@@ -76,8 +76,8 @@ Normalizes keyboard/mouse/wheel DOM events into an `Emitter` interface, with der
 ```ts
 class Input extends Emitter {
     inputThreshold: number; // ms window for a "pressed"/"clicked" event, default 200
-    readonly mousePosition: vec2;  // pixel offset within the window
-    readonly mousePosition2: vec2; // normalized device coords, [-1, 1]
+    readonly mousePosition: [number, number];  // pixel offset within the window
+    readonly mousePosition2: [number, number]; // normalized device coords, [-1, 1]
 
     isKeyDown(keyCode: string): boolean;
     getKeyState(keyCode: string): number;

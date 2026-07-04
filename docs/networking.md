@@ -15,16 +15,16 @@ class WorkerInterface extends Emitter {
 ```
 
 ```ts
-import { WorkerInterface } from '@n3rdw1z4rd/core';
+import { WorkerInterface, log, logerr } from '@n3rdw1z4rd/core';
 
 const worker = new WorkerInterface(new URL('./physics-worker.ts', import.meta.url));
 
 worker.on('message', (event: MessageEvent) => {
-    console.log('from worker:', event.data);
+    log('from worker:', event.data);
 });
 
 worker.on('error', (error: ErrorEvent) => {
-    console.error('worker error:', error);
+    logerr('worker error:', error);
 });
 
 worker.postMessage({ type: 'init' });

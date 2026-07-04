@@ -5,12 +5,6 @@ export const PI = 3.14159265358979323846;
 const TWO_PI = PI * 2;
 const HALF_PI = PI / 2;
 
-export type VEC2 = [number, number];
-export type VEC3 = VEC2 & [number];
-export type VEC4 = VEC3 & [number];
-
-export type COLOR = VEC3;
-
 export function abs(n: number): number {
     return n < 0 ? -n : n;
 }

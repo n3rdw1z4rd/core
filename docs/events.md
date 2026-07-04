@@ -19,13 +19,13 @@ const GlobalEmitter: Emitter; // a ready-to-use shared instance
 `on()` accepts multiple event names before the listener, so you can register one callback for several events at once:
 
 ```ts
-import { Emitter } from '@n3rdw1z4rd/core';
+import { Emitter, log } from '@n3rdw1z4rd/core';
 
 class Foo extends Emitter { }
 
 const foo = new Foo();
 
-foo.on('start', 'stop', (eventName) => console.log('fired:', eventName));
+foo.on('start', 'stop', (eventName) => log('fired:', eventName));
 foo.emit('start'); // logs "fired: start"
 ```
 
@@ -45,8 +45,8 @@ const eventBus: EventBus; // a ready-to-use shared instance
 ```
 
 ```ts
-import { eventBus } from '@n3rdw1z4rd/core';
+import { eventBus, log } from '@n3rdw1z4rd/core';
 
-eventBus.on('score-changed', (e) => console.log(e.detail));
+eventBus.on('score-changed', (e) => log(e.detail));
 eventBus.emit('score-changed', { score: 42 });
 ```

@@ -1,5 +1,3 @@
-import { vec2, vec4 } from 'gl-matrix';
-
 export interface DrawParams {
     radius?: number,
     fill?: boolean,
@@ -17,7 +15,7 @@ export class CanvasRenderer {
 
     get width(): number { return this.ctx?.canvas.width ?? 0; }
     get height(): number { return this.ctx?.canvas.height ?? 0; }
-    get center(): vec2 { return vec2.fromValues(this.width / 2, this.height / 2); }
+    get center(): [number, number] { return [this.width / 2, this.height / 2]; }
 
     constructor(canvas?: HTMLCanvasElement) {
         this.ctx = (canvas ?? document.createElement('canvas')).getContext('2d')!; // TODO should handle this better
@@ -73,7 +71,7 @@ export class CanvasRenderer {
         this.ctx?.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
 
-    drawPoint(xy: vec2, params: DrawParams = {}) {
+    drawPoint(xy: [number, number], params: DrawParams = {}) {
         const [x, y] = xy;
 
         const radius = params.radius || 1;
@@ -87,7 +85,7 @@ export class CanvasRenderer {
         this.ctx[fill ? 'fill' : 'stroke']();
     }
 
-    drawBox(xy: vec2, wh: vec2, params: DrawParams = {}) {
+    drawBox(xy: [number, number], wh: [number, number], params: DrawParams = {}) {
         const [x, y] = xy;
         const [w, h] = wh;
 
@@ -105,7 +103,7 @@ export class CanvasRenderer {
         this.ctx[fill ? 'fill' : 'stroke']();
     }
 
-    drawLine(x1y1x2y2: vec4, color = '#000000') {
+    drawLine(x1y1x2y2: [number, number, number, number], color = '#000000') {
         const [x1, y1, x2, y2] = x1y1x2y2;
 
         this.ctx.strokeStyle = color;
@@ -117,7 +115,7 @@ export class CanvasRenderer {
 
     drawText(
         text: string,
-        xy: vec2,
+        xy: [number, number],
         color = '#ffffff',
         size = this.fontSize,
         font = this.fontName

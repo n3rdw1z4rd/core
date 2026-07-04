@@ -1,4 +1,4 @@
-import { imul, PI, sin, cos, sqrt, type VEC2 } from './math';
+import { imul, PI, sin, cos, sqrt } from './math';
 
 export class Rng {
     private __seed: number;
@@ -58,7 +58,7 @@ export class Rng {
         return (min + this.nextf * (max - min)) | 0;
     }
 
-    public randomUnitVector(): VEC2 {
+    public randomUnitVector(): [number, number] {
         const theta = this.nextf * 2 * PI;
         return [cos(theta), sin(theta)];
     }

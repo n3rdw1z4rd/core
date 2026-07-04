@@ -1,4 +1,3 @@
-import { vec2 } from 'gl-matrix';
 import { TextureLoader, Texture, MeshLambertMaterial, MeshLambertMaterialParameters, NearestFilter, RepeatWrapping } from 'three';
 
 export interface TextureData {
@@ -74,11 +73,11 @@ export class TextureAtlas extends MeshLambertMaterial {
         this.textureData.texture.magFilter = NearestFilter;
     }
 
-    getUv(voxel: number, ux: number, uy: number): vec2 {
-        return vec2.fromValues(
+    getUv(voxel: number, ux: number, uy: number): [number, number] {
+        return [
             (voxel + ux) * this._uw,
             1 - (1 - uy) * this._uh,
-        );
+        ];
     }
 
     public static CreateFromUrl(

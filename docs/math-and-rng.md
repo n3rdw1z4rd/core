@@ -29,7 +29,7 @@ manhattanDistance(x1, y1, x2, y2)
 roundTo(value, digits, base = 10) // arbitrary-precision round; distinct from round()
 ```
 
-Also exports the constant `PI` and types `VEC2 = [number, number]`, `VEC3`, `VEC4`, `COLOR = VEC3`.
+Also exports the constant `PI`. There are no vector types here - `Input.mousePosition`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `Rng.randomUnitVector` all just use plain `[number, number]`/`[number, number, number, number]` tuples inline rather than any named vector type or class.
 
 ```ts
 import { sin, cos, PI, clamp } from '@n3rdw1z4rd/core';
@@ -51,7 +51,7 @@ class Rng {
     get nexti(): number;       // integer
 
     range(min: number, max?: number): number;
-    randomUnitVector(): VEC2;
+    randomUnitVector(): [number, number];
     parkMillerNormal(): number; // gaussian sample, mean 0.5 stddev 1/6
     choose(...args: any[]): any;
     shuffle(value: any[] | string): any[] | string;

@@ -1,5 +1,4 @@
 import { Emitter } from './emitter';
-import { vec2 } from 'gl-matrix';
 
 export interface InputState {
     state: number,
@@ -19,11 +18,11 @@ export class Input extends Emitter {
     private _keyStates: { [key: string]: InputState } = {};
     private _mouseButtonStates: { [key: number]: InputState } = {};
 
-    private _mousePosition: vec2 = vec2.create();
-    private _mousePosition2: vec2 = vec2.create();
+    private _mousePosition: [number, number] = [0, 0];
+    private _mousePosition2: [number, number] = [0, 0];
 
-    public get mousePosition(): vec2 { return this._mousePosition; }
-    public get mousePosition2(): vec2 { return this._mousePosition2; }
+    public get mousePosition(): [number, number] { return this._mousePosition; }
+    public get mousePosition2(): [number, number] { return this._mousePosition2; }
 
     constructor() {
         super();
@@ -116,15 +115,15 @@ export class Input extends Emitter {
 
         const { buttons, offsetX, offsetY, movementX, movementY } = ev;
 
-        this._mousePosition = vec2.fromValues(offsetX, offsetY);
+        this._mousePosition = [offsetX, offsetY];
 
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        this._mousePosition2 = vec2.fromValues(
+        this._mousePosition2 = [
             (ev.clientX / width) * 2 - 1,
             -(ev.clientY / height) * 2 + 1,
-        );
+        ];
 
         this.emit('mouse_move', {
             ...props,

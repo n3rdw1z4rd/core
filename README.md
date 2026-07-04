@@ -13,20 +13,20 @@ npm install @n3rdw1z4rd/core
 Peer dependencies (install whichever your project actually uses):
 
 ```
-npm install three gl-matrix simplex-noise
+npm install three simplex-noise
 ```
 
-`three` and `gl-matrix` are only required if you import from the `@n3rdw1z4rd/core/three` (or the top-level barrel, which re-exports it) and the `gl-matrix`-typed APIs (`Input`, `CanvasRenderer`, `TextureAtlas.getUv`) respectively. `simplex-noise` is required for `Noise` and `AsteroidMesh`.
+`three` is only required if you import from `@n3rdw1z4rd/core/three` (or the top-level barrel, which re-exports it). `simplex-noise` is required for `Noise` and `AsteroidMesh`.
 
 This package ships both CJS and ESM builds plus `.d.ts` types (built with `tsup`). It targets the browser - most modules touch `window`, `document`, or `HTMLCanvasElement`.
 
 ## Quick start
 
 ```ts
-import { rng, clamp, Emitter, Clock } from '@n3rdw1z4rd/core';
+import { rng, clamp, log, Clock } from '@n3rdw1z4rd/core';
 
-console.log(rng.range(0, 10));   // random int in [0, 10)
-console.log(clamp(15, 0, 10));   // 10
+log(rng.range(0, 10));   // random int in [0, 10)
+log(clamp(15, 0, 10));   // 10
 
 const clock = new Clock();
 clock.run((dt) => {
@@ -65,3 +65,4 @@ import { ThreeJsBoilerPlate } from '@n3rdw1z4rd/core/three';
 - **Two camera-control approaches, both supported.** `ThreeJsBoilerPlate.enableCameraRigControls()` uses the hand-rolled `ThreeJsCameraRig` (orbit/dolly driven by `Input` events). `enableOrbitControls()` uses Three's own `OrbitControls` instead. They're mutually exclusive - call one or the other, not both.
 - **`rng.range(min, max)` is exclusive of `max`.** If you're carrying over code from an older version of this package (pre-0.12), note this changed from inclusive to exclusive.
 - **No native `Math` calls in `math.ts`.** `sin`/`cos`/`floor`/`ceil`/`round`/`sqrt` etc. are all reimplemented from scratch (Taylor series + quadrant reduction for trig, accurate to ~4.65e-7). Everything else in the package builds on these rather than calling `Math.*` directly, with a few explicitly-commented pragmatic exceptions (e.g. `rng.parkMillerNormal()` uses native `Math.log`).
+- **No `gl-matrix` dependency, and no `VEC2`/`VEC3`/`VEC4` types (as of 0.14).** `Input.mousePosition`/`mousePosition2`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `Rng.randomUnitVector` used to return `gl-matrix`'s `vec2`/`vec4` (`Float32Array`-backed at runtime, 32-bit float precision). They now return plain `[number, number]`/`[number, number, number, number]` tuples inline - full double precision, no longer `instanceof Float32Array`, and no named vector type at all. If you're upgrading from an older version and relied on any of that, this is a breaking change.

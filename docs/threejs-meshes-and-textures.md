@@ -64,7 +64,7 @@ function CreateSubTexture(texture: Texture, x: number, y: number, w: number, h: 
 
 class TextureAtlas extends MeshLambertMaterial {
     constructor(textureData: TextureData, textureWidth: number, textureHeight?: number, params?: MeshLambertMaterialParameters);
-    getUv(voxel: number, ux: number, uy: number): vec2; // voxel = tile index along a single-row grid
+    getUv(voxel: number, ux: number, uy: number): [number, number]; // voxel = tile index along a single-row grid
     static CreateFromUrl(url: string, textureWidth: number, textureHeight?: number, params?: MeshLambertMaterialParameters): Promise<TextureAtlas>;
 }
 

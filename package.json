@@ -1,6 +1,6 @@
 {
     "name": "@n3rdw1z4rd/core",
-    "version": "0.13.0",
+    "version": "0.14.0",
     "description": "core library",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
@@ -29,12 +29,10 @@
         "heap-js": "latest"
     },
     "peerDependencies": {
-        "gl-matrix": "latest",
         "simplex-noise": "latest",
         "three": "latest"
     },
     "devDependencies": {
-        "@types/gl-matrix": "latest",
         "@types/three": "latest",
         "shx": "latest",
         "tsup": "latest",

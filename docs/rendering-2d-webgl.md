@@ -20,20 +20,20 @@ class CanvasRenderer {
     clearColor: string | CanvasGradient | CanvasPattern;
     fontName: string; fontSize: number;
     textAlign: CanvasTextAlign; textBaseline: CanvasTextBaseline;
-    readonly width: number; readonly height: number; readonly center: vec2;
+    readonly width: number; readonly height: number; readonly center: [number, number];
 
     constructor(canvas?: HTMLCanvasElement);
     appendTo(target?: HTMLElement, autoResize?: boolean): void;
     resize(displayWidth?: number, displayHeight?: number): boolean;
     clear(): void;
-    drawPoint(xy: vec2, params?: DrawParams): void;
-    drawBox(xy: vec2, wh: vec2, params?: DrawParams): void;
-    drawLine(x1y1x2y2: vec4, color?: string): void;
-    drawText(text: string, xy: vec2, color?: string, size?: number, font?: string): void;
+    drawPoint(xy: [number, number], params?: DrawParams): void;
+    drawBox(xy: [number, number], wh: [number, number], params?: DrawParams): void;
+    drawLine(x1y1x2y2: [number, number, number, number], color?: string): void;
+    drawText(text: string, xy: [number, number], color?: string, size?: number, font?: string): void;
 }
 ```
 
-`vec2`/`vec4` here are `gl-matrix` types (plain `[number, number]`/`[number, number, number, number]` tuples) - `gl-matrix` is a peer dependency for this module.
+Coordinates and sizes are plain tuples - no vector-math library required.
 
 ## Raw WebGL2 helpers (`renderer/webgl.ts`)
 
