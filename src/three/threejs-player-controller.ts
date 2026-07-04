@@ -10,7 +10,7 @@ export class ThreeJsPlayerController extends Group {
         super();
 
         this.velocity = new Vector3();
-        this.cameraRig = new ThreeJsCameraRig(camera);
+        this.cameraRig = new ThreeJsCameraRig({ camera });
         this.add(this.cameraRig);
     }
 

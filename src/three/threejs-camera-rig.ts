@@ -2,6 +2,7 @@ import { PerspectiveCamera, Group, Object3D } from 'three';
 import { clamp, deg2rad } from '../math';
 
 export interface ThreeJsCameraRigParams {
+    camera?: PerspectiveCamera,
     fov?: number,
     aspect?: number,
     near?: number,
@@ -29,7 +30,7 @@ export class ThreeJsCameraRig extends Group {
         this.gimbal = new Group();
         this.add(this.gimbal);
 
-        this.camera = new PerspectiveCamera(
+        this.camera = params?.camera ?? new PerspectiveCamera(
             params?.fov ?? 75,
             params?.aspect ?? 2,
             params?.near ?? 0.1,

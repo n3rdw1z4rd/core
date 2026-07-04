@@ -1,5 +1,6 @@
 import '../css/main.css';
 import { AmbientLight, BoxGeometry, ColorRepresentation, DirectionalLight, GridHelper, Intersection, Mesh, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Scene, Vector2, WebGLRenderer, WebGLRendererParameters } from 'three';
+import type { OrbitControls } from 'three/examples/jsm/Addons.js' with { 'resolution-mode': 'import' };
 import { Clock } from '../clock';
 import { Input } from '../input';
 import { KeyValue } from '../types';
@@ -34,6 +35,7 @@ export class ThreeJsBoilerPlate {
 
     public renderer: WebGLRenderer;
     public cameraRig: ThreeJsCameraRig;
+    public orbitControls?: OrbitControls;
 
     public get canvas(): HTMLCanvasElement { return this.renderer.domElement; }
     public get camera(): PerspectiveCamera { return this.cameraRig.camera; }
@@ -48,6 +50,18 @@ export class ThreeJsBoilerPlate {
 
         this.scene.add(this.cameraRig);
 
+        if (params?.parentElement) {
+            this.appendTo(params.parentElement);
+        }
+    }
+
+    // Mutually exclusive with enableOrbitControls() - pick one. Gives you
+    // manual orbit()/dolly() with tilt clamping and target-following, driven
+    // by this.input's mouse events.
+    public enableCameraRigControls() {
+        this.orbitControls?.dispose();
+        this.orbitControls = undefined;
+
         this.input
             .on('mouse_move', ({ deltaX, deltaY }: KeyValue) => {
                 if (this.input.isMouseButtonDown(0)) {
@@ -55,10 +69,26 @@ export class ThreeJsBoilerPlate {
                 }
             })
             .on('mouse_wheel', ({ deltaY }: KeyValue) => this.cameraRig.dolly(deltaY));
+    }
 
-        if (params?.parentElement) {
-            this.appendTo(params.parentElement);
-        }
+    // Mutually exclusive with enableCameraRigControls() - pick one. Uses
+    // Three's own OrbitControls instead of the hand-rolled rig math; call
+    // update() once per frame in your render loop while this is active.
+    // Async because OrbitControls only ships as an ESM-only addon module -
+    // a dynamic import avoids forcing this whole package (built as both
+    // CJS and ESM) to statically import an ESM-only file.
+    public async enableOrbitControls() {
+        const { OrbitControls } = await import('three/examples/jsm/Addons.js');
+
+        this.orbitControls = new OrbitControls(this.camera, this.canvas);
+        this.orbitControls.minDistance = 0.5;
+        this.orbitControls.maxDistance = 100;
+        this.orbitControls.update();
+    }
+
+    // Call once per frame if enableOrbitControls() is active - no-op otherwise.
+    public update() {
+        this.orbitControls?.update();
     }
 
     public appendTo(htmlElement?: HTMLElement) {
@@ -103,15 +133,7 @@ export class ThreeJsBoilerPlate {
         if (params.gridHelper !== false) this.scene.add(new GridHelper(100, 100, 0xff0000));
 
         if (params.enableControls === true) {
-            this.input.on('mouse_move', ({ deltaX, deltaY }: KeyValue) => {
-                if (this.input.isMouseButtonDown(0)) {
-                    this.cameraRig.orbit(deltaX, deltaY);
-                }
-            });
-
-            this.input.on('mouse_wheel', ({ deltaY }: KeyValue) => {
-                this.cameraRig.dolly(deltaY);
-            });
+            this.enableCameraRigControls();
         }
     }
 
