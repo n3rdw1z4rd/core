@@ -7,7 +7,7 @@ export enum ShaderType {
 
 export type ProgramLocations = { attributes: KeyValue, uniforms: KeyValue };
 export type ProgramInfo = { program: WebGLProgram, attributes: KeyValue, uniforms: KeyValue };
-export type Color = [number, number, number, number];
+export type RGBA = [number, number, number, number];
 
 export function CreateWebGlContext(canvas?: HTMLCanvasElement): WebGL2RenderingContext {
     return (canvas ?? document.createElement('canvas')).getContext('webgl2')!;

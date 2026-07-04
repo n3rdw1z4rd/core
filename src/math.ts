@@ -140,3 +140,24 @@ export function deg2rad(value: number): number {
 export function lerp(start: number, end: number, scale: number): number {
     return start * (1 - scale) + end * scale;
 }
+
+export function distance(x1: number, y1: number, x2: number, y2: number): number {
+    return hypot2(x2 - x1, y2 - y1);
+}
+
+export function squaredDistance(x1: number, y1: number, x2: number, y2: number): number {
+    const dx = x1 - x2;
+    const dy = y1 - y2;
+    return dx * dx + dy * dy;
+}
+
+export function manhattanDistance(x1: number, y1: number, x2: number, y2: number): number {
+    return abs(x1 - x2) + abs(y1 - y2);
+}
+
+// Named roundTo (not round, which already exists above with a different
+// signature) - rounds to a given number of digits in an arbitrary base.
+export function roundTo(value: number, digits: number, base: number = 10): number {
+    const p = pow(base, digits);
+    return round(value * p) / p;
+}

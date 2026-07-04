@@ -1,5 +1,7 @@
 export declare type KeyValue = { [key: string]: any };
 
+export declare type XY = { x: number, y: number };
+
 export declare type JSONValue =
     | string
     | number

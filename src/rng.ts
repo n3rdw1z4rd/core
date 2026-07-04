@@ -1,4 +1,4 @@
-import { imul, PI, sin, cos, type VEC2 } from './math';
+import { imul, PI, sin, cos, sqrt, type VEC2 } from './math';
 
 export class Rng {
     private __seed: number;
@@ -61,6 +61,24 @@ export class Rng {
     public randomUnitVector(): VEC2 {
         const theta = this.nextf * 2 * PI;
         return [cos(theta), sin(theta)];
+    }
+
+    // Box-Muller-ish gaussian sample, mean 0.5 stddev 1/6 (so ~99.7% of
+    // samples land in [0, 1]). Uses native Math.log since a pure natural-log
+    // implementation isn't part of math.ts yet.
+    public parkMillerNormal(): number {
+        const mean = 1 / 2;
+        const stddev = 1 / 6;
+
+        let u = 0;
+        let v = 0;
+
+        while (u === 0) u = this.nextf;
+        while (v === 0) v = this.nextf;
+
+        const n = sqrt(-2.0 * Math.log(u)) * cos(2.0 * PI * v);
+
+        return n * stddev + mean;
     }
 
     public choose(...args: any[]): any {

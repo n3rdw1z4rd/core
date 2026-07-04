@@ -1,6 +1,6 @@
 {
     "name": "@n3rdw1z4rd/core",
-    "version": "0.12.0",
+    "version": "0.13.0",
     "description": "core library",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
@@ -25,6 +25,9 @@
         "url": "https://github.com/n3rdw1z4rd/core/issues"
     },
     "homepage": "https://github.com/n3rdw1z4rd/core#readme",
+    "dependencies": {
+        "heap-js": "latest"
+    },
     "peerDependencies": {
         "gl-matrix": "latest",
         "simplex-noise": "latest",
