@@ -1,11 +1,9 @@
-import { Heap } from 'heap-js';
 import { AStar, type AStarFindPathParams } from './astar';
-import { Map2D } from './map2d';
-import { Rectangle } from './rectangle';
-import { rng } from './rng';
-import { distance, squaredDistance } from './math';
+import { distance2d, Rectangle, squaredDistance, XY } from './math';
+import { Heap } from 'heap-js';
 import { log } from './logger';
-import type { XY } from './types';
+import { Map2D } from './map2d';
+import { rng } from './rng';
 
 export type RectPair = { a: Rectangle, b: Rectangle };
 export type PointPair = { a: XY, b: XY };
@@ -224,7 +222,7 @@ function _getShortestPathBetweenRects(rectA: Rectangle, rectB: Rectangle): Point
 
     for (const a of edgeA) {
         for (const b of edgeB) {
-            const d = distance(a.x, a.y, b.x, b.y);
+            const d = distance2d(a.x, a.y, b.x, b.y);
 
             if (d < paths.distance) {
                 paths = { a, b, distance: d };

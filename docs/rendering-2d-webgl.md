@@ -43,7 +43,6 @@ Thin functional wrappers around the WebGL2 boilerplate you'd otherwise repeat in
 enum ShaderType { VERTEX, FRAGMENT }
 type ProgramLocations = { attributes: KeyValue, uniforms: KeyValue };
 type ProgramInfo = { program: WebGLProgram, attributes: KeyValue, uniforms: KeyValue };
-type RGBA = [number, number, number, number];
 
 function CreateWebGlContext(canvas?: HTMLCanvasElement): WebGL2RenderingContext;
 function ResizeWebGlContext(gl: WebGL2RenderingContext, displayWidth?: number, displayHeight?: number): boolean;

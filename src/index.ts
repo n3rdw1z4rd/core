@@ -15,8 +15,7 @@ export * from './noise';
 export * from './particle-renderer';
 export * from './particle-system-2d';
 export * from './poisson-disk-sampler';
-export * from './rectangle';
-export * from './renderer'
+export * from './renderer';
 export * from './rng';
 export * from './simplex-noise';
 export * from './spatial-partition-2d';
@@ -24,5 +23,4 @@ export * from './spatial-partition-3d';
 export * from './tilemap';
 export * from './three';
 export * from './types';
-export * from './vector';
 export * from './worker-interface';

@@ -1,4 +1,4 @@
-import { distance } from './math';
+import { distance2d } from './math';
 
 export class Vector {
     x: number;
@@ -14,7 +14,7 @@ export class Vector {
     }
 
     distanceTo(that: Vector): number {
-        return distance(
+        return distance2d(
             this.x, this.y,
             that.x, that.y,
         );
