@@ -28,7 +28,7 @@ class Vector {
 ```
 
 ```ts
-import { Vector } from "@n3rdw1z4rd/core;
+import { Vector } from "@n3rdw1z4rd/core";
 
 const pos = new Vector(3, 4);
 pos.plus(Vector.EAST).plus(1, -1); // mutates pos in place, returns pos
@@ -111,11 +111,8 @@ tiles.set(3, 4, { type: 'wall', discovered: false });
 
 ## types.ts
 
-A few small shared type aliases used across the package, also available directly:
-
 ```ts
 type KeyValue = { [key: string]: any };
-type XY = { x: number, y: number };       // used by AStar, the dungeon generator, etc.
-type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
-type DataJson = { [k: string]: JSONValue };
 ```
+
+A single shared type alias for a loose string-keyed object, used in a few places across the package (e.g. `GetUrlParams()` in [misc.md](misc.md)). The `XY`/`XYZ`/`XYZW`/`RGB`/`RGBA` shape interfaces used by `AStar`, the dungeon generator, etc. now live in `math.ts` - see [math-and-rng.md](math-and-rng.md).
