@@ -4,27 +4,18 @@
 
 ## Clock
 
-Wraps `requestAnimationFrame` into a run loop with delta-time and FPS tracking.
+Wraps `requestAnimationFrame` into a run loop with delta-time and FPS tracking. Extends `Emitter` - subscribe to the `'frame'` event instead of passing a callback to a `run()` method.
 
 ```ts
-class Clock {
-    readonly fps: number;
-    readonly frames: number;
-    readonly deltaTimeSeconds: number;
-    readonly deltaTimeMilliseconds: number;
-    readonly avgDeltaTime: number;
-    readonly time: number;
+class Clock extends Emitter {
+    readonly time: number;         // current frame timestamp, performance.now()-scale (ms)
+    readonly deltaTime: number;    // seconds since the previous frame
+    readonly elapsedTime: number;  // milliseconds since start() was called
+    readonly fps: number;          // frames rendered in the last full second
     readonly isRunning: boolean;
-    readonly elapsedTimeSinceStart: number;
 
-    constructor(statsDivParent?: HTMLElement);
-
-    run(callback: (deltaTimeSeconds: number) => void): void;
-    runOnce(callback: (deltaTimeSeconds: number) => void): void; // fires the callback once, immediately, without rAF
+    start(): void;
     stop(): void;
-    update(time: number): void;                // advance manually instead of via run()
-    getExecuteTime(func: () => void): number;   // benchmark a function's wall time in ms
-    showStats(data?: object, parent?: HTMLElement): void; // draws/updates an on-screen ClockStats overlay
 }
 ```
 
@@ -33,27 +24,14 @@ import { Clock } from "@n3rdw1z4rd/core";
 
 const clock = new Clock();
 
-clock.run((dt) => {
+clock.on('frame', (dt) => {
     // dt is seconds since last frame
-    clock.showStats({ entities: world.count }); // adds extra key/value pairs to the overlay
 });
+
+clock.start();
 ```
 
-## ClockStats
-
-The on-screen overlay `Clock.showStats()` uses internally. You can also use it standalone.
-
-```ts
-class ClockStats {
-    divElement: HTMLDivElement;
-    keyColor: string;   // default 'gray'
-    valueColor: string; // default 'lightgray'
-
-    constructor(align?: 'top' | 'bottom', justify?: 'left' | 'right');
-    appendTo(target?: HTMLElement): void;
-    update(data: object): void; // renders each key/value pair as a line
-}
-```
+There's no standalone `ClockStats`/`showStats()` overlay anymore - if you want an on-screen FPS/stat readout, build one against `clock.fps`/`clock.deltaTime` directly.
 
 ## Logging
 

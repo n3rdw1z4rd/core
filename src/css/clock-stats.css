@@ -1,7 +1,0 @@
-#clock-stats {
-    padding: var(--padding-medium);
-    border-radius: var(--border-radius);
-    border: var(--border-style);
-    background: var(--background-opacity-medium);
-    z-index: 1000;
-}

@@ -1,7 +1,6 @@
 import { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, PointLight, Points, PointsMaterial, SphereGeometry, Vector3 } from 'three';
 import { rng } from '../rng';
 
-/** Builds a `Points` cloud of `count` stars uniformly distributed on a sphere of `radius`, for a starfield backdrop. */
 export function CreateStarfield(
     radius = 1000,
     count = 5000,
@@ -35,7 +34,6 @@ export function CreateStarfield(
     return stars;
 }
 
-/** Builds a simple emissive-sphere-plus-point-light "sun" for a solar-system-style scene. */
 export function CreateSystemStar(position?: Vector3): Group {
     const star = new Group();
 

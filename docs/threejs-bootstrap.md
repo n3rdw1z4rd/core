@@ -29,7 +29,7 @@ class ThreeJsBoilerPlate {
     renderer: WebGLRenderer;
     cameraRig: ThreeJsCameraRig;
     orbitControls?: OrbitControls; // only set after enableOrbitControls()
-    rng: Rng;
+    rng: RandomNumberGenerator;
 
     readonly canvas: HTMLCanvasElement;
     readonly camera: PerspectiveCamera; // cameraRig.camera
@@ -57,10 +57,11 @@ const app = new ThreeJsBoilerPlate({ parentElement: document.body });
 app.setupBasicScene({ enableControls: true });
 app.scene.add(ThreeJsBoilerPlate.CreateCubeMesh());
 
-app.clock.run((dt) => {
+app.clock.on('frame', (dt) => {
     app.update();
     app.renderer.render(app.scene, app.camera);
 });
+app.clock.start();
 
 window.addEventListener('resize', () => app.resize());
 ```

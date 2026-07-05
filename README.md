@@ -29,9 +29,10 @@ log(rng.range(0, 10));   // random int in [0, 10)
 log(clamp(15, 0, 10));   // 10
 
 const clock = new Clock();
-clock.run((dt) => {
+clock.on('frame', (dt) => {
     // dt is seconds since last frame
 });
+clock.start();
 ```
 
 Everything (including the `three/*` modules) is re-exported from the package root, so `import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core"` works. Import from the `three` subpath if you want to make the Three.js dependency explicit in your own code:
@@ -44,10 +45,10 @@ import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core/three";
 
 | Area | Docs | Summary |
 |---|---|---|
-| Math & RNG | [docs/math-and-rng.md](docs/math-and-rng.md) | Pure-math `sin`/`cos`/`floor`/etc. (no native `Math` calls), a seeded `Rng` class with an exclusive `range()`, gaussian sampling, shuffling. |
+| Math & RNG | [docs/math-and-rng.md](docs/math-and-rng.md) | Pure-math `sin`/`cos`/`floor`/etc. (no native `Math` calls), a seeded `RandomNumberGenerator` class with an exclusive `range()`, gaussian sampling, shuffling. |
 | Events | [docs/events.md](docs/events.md) | `Emitter` (typed on/emit/clear), `EventBus` (DOM `CustomEvent`-based, for cross-module pub/sub without a shared instance). |
 | ECS | [docs/ecs.md](docs/ecs.md) | Two independent designs: a component-template-registry singleton (`ECS.instance`), and an Object3D-based variant under `three/ecs.ts` where components live in `userData`. |
-| Clock, logging, input | [docs/clock-logging-input.md](docs/clock-logging-input.md) | `Clock` (rAF loop + FPS/dt tracking), `ClockStats` (on-screen overlay), leveled console loggers, `Input` (keyboard/mouse event normalization). |
+| Clock, logging, input | [docs/clock-logging-input.md](docs/clock-logging-input.md) | `Clock` (rAF loop + FPS/dt tracking, emits a `'frame'` event), leveled console loggers, `Input` (keyboard/mouse event normalization). |
 | Noise | [docs/noise.md](docs/noise.md) | `Noise` (2D/3D/4D + fractal/fBm, wraps the `simplex-noise` package), plus a self-contained `SimplexNoise` class. |
 | 2D primitives | [docs/2d-primitives.md](docs/2d-primitives.md) | `Vector`, `Rectangle`, `Map2D`/`Map3D` (sparse coordinate maps), `Tilemap<T>`. |
 | Procedural generation | [docs/procedural-generation.md](docs/procedural-generation.md) | `AStar` pathfinding, `PoissonDiskSampler`, and a full room-based dungeon generator (`GenerateRooms`/`GenerateDoors`/`GenerateWalls`). |
@@ -65,4 +66,5 @@ import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core/three";
 - **Two camera-control approaches, both supported.** `ThreeJsBoilerPlate.enableCameraRigControls()` uses the hand-rolled `ThreeJsCameraRig` (orbit/dolly driven by `Input` events). `enableOrbitControls()` uses Three's own `OrbitControls` instead. They're mutually exclusive - call one or the other, not both.
 - **`rng.range(min, max)` is exclusive of `max`.** If you're carrying over code from an older version of this package (pre-0.12), note this changed from inclusive to exclusive.
 - **No native `Math` calls in `math.ts`.** `sin`/`cos`/`floor`/`ceil`/`round`/`sqrt` etc. are all reimplemented from scratch (Taylor series + quadrant reduction for trig, accurate to ~4.65e-7). Everything else in the package builds on these rather than calling `Math.*` directly, with a few explicitly-commented pragmatic exceptions (e.g. `rng.parkMillerNormal()` uses native `Math.log`).
-- **No `gl-matrix` dependency, and no `VEC2`/`VEC3`/`VEC4` types (as of 0.14).** `Input.mousePosition`/`mousePosition2`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `Rng.randomUnitVector` used to return `gl-matrix`'s `vec2`/`vec4` (`Float32Array`-backed at runtime, 32-bit float precision). They now return plain `[number, number]`/`[number, number, number, number]` tuples inline - full double precision, no longer `instanceof Float32Array`, and no named vector type at all. If you're upgrading from an older version and relied on any of that, this is a breaking change.
+- **No `gl-matrix` dependency, and no `VEC2`/`VEC3`/`VEC4` types (as of 0.14).** `Input.mousePosition`/`mousePosition2`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `RandomNumberGenerator.randomUnitVector` used to return `gl-matrix`'s `vec2`/`vec4` (`Float32Array`-backed at runtime, 32-bit float precision). They now return plain `[number, number]`/`[number, number, number, number]` tuples inline - full double precision, no longer `instanceof Float32Array`, and no named vector type at all. If you're upgrading from an older version and relied on any of that, this is a breaking change.
+- **`Rng` was renamed to `RandomNumberGenerator`.** The shared instance is still exported as `rng`, but the class type itself is `RandomNumberGenerator` now, not `Rng`. Update any type annotations that referenced `Rng` directly.

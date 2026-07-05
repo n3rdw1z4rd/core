@@ -30,7 +30,7 @@ manhattanDistance(x1, y1, x2, y2)
 roundTo(value, digits, base = 10) // arbitrary-precision round; distinct from round()
 ```
 
-Also exports the constant `PI`, and a handful of plain readonly-field interfaces for shapes used elsewhere in the package - `XY`, `XYZ`, `XYZW`, `RGB`, `RGBA` (e.g. `{ readonly x: number, readonly y: number }`). These are structural shapes, not classes with methods - `Input.mousePosition`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `Rng.randomUnitVector` all just use plain `[number, number]`/`[number, number, number, number]` tuples inline instead.
+Also exports the constant `PI`, and a handful of plain readonly-field interfaces for shapes used elsewhere in the package - `XY`, `XYZ`, `XYZW`, `RGB`, `RGBA` (e.g. `{ readonly x: number, readonly y: number }`). These are structural shapes, not classes with methods - `Input.mousePosition`, `CanvasRenderer`'s draw methods, `TextureAtlas.getUv`, and `RandomNumberGenerator.randomUnitVector` all just use plain `[number, number]`/`[number, number, number, number]` tuples inline instead.
 
 ```ts
 import { sin, cos, PI, clamp } from "@n3rdw1z4rd/core";
@@ -41,10 +41,10 @@ const y = clamp(someValue, 0, 1);
 
 ## rng.ts
 
-`Rng` is a seeded PRNG (splitmix32-based). A ready-to-use singleton is exported as `rng`.
+`RandomNumberGenerator` is a seeded PRNG (splitmix32-based). A ready-to-use singleton is exported as `rng`. (Note: this class was named `Rng` in earlier versions of this package - if you're upgrading, update any type annotations that referenced `Rng` directly. The `rng` singleton's name is unchanged.)
 
 ```ts
-class Rng {
+class RandomNumberGenerator {
     seed: number;              // get/set current seed
     readonly startingSeed: number;
 
@@ -60,7 +60,7 @@ class Rng {
     randomMatrix(size: number): number[][];
 }
 
-const rng: Rng;
+const rng: RandomNumberGenerator;
 ```
 
 **`range(min, max)` is exclusive of `max`** (if you only pass one argument, it's treated as `max` with `min = 0`). This changed from inclusive in older published versions of this package - if you're upgrading, `rng.range(0, 10)` now returns a value in `[0, 10)` instead of `[0, 10]`.

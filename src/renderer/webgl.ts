@@ -1,22 +1,17 @@
 import { KeyValue } from '../types';
 
-/** Which shader stage a shader source string compiles for. */
 export enum ShaderType {
     VERTEX = WebGL2RenderingContext.VERTEX_SHADER,
     FRAGMENT = WebGL2RenderingContext.FRAGMENT_SHADER,
 }
 
-/** Attribute/uniform name -> location lookup for a linked program. */
 export type ProgramLocations = { attributes: KeyValue, uniforms: KeyValue };
-/** A linked program plus its resolved attribute/uniform locations. */
 export type ProgramInfo = { program: WebGLProgram, attributes: KeyValue, uniforms: KeyValue };
 
-/** Creates a `WebGL2RenderingContext` from `canvas` (or a new detached `<canvas>` if omitted). */
 export function CreateWebGlContext(canvas?: HTMLCanvasElement): WebGL2RenderingContext {
     return (canvas ?? document.createElement('canvas')).getContext('webgl2')!;
 }
 
-/** Resizes `gl`'s canvas backing store and viewport to match its parent's (or explicit) size. Returns whether a resize happened. */
 export function ResizeWebGlContext(
     gl: WebGL2RenderingContext,
     displayWidth?: number,
@@ -43,7 +38,6 @@ export function ResizeWebGlContext(
     return false;
 }
 
-/** Compiles a shader from `source`. Throws (with the driver's info log) if compilation fails. */
 export function CompileShader(gl: WebGL2RenderingContext, type: ShaderType, source: string): WebGLShader {
     const shader: WebGLShader = gl.createShader(type)!;
 
@@ -57,7 +51,6 @@ export function CompileShader(gl: WebGL2RenderingContext, type: ShaderType, sour
     return shader;
 }
 
-/** Links a program from a vertex and fragment shader, compiling either one first if given as source strings. Throws if linking fails. */
 export function CreateProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader | string, fragmentShader: WebGLShader | string): WebGLProgram {
     if (typeof vertexShader === 'string') {
         vertexShader = CompileShader(gl, ShaderType.VERTEX, vertexShader) as WebGLShader;
@@ -80,7 +73,6 @@ export function CreateProgram(gl: WebGL2RenderingContext, vertexShader: WebGLSha
     return program;
 }
 
-/** Introspects a linked program and resolves the location of every active attribute and uniform, keyed by name. */
 export function GetProgramLocations(gl: WebGL2RenderingContext, program: WebGLProgram): ProgramLocations {
     const attributes: KeyValue = {};
     const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
@@ -101,7 +93,6 @@ export function GetProgramLocations(gl: WebGL2RenderingContext, program: WebGLPr
     return { attributes, uniforms } as ProgramLocations;
 }
 
-/** Convenience combining {@link CreateProgram} and {@link GetProgramLocations} into a single {@link ProgramInfo}. */
 export function CreateProgramInfo(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string): ProgramInfo {
     const program: WebGLProgram = CreateProgram(
         gl, vertexShaderSource, fragmentShaderSource
