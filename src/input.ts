@@ -1,12 +1,10 @@
 import { Emitter } from './emitter';
 
-/** Pressed/released state for a single key or mouse button, with the timestamp of the last change. */
 export interface InputState {
     state: number,
     timeStamp: number,
 }
 
-/** Modifier-key and timing fields common to keyboard/mouse/wheel events, forwarded on every emitted event. */
 export interface CommonEventProps {
     timeStamp: number,
     altKey: boolean,
@@ -15,17 +13,9 @@ export interface CommonEventProps {
     shiftKey: boolean,
 }
 
-/**
- * Global keyboard/mouse input tracker. Listens on `window` and re-emits
- * (via {@link Emitter}) both generic events (`key_down`, `mouse_move`, ...)
- * and per-key/per-button variants (e.g. `space_down`, `mouse_button_0_up`).
- * Also tracks current key/button state for polling via {@link isKeyDown}
- * etc, alongside the emitted events. Right-click/context-menu suppression
- * is opt-in via {@link blockContextMenu}.
- */
 export class Input extends Emitter {
-    /** Max milliseconds between down and up for a `*_pressed`/`*_clicked` event to also fire. */
     public inputThreshold: number = 200;
+    
     private _keyStates: { [key: string]: InputState } = {};
     private _mouseButtonStates: { [key: number]: InputState } = {};
 
@@ -34,9 +24,7 @@ export class Input extends Emitter {
 
     private _contextMenuTarget: EventTarget | undefined;
 
-    /** Mouse position in canvas/element-relative pixels (`offsetX`/`offsetY`). */
     public get mousePosition(): [number, number] { return this._mousePosition; }
-    /** Mouse position normalized to `[-1, 1]` on both axes, Y-up (the convention WebGL/Three.js expects for e.g. raycasting). */
     public get mousePosition2(): [number, number] { return this._mousePosition2; }
 
     constructor() {
@@ -50,15 +38,6 @@ export class Input extends Emitter {
         window.addEventListener('wheel', this._onWheel.bind(this) as EventListener);
     }
 
-    /**
-     * Opt-in: prevents the native browser context menu from appearing on
-     * `target` (e.g. your game canvas) and emits a `contextmenu` event
-     * instead, so you can handle right-click yourself. Not enabled by
-     * default, since blocking the context menu globally would be too
-     * aggressive for most pages - call this explicitly (typically with
-     * your canvas element) to opt in. Call {@link stopBlockingContextMenu}
-     * to undo it.
-     */
     public blockContextMenu(target: EventTarget): void {
         this.stopBlockingContextMenu();
 
@@ -66,7 +45,6 @@ export class Input extends Emitter {
         target.addEventListener('contextmenu', this._onContextMenu as EventListener);
     }
 
-    /** Undoes {@link blockContextMenu}, restoring the native context menu on whatever target it was attached to. */
     public stopBlockingContextMenu(): void {
         this._contextMenuTarget?.removeEventListener('contextmenu', this._onContextMenu as EventListener);
         this._contextMenuTarget = undefined;
@@ -180,22 +158,18 @@ export class Input extends Emitter {
         });
     }
 
-    /** Whether `keyCode` (a `KeyboardEvent.code`, e.g. `'Space'`) is currently held down. */
     public isKeyDown(keyCode: string): boolean {
         return this._keyStates[keyCode]?.state === 1 ? true : false;
     }
 
-    /** Raw state (`1` down, `0` up, defaulting to `0` if never seen) for `keyCode`. */
     public getKeyState(keyCode: string): number {
         return this._keyStates[keyCode]?.state ?? 0;
     }
 
-    /** Whether the given mouse button index is currently held down. */
     public isMouseButtonDown(mouseButton: number): boolean {
         return this._mouseButtonStates[mouseButton]?.state === 1 ? true : false;
     }
 
-    /** Raw state (`1` down, `0` up) for the given mouse button index. */
     public getMouseButtonState(button: number): number {
         return this._mouseButtonStates[button]?.state ?? 0;
     }

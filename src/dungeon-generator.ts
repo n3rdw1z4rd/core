@@ -5,56 +5,39 @@ import { log } from './logger';
 import { Map2D } from './map2d';
 import { rng } from './rng';
 
-/** A pair of connected rooms, used while building the room-connection graph. */
 export type RectPair = { a: Rectangle, b: Rectangle };
-/** A pair of grid points, e.g. the start/end of a corridor. */
 export type PointPair = { a: XY, b: XY };
 
-/** Options controlling random room placement in {@link GenerateRooms}. */
 export interface RoomsParams {
-    /** Side length of the square map to place rooms into. */
     size?: number,
     minSize?: number,
     maxSize?: number,
-    /** Minimum gap enforced between rooms. */
     padding?: number,
-    /** Consecutive failed placement attempts allowed before giving up (rooms already placed are kept). */
     maxIterations?: number,
 }
 
-/** Options controlling corridor generation between rooms in {@link GenerateRooms}. */
 export interface PathsParams {
-    /** Max milliseconds to spend building the room-connection graph before stopping early. */
     timeout?: number,
-    /** How many of the cheapest non-MST connections to consider adding as extra loops. */
     extraPaths?: number,
-    /** Chance (0-1) that each considered extra connection is actually added. */
     extraPathDensity?: number,
     astarFindPathParams?: AStarFindPathParams,
 }
 
-/** Options for {@link GenerateDoors}. */
 export interface DoorsParams {
     plotDoors?: boolean,
-    /** Chance (0-1) that a candidate doorway becomes an actual door. */
     chanceExists?: number,
     chanceOpen?: number,
     chanceLocked?: number,
 }
 
-/** Combined options for a full {@link GenerateRooms} call. */
 export interface GenerateRoomsParams {
-    /** Existing map to plot into; a new one is created if omitted. */
     map?: Map2D,
     rooms?: RoomsParams,
     paths?: PathsParams,
 }
 
-/** Tile value for unused/wall space. */
 export const TILE_EMPTY = 0;
-/** Tile value for room floors. */
 export const TILE_FLOOR = 1;
-/** Tile value for corridors connecting rooms. */
 export const TILE_PATH = 2;
 
 const DEFAULT_LEVEL_SIZE = 64;
@@ -263,14 +246,6 @@ function _generatePaths(map: Map2D, rooms: Rectangle[], params: PathsParams = {}
     return paths;
 }
 
-/**
- * Generates a rooms-and-corridors dungeon layout: randomly places
- * non-overlapping rooms, connects them with a minimum-spanning-tree of
- * corridors (plus optional extra loop connections) pathed via {@link AStar},
- * and plots everything ({@link TILE_FLOOR}/{@link TILE_PATH}) onto a
- * {@link Map2D}. Pair with {@link GenerateDoors} and {@link GenerateWalls}
- * to finish the level.
- */
 export function GenerateRooms(params: GenerateRoomsParams = {}): { map: Map2D, rooms: Rectangle[], paths: XY[][] } {
     const startTime = Date.now();
 
@@ -287,11 +262,6 @@ export function GenerateRooms(params: GenerateRoomsParams = {}): { map: Map2D, r
     return { map, rooms, paths };
 }
 
-/**
- * Picks door locations at the endpoints of corridors returned by
- * {@link GenerateRooms}, keeping only ones flanked by empty tiles on
- * opposite sides (i.e. an actual wall gap), each with a {@link DoorsParams.chanceExists} chance of being included.
- */
 export function GenerateDoors(map: Map2D, paths: XY[][], params: DoorsParams = {}): XY[] {
     const chanceExists = params.chanceExists ?? DEFAULT_DOOR_CHANCE_EXISTS;
 
@@ -318,7 +288,6 @@ export function GenerateDoors(map: Map2D, paths: XY[][], params: DoorsParams = {
     return doors;
 }
 
-/** Finds every empty ({@link TILE_EMPTY}) cell 8-directionally adjacent to a non-empty cell - candidate wall placements around the generated layout. */
 export function GenerateWalls(map: Map2D): XY[] {
     const walls: XY[] = [];
 

@@ -1,17 +1,10 @@
 import { CreateWebGlContext, ProgramInfo } from './webgl';
 
-/** Options for constructing a {@link WebGlRenderer}. Currently unused by the constructor itself - reserved for future configuration. */
 export interface RendererParams {
     canvas?: HTMLCanvasElement,
     parent?: HTMLElement,
 }
 
-/**
- * Minimal raw-WebGL2 renderer wrapper: owns a canvas/context with depth
- * testing enabled and handles resizing. Lower-level than the `three/`
- * helpers - use this when working directly with `webgl.ts`'s shader/program
- * functions rather than Three.js.
- */
 export class WebGlRenderer {
     public gl: WebGL2RenderingContext;
 
@@ -27,7 +20,6 @@ export class WebGlRenderer {
         this.gl.enable(this.gl.DEPTH_TEST);
     }
 
-    /** Moves the canvas into `htmlElement` (detaching from any previous parent) and resizes to fit. */
     public appendTo(htmlElement?: HTMLElement) {
         if (this.canvas.parentElement) {
             this.canvas.parentElement.removeChild(this.canvas);
@@ -39,7 +31,6 @@ export class WebGlRenderer {
         }
     }
 
-    /** Resizes the canvas backing store and GL viewport to match its parent's (or explicit) size. Returns whether a resize happened. */
     public resize(displayWidth?: number, displayHeight?: number): boolean {
         const { width, height } = (
             this.canvas.parentElement?.getBoundingClientRect() ??
@@ -59,8 +50,7 @@ export class WebGlRenderer {
         return false;
     }
 
-    /** Per-frame render hook. Currently a no-op stub - drawing logic is left to the consumer for now. */
-    render(_deltaTime: number) {
+    public render(_deltaTime: number) {
         if (this.programInfo) {
 
         }

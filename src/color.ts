@@ -1,12 +1,6 @@
 import { logwrn } from './logger';
 import { clamp } from './math';
 
-/**
- * 8-bit RGBA color with hex-string interop. Channels are stored/exposed in
- * `[0, 255]` (not `[0, 1]` like {@link RGBA}); the constructor's numeric
- * overload treats values in `(0, 1)` as normalized floats and rescales
- * them to `[0, 255]`.
- */
 export class Color {
     private _hex: string = '#ffffffff';
     private _r: number = 255;
@@ -38,7 +32,6 @@ export class Color {
         this._hex = this._to_hex();
     }
 
-    /** 8-digit hex string form, e.g. `'#ff8800ff'`. */
     public get hexStr(): string { return this._hex; }
     public set hexStr(value: string) {
         if (value.startsWith('#')) {
@@ -49,15 +42,8 @@ export class Color {
         }
     }
 
-    /** Channels as a 4-element `[r, g, b, a]` array, each in `[0, 255]`. */
     public get rgba(): number[] { return [this._r, this._g, this._b, this._a]; }
 
-    /**
-     * Accepts either a hex color string as the first argument (e.g.
-     * `'#ff8800'` or `'#ff8800ff'`), or four numeric channels. Numeric
-     * channels in `(0, 1)` are treated as normalized floats and rescaled to
-     * `[0, 255]`; anything else is clamped to `[0, 255]` as-is.
-     */
     constructor(r: string | number = 255, g: number = 255, b: number = 255, a: number = 255) {
         if (typeof r === 'string') {
             if (r.startsWith('#')) {
@@ -95,7 +81,6 @@ export class Color {
         ] : [255, 255, 255, 255];
     }
 
-    /** Builds a `Color` from HSV, each of `h`/`s`/`v` in `[0, 1]`. `a` is a normal 8-bit alpha channel (`[0, 255]`). */
     public static fromHsv(h: number, s: number, v: number, a: number = 255): Color {
         let r: number = 0
         let g: number = 0
@@ -119,7 +104,6 @@ export class Color {
         return new Color(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a);
     }
 
-    /** A handful of common opaque named colors, provided for convenience. */
     public static get BLACK(): Color { return new Color(0, 0, 0, 255); }
     public static get GRAY(): Color { return new Color(128, 128, 128, 255); }
     public static get WHITE(): Color { return new Color(255, 255, 255, 255); }
@@ -132,12 +116,6 @@ export class Color {
     public static get CYAN(): Color { return new Color(0, 255, 255, 255); }
     public static get MAGENTA(): Color { return new Color(255, 0, 255, 255); }
 
-    /**
-     * Resolves any valid CSS color name (or other CSS color syntax) via a
-     * throwaway styled DOM element and `getComputedStyle`, so this only
-     * works in a browser environment. Falls back to {@link TRANSPARENT} if
-     * the name can't be resolved.
-     */
     public static fromName(name: string): Color {
         const element = document.createElement('div');
         element.style.color = name;
@@ -157,6 +135,5 @@ export class Color {
         }
     }
 
-    /** Fully transparent black. */
     public static get TRANSPARENT(): Color { return new Color(0, 0, 0, 0); }
 }

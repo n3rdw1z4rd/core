@@ -38,13 +38,6 @@ const Colors = [
     [1, 0, 1, 1], // magenta,
 ];
 
-/**
- * 3D "particle life" simulation - see {@link ParticleSystem2d} for the 2D
- * version and more detail on the attraction-matrix technique. Renders as a
- * `Points` cloud with a custom vertex-color shader; call {@link update}
- * once per frame with the active camera (used for back-to-front sorting of
- * the semi-transparent points).
- */
 export class ParticleSystem3d extends Group {
     public readonly particleCount = 1000;
 
@@ -236,7 +229,6 @@ export class ParticleSystem3d extends Group {
         this._geometry.attributes.position.needsUpdate = true;
     }
 
-    /** Advances the simulation by `dt` seconds, re-sorts particles back-to-front relative to `camera`, and updates the render geometry. Call once per frame. */
     public update(camera: PerspectiveCamera, dt: number) {
         this._updateVelocities(dt);
         this._updatePositions(dt);

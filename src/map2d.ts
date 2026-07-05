@@ -2,17 +2,11 @@ import { floor } from "./math";
 
 const DEFAULT_VALUE = -1;
 
-/**
- * Sparse 2D grid of numbers, backed by a string-keyed `Map` rather than a
- * fixed-size array - cells equal to {@link defaultValue} aren't stored at
- * all, so unbounded/mostly-empty grids stay cheap.
- */
 export class Map2D {
     readonly defaultValue: number;
 
     private _data: Map<string, number>;
 
-    /** Number of non-default cells currently stored. */
     get size(): number { return this._data.size; }
 
     constructor(defaultValue: number = DEFAULT_VALUE) {
@@ -32,20 +26,17 @@ export class Map2D {
         return key.split(',').map((v: string) => parseInt(v)) as [number, number];
     }
 
-    /** Removes every stored cell. */
-    clear() {
+    public clear() {
         this._data.clear();
     }
 
-    /** Reads the value at `(x, y)` (coordinates are floored), or `defaultValue` if unset. */
-    get(x: number, y: number, defaultValue: number = this.defaultValue): number {
+    public get(x: number, y: number, defaultValue: number = this.defaultValue): number {
         [x, y] = this._floor(x, y);
 
         return this._data.get(this._key(x, y)) ?? defaultValue;
     }
 
-    /** Sets the value at `(x, y)`. Setting it back to {@link defaultValue} removes the entry entirely instead of storing it. */
-    set(x: number, y: number, value: number = this.defaultValue) {
+    public set(x: number, y: number, value: number = this.defaultValue) {
         [x, y] = this._floor(x, y);
 
         const key = this._key(x, y);
@@ -57,8 +48,7 @@ export class Map2D {
         }
     }
 
-    /** Iterates every stored (non-default) cell. */
-    forEach(callback: (x: number, y: number, v: number) => void) {
+    public forEach(callback: (x: number, y: number, v: number) => void) {
         this._data.forEach((v: number, key: string) => {
             const [x, y] = this._pos(key);
             callback(x, y, v);

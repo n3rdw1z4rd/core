@@ -7,19 +7,15 @@ import { KeyValue } from '../types';
 import { rng } from '../rng';
 import { ThreeJsCameraRig } from './threejs-camera-rig';
 
-/** Options for {@link ThreeJsBoilerPlate.setupBasicScene}. */
 export interface SetupBasicSceneParams {
     ambientLight?: boolean,
     directionalLight?: boolean,
     gridHelper?: boolean,
     cameraDistance?: number,
-    /** When true, enables {@link ThreeJsBoilerPlate.enableCameraRigControls}. */
     enableControls?: boolean,
 }
 
-/** Constructor options for {@link ThreeJsBoilerPlate}. */
 export interface ThreeJsBoilerPlateParams {
-    /** If given, the renderer's canvas is appended here immediately (see {@link ThreeJsBoilerPlate.appendTo}). */
     parentElement?: HTMLElement,
     renderer?: WebGLRendererParameters,
     camera?: {
@@ -28,17 +24,9 @@ export interface ThreeJsBoilerPlateParams {
         near?: number,
         far?: number,
     },
-    /** Seeds the shared {@link rng} used throughout the boilerplate. */
     seed?: number,
 }
 
-/**
- * Batteries-included Three.js scene setup: owns a `Clock`, `Scene`,
- * `WebGLRenderer`, `Input`, and a {@link ThreeJsCameraRig}, plus helpers for
- * resizing, mouse picking, and quick test meshes. Meant as a fast starting
- * point, not a required architecture - use the lower-level `three/` and
- * `renderer/` modules directly if you need more control.
- */
 export class ThreeJsBoilerPlate {
     public clock = new Clock();
     public scene = new Scene();
@@ -67,11 +55,6 @@ export class ThreeJsBoilerPlate {
         }
     }
 
-    /**
-     * Mutually exclusive with {@link enableOrbitControls} - pick one. Gives
-     * you manual `orbit()`/`dolly()` with tilt clamping and target-following,
-     * driven by `this.input`'s mouse events.
-     */
     public enableCameraRigControls() {
         this.orbitControls?.dispose();
         this.orbitControls = undefined;
@@ -85,14 +68,6 @@ export class ThreeJsBoilerPlate {
             .on('mouse_wheel', ({ deltaY }: KeyValue) => this.cameraRig.dolly(deltaY));
     }
 
-    /**
-     * Mutually exclusive with {@link enableCameraRigControls} - pick one.
-     * Uses Three's own `OrbitControls` instead of the hand-rolled rig math;
-     * call {@link update} once per frame in your render loop while this is
-     * active. Async because `OrbitControls` only ships as an ESM-only addon
-     * module - a dynamic import avoids forcing this whole package (built as
-     * both CJS and ESM) to statically import an ESM-only file.
-     */
     public async enableOrbitControls() {
         const { OrbitControls } = await import('three/examples/jsm/Addons.js');
 
@@ -102,12 +77,10 @@ export class ThreeJsBoilerPlate {
         this.orbitControls.update();
     }
 
-    /** Call once per frame if {@link enableOrbitControls} is active - no-op otherwise. */
     public update() {
         this.orbitControls?.update();
     }
 
-    /** Moves the renderer's canvas into `htmlElement` (detaching from any previous parent) and resizes to fit. */
     public appendTo(htmlElement?: HTMLElement) {
         if (this.canvas.parentElement) {
             this.canvas.parentElement.removeChild(this.canvas);
@@ -119,7 +92,6 @@ export class ThreeJsBoilerPlate {
         }
     }
 
-    /** Resizes the renderer and updates the camera's aspect ratio to match its parent's (or explicit) size. Returns whether a resize happened. */
     public resize(displayWidth?: number, displayHeight?: number): boolean {
         const { width, height } = (
             this.canvas.parentElement?.getBoundingClientRect() ??
@@ -143,7 +115,6 @@ export class ThreeJsBoilerPlate {
         return resized;
     }
 
-    /** Adds a default ambient light, directional light, and grid helper (each individually opt-out-able), and positions the camera. */
     public setupBasicScene(params: SetupBasicSceneParams = {}) {
         this.camera.position.z = params.cameraDistance ?? 5;
 
@@ -156,7 +127,6 @@ export class ThreeJsBoilerPlate {
         }
     }
 
-    /** Raycasts from the current mouse position into the scene, returning the nearest hit (or `null`). */
     public pick(): Intersection | null {
         const pickX = (this.input.mousePosition[0] / this.renderer.domElement.width) * 2 - 1;
         const pickY = -(this.input.mousePosition[1] / this.renderer.domElement.height) * 2 + 1;
@@ -168,7 +138,6 @@ export class ThreeJsBoilerPlate {
         return intersected.length ? intersected[0] : null;
     }
 
-    /** Quick test mesh: a `size`-cubed box with Lambert material. */
     public static CreateCubeMesh(size: number = 1, color: ColorRepresentation = 0xff0000): Mesh {
         const cubeMesh = new Mesh(
             new BoxGeometry(size, size, size),
@@ -180,7 +149,6 @@ export class ThreeJsBoilerPlate {
         return cubeMesh;
     }
 
-    /** Quick test mesh: a wireframe ground plane, `size` x `size` with `segments` subdivisions per axis. */
     public static CreatePlaneMesh(size: number = 10, segments: number = 10, color: ColorRepresentation = 0xff0000): Mesh {
         return new Mesh(
             new PlaneGeometry(size, size, segments, segments),

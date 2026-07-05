@@ -2,24 +2,15 @@ import { IcosahedronGeometry, Mesh, MeshStandardMaterial } from 'three';
 import { createNoise3D } from 'simplex-noise';
 import { rng } from '../rng';
 
-/** Options for {@link AsteroidMesh}. */
 export interface AsteroidOptions {
     radius?: number;
-    /** Icosahedron subdivision level - higher gives smoother, more detailed noise displacement. */
     detail?: number;
     noiseScale?: number;
-    /** How strongly noise displaces each vertex, as a fraction of `radius`. */
     displacement?: number;
-    /** Adds a second, higher-frequency noise layer for extra surface detail. */
     secondaryNoise?: boolean;
     color?: number;
 }
 
-/**
- * Procedurally-lumpy rock mesh: starts from an `IcosahedronGeometry` and
- * displaces each vertex along its normal by 3D simplex noise, giving a
- * cheap asteroid/rock look without needing hand-authored geometry.
- */
 export class AsteroidMesh extends Mesh {
     constructor(options: AsteroidOptions = {}) {
         const radius = options.radius ?? 1;

@@ -1,11 +1,9 @@
-/** Minimal shape a {@link SpatialPartition3d} entity must have - just a position. */
 export interface SpatialPartitionEntity3d {
     x: number;
     y: number;
     z: number;
 }
 
-/** 3D counterpart to {@link SpatialPartition2d} - see its docs for the normalized-coordinate and wraparound behavior. */
 export class SpatialPartition3d {
     cells: SpatialPartitionEntity3d[][][][];
     cellSize: number;
@@ -28,7 +26,6 @@ export class SpatialPartition3d {
         }
     }
 
-    /** Returns the cell (list of entities) containing world position `(x, y, z)`. */
     getCell(x: number, y: number, z: number) {
         const cx = Math.floor(x / this.cellSize);
         const cy = Math.floor(y / this.cellSize);
@@ -37,7 +34,6 @@ export class SpatialPartition3d {
         return this.cells[cz][cy][cx];
     }
 
-    /** Returns the 26 neighboring cells around cell coordinates `(cx, cy, cz)`, wrapping around the grid edges. */
     getCellNeighbors(cx: number, cy: number, cz: number) {
         const neighbors = [];
         const gridSize = this.cells.length;
@@ -57,7 +53,6 @@ export class SpatialPartition3d {
         return neighbors;
     }
 
-    /** Adds an entity to the cell matching its current position. */
     addEntity(entity: SpatialPartitionEntity3d) {
         const cell = this.getCell(entity.x, entity.y, entity.z);
 

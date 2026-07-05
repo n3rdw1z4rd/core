@@ -1,13 +1,6 @@
 import { BoxGeometry, Vector3 } from 'three';
 import { Noise } from '../noise';
 
-/**
- * A `BoxGeometry` whose vertices are normalized and pushed back out to a
- * sphere of the same size - the classic "cube sphere" trick for
- * near-uniform quad distribution (unlike `SphereGeometry`'s pole pinching).
- * Call {@link applyFractalBrownianMotion} afterward to turn it into a
- * planet-like terrain mesh.
- */
 export class CubeSphereGeometry extends BoxGeometry {
     private _halfSize: number;
 
@@ -34,7 +27,6 @@ export class CubeSphereGeometry extends BoxGeometry {
         attrPositions.needsUpdate = true;
     }
 
-    /** Displaces every vertex radially by layered ({@link fBm}) 3D simplex noise sampled at world position * `scale`, scaled by `amplitude` - turns the sphere into rough terrain. */
     applyFractalBrownianMotion(octaves: number, persistence: number, scale: number, amplitude: number) {
         const attrPositions = this.attributes.position;
         const position = new Vector3();
@@ -52,7 +44,6 @@ export class CubeSphereGeometry extends BoxGeometry {
         attrPositions.needsUpdate = true;
     }
 
-    /** Fractal Brownian motion: sums `octaves` layers of 3D simplex noise at doubling frequency and `persistence`-scaled amplitude, normalized to roughly `[-1, 1]`. */
     private fBm(x: number, y: number, z: number, octaves: number, persistence: number): number {
         let total = 0;
         let frequency = 1;

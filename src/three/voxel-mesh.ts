@@ -1,13 +1,9 @@
 import { BufferAttribute, BufferGeometry, Color, Mesh, MeshBasicMaterial, MeshLambertMaterial, MeshPhongMaterial, MeshPhysicalMaterial, MeshStandardMaterial, type ColorRepresentation } from 'three';
 
-/** A single voxel's position and palette index, as used by {@link VoxelData}. */
 export type Voxel = { x: number, y: number, z: number, color: number };
-/** Sparse backing store for {@link VoxelMesh} - coordinate key to palette index. */
 export type VoxelMap = Map<string, number>;
-/** Any Three.js material {@link VoxelMesh} can use (vertex colors are enabled on whichever is passed in). */
 export type VoxelMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMaterial | MeshStandardMaterial | MeshPhysicalMaterial;
 
-/** Serializable form of a {@link VoxelMesh}'s contents, for import/export. */
 export interface VoxelData {
     name: string,
     width: number,
@@ -17,14 +13,6 @@ export interface VoxelData {
     voxels: Voxel[],
 }
 
-/**
- * Greedy-culled voxel mesh: stores a sparse grid of palette-indexed voxels
- * and rebuilds a `BufferGeometry` from only the faces adjacent to empty
- * space (via {@link VoxelFaces}), with per-vertex colors from
- * {@link colorPalette}. Call {@link set} to edit voxels and
- * {@link updateGeometry} to rebuild the mesh (only rebuilds when
- * {@link needsGeometryUpdate} is set).
- */
 export class VoxelMesh extends Mesh {
     readonly type: string = 'VoxelMesh';
 
@@ -75,7 +63,6 @@ export class VoxelMesh extends Mesh {
         return { x, y, z };
     }
 
-    /** Palette index at `(x, y, z)`, or `-1` if empty or out of bounds. */
     get(x: number, y: number, z: number): number {
         let n = -1;
 
@@ -89,7 +76,6 @@ export class VoxelMesh extends Mesh {
         return n;
     }
 
-    /** Sets the voxel at `(x, y, z)` to palette index `n` (or clears it if omitted). Out-of-bounds coordinates are ignored. Marks the mesh for geometry rebuild. */
     set(x: number, y: number, z: number, n?: number) {
         if (
             x >= 0 && y >= 0 && z >= 0 &&
@@ -102,12 +88,10 @@ export class VoxelMesh extends Mesh {
         }
     }
 
-    /** Removes every voxel. */
     clearVoxels() {
         this.voxels.clear();
     }
 
-    /** Resizes the voxel bounds, deleting any voxels that fall outside the new dimensions. Marks the mesh for geometry rebuild. */
     setSize(width: number, depth: number, height: number) {
         this.forEachVoxel((x: number, y: number, z: number) => {
             if (x >= width || y >= height || z >= depth) this.set(x, y, z);
@@ -120,7 +104,6 @@ export class VoxelMesh extends Mesh {
         this.needsGeometryUpdate = true;
     }
 
-    /** Iterates every non-empty voxel. */
     forEachVoxel(callback: (x: number, y: number, z: number, n: number) => void) {
         this.voxels.forEach((n: number, k: string) => {
             const { x, y, z } = this._k2xyz(k);
@@ -128,7 +111,6 @@ export class VoxelMesh extends Mesh {
         });
     }
 
-    /** Replaces this mesh's contents (voxels, size, name, and merged palette) from a {@link VoxelData} snapshot, then rebuilds geometry. */
     importVoxelData(voxelData: VoxelData) {
         this.clearVoxels();
 
@@ -151,11 +133,6 @@ export class VoxelMesh extends Mesh {
         this.updateGeometry();
     }
 
-    /**
-     * Rebuilds the mesh's `BufferGeometry` if {@link needsGeometryUpdate}
-     * is set (no-op otherwise): for each voxel, emits only the faces
-     * bordering empty space, culling entirely-hidden interior faces.
-     */
     updateGeometry() {
         if (this.needsGeometryUpdate) {
             const positions: number[] = [];
@@ -201,7 +178,6 @@ export class VoxelMesh extends Mesh {
         this.needsGeometryUpdate = false;
     }
 
-    /** Snapshots this mesh's current voxels, size, name, and palette as a {@link VoxelData} object. */
     exportData(): VoxelData {
         const voxelData: VoxelData = {
             name: this.name,
@@ -220,11 +196,6 @@ export class VoxelMesh extends Mesh {
     }
 }
 
-/**
- * The 6 cube faces, each as 4 vertices of `[nx, ny, nz, px, py, pz]`
- * (normal direction, then position offset within the voxel cell). Used by
- * {@link VoxelMesh.updateGeometry} to emit only visible faces.
- */
 export const VoxelFaces: Array<Array<number[]>> = [ // [nx, ny, nz, px, py, pz]
     [ //left
         [-1, 0, 0, 0, 1, 0],
@@ -269,7 +240,6 @@ export const VoxelFaces: Array<Array<number[]>> = [ // [nx, ny, nz, px, py, pz]
     ],
 ];
 
-/** Builds a default voxel color palette: a 48-color rainbow ({@link Colors.rgb48} by default, or `palette` if given) followed by 16 grayscale shades. */
 export function BuildDefaultPalette(palette?: ColorRepresentation[]): ColorRepresentation[] {
     palette = palette ?? Colors.rgb48;
 
@@ -284,7 +254,6 @@ export function BuildDefaultPalette(palette?: ColorRepresentation[]): ColorRepre
     return [...palette, ...grayscale];
 }
 
-/** Preset hue-wheel color ramps at increasing resolution (12/24/48/64 steps), used as default voxel palettes. */
 export const Colors = {
     rgb12: [
         '#FF0000', '#FF8800', '#FFFF00', '#88FF00',

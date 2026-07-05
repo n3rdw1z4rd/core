@@ -5,13 +5,6 @@ interface Vec2 {
     y: number;
 }
 
-/**
- * Bridson's algorithm for Poisson-disk sampling: generates points within a
- * `width` x `height` area such that no two points are closer than
- * `minDist`, with roughly even coverage (useful for scattering objects
- * without clumping or a rigid grid look). `maxPoints` caps how many
- * candidate points are tried around each active point before giving up on it.
- */
 export function PoissonDiskSampler(
     width: number,
     height: number,

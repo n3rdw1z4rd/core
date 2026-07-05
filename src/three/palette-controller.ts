@@ -2,17 +2,14 @@ import { Color, Vector3, type ColorRepresentation } from 'three';
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js' with { 'resolution-mode': 'import' };
 import { clamp } from '../math';
 
-/** Options for the browser `EyeDropper.open()` call. */
 export interface ColorSelectionOptions {
     signal: AbortSignal,
 }
 
-/** Result of a browser `EyeDropper` pick. */
 export interface ColorSelectionResult {
     sRGBHex: ColorRepresentation,
 }
 
-/** Minimal typing for the experimental browser `EyeDropper` API (not in all lib.dom.d.ts versions yet). */
 export interface EyeDropper {
     new(): EyeDropper,
     open: (options?: ColorSelectionOptions) => Promise<ColorSelectionResult>,
@@ -24,10 +21,8 @@ declare global {
     }
 }
 
-/** Callback invoked when the user picks a different palette color in a {@link PaletteController}. */
 export type PaletteControllerOnChange = (colorIndex: number) => void;
 
-/** Public shape returned by {@link CreatePaletteController}. */
 export interface PaletteController {
     $innerDiv: HTMLDivElement;
     colorButtons: HTMLElement[];
@@ -40,19 +35,6 @@ export interface PaletteController {
     findClosestColorMatchIndex(color: ColorRepresentation): number;
 }
 
-/**
- * Generic lil-gui color-swatch grid widget for picking an index into a flat
- * color palette (e.g. a {@link VoxelMesh}'s `colorPalette`). Decoupled from
- * any specific app/engine: operates directly on a `ColorRepresentation[]`
- * reference and an `onChange` callback, rather than requiring a whole app
- * instance. Supports the browser `EyeDropper` API (left-click a swatch to
- * select it, right-click to eyedropper-replace it) where available.
- *
- * lil-gui ships as an ESM-only module under `three/examples/jsm`, so its
- * `Controller` class is imported dynamically here (rather than statically)
- * to avoid a CJS/ESM resolution error - see
- * {@link ThreeJsBoilerPlate.enableOrbitControls} for the same pattern.
- */
 export async function CreatePaletteController(
     parentGui: GUI,
     colorPalette: ColorRepresentation[],
@@ -160,7 +142,6 @@ export async function CreatePaletteController(
             this.$innerDiv.appendChild(colorButton);
         }
 
-        /** Syncs button colors/tooltips from `colorPalette`, creating new buttons if the palette has grown. */
         updatePaletteColors() {
             this.colorPalette.forEach((color: ColorRepresentation, i: number) => {
                 if (i < this.colorButtons.length) {
@@ -172,14 +153,12 @@ export async function CreatePaletteController(
             });
         }
 
-        /** Moves the selection border to `colorIndex` (clamped to the palette's bounds). */
         setSelectedColor(colorIndex: number = 0) {
             this.colorButtons[this.currentColorIndex].style.removeProperty('border');
             this.currentColorIndex = clamp(colorIndex, 0, this.colorPalette.length);
             this.colorButtons[this.currentColorIndex].style.setProperty('border', this.selectedBorderStyle);
         }
 
-        /** Finds the palette index whose color is nearest to `color` (Euclidean distance in RGB space), used by the eyedropper flow. */
         findClosestColorMatchIndex(color: ColorRepresentation): number {
             const pickedColor = new Color(color);
             const pickedVector = new Vector3().setFromColor(pickedColor);

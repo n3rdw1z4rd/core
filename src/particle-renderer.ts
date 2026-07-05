@@ -1,11 +1,5 @@
 import { Color } from './color';
 
-/**
- * Double-buffered 2D canvas renderer built for per-pixel particle rendering
- * (draws into an `OffscreenCanvas` buffer, then blits it to the screen
- * canvas each frame) - distinct from {@link CanvasRenderer}, which is a
- * general-purpose shape/text drawing API. Used by {@link ParticleSystem2d}.
- */
 export class Renderer {
     private _screenCanvas: HTMLCanvasElement;
     private _bufferCanvas: OffscreenCanvas;
@@ -28,7 +22,6 @@ export class Renderer {
         }
     }
 
-    /** Moves the screen canvas into `target` (detaching from any previous parent) and optionally resizes to fit. */
     appendTo(target: HTMLElement, autoResize: boolean = true): void {
         if (this._screenCanvas.parentNode) {
             this._screenCanvas.parentNode.removeChild(this._screenCanvas);
@@ -41,7 +34,6 @@ export class Renderer {
         }
     }
 
-    /** Resizes both the screen and buffer canvases to match the parent's (or explicit) size. Returns whether a resize happened. */
     resize(displayWidth?: number, displayHeight?: number): boolean {
         const { width, height } = (
             this._screenCanvas.parentElement?.getBoundingClientRect() ??
@@ -64,13 +56,11 @@ export class Renderer {
         return false;
     }
 
-    /** Draws a `size` x `size` square centered at `(x, y)` into the offscreen buffer (not yet visible until {@link render}). */
     setPixel(x: number, y: number, color: Color, size: number = 2): void {
         this.bufferContext.fillStyle = color.hexStr;
         this.bufferContext.fillRect(x - (size / 2), y - (size / 2), size, size);
     }
 
-    /** Blits the offscreen buffer to the visible screen canvas and clears the buffer for the next frame. */
     render(): void {
         this.screenContext.clearRect(0, 0, this._screenCanvas.width, this._screenCanvas.height);
         this.screenContext.drawImage(this._bufferCanvas, 0, 0);
