@@ -45,7 +45,7 @@ update(): void
 
 Component "data" can include function values, which are called with the component's own key when an entity is created - a way to get per-instance defaults (e.g. a random spawn position) instead of everyone sharing the same object reference.
 
-## Three.js-flavored ECS (`three/ecs.ts`)
+## Three.js-flavored ECS (`rendering/three/ecs.ts`)
 
 `import { ... } from "@n3rdw1z4rd/core/three";` (or the top-level barrel)
 

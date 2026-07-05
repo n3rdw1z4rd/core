@@ -58,7 +58,7 @@ import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core/three";
 | Three.js meshes & textures | [docs/threejs-meshes-and-textures.md](docs/threejs-meshes-and-textures.md) | `VoxelMesh` (per-face-culled voxel geometry + palettes), `TextureAtlas`/`AtlasTextureMaterial`, `CubeSphereGeometry`, `AsteroidMesh`, starfield generators. |
 | Three.js widgets | [docs/threejs-widgets.md](docs/threejs-widgets.md) | `CreatePaletteController`, a lil-gui color-swatch widget for picking a palette index. |
 | Networking | [docs/networking.md](docs/networking.md) | `WorkerInterface`, a thin `Emitter`-based wrapper around `Worker`. |
-| Misc | [docs/misc.md](docs/misc.md) | A couple of small standalone helpers: `isNullOrUndefined`, `getRedYellowGreenGradientHex`. |
+| Misc | [docs/misc.md](docs/misc.md) | A handful of small standalone helpers: `isNullOrUndefined`, `isPositiveString`, `getRedYellowGreenGradientHex`, `GetUrlParams`. |
 
 ## Design notes worth knowing before you dig in
 

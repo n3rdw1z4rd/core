@@ -1,131 +1,149 @@
+import { abs, PI } from "../math";
+
+export type CanvasColor = string | CanvasGradient | CanvasPattern;
+
 export interface DrawParams {
-    radius?: number,
-    fill?: boolean,
-    color?: string | CanvasGradient | CanvasPattern,
+    color?: CanvasColor,
+    strokeColor?: CanvasColor,
+    fillColor?: CanvasColor,
+    filled?: boolean,
+    size?: number,
+    fontName?: string,
+    textAlign?: CanvasTextAlign,
+    textBaseline?: CanvasTextBaseline,
+    lineDash?: number[],
 }
 
 export class CanvasRenderer {
-    ctx: CanvasRenderingContext2D;
+    canvas: HTMLCanvasElement;
+    context: CanvasRenderingContext2D;
 
-    clearColor: string | CanvasGradient | CanvasPattern = '#000000';
-    fontName: string = 'monospace';
-    fontSize: number = 32;
-    textAlign: CanvasTextAlign = 'center';
-    textBaseline: CanvasTextBaseline = 'middle';
+    drawCentered: boolean = true;
 
-    get width(): number { return this.ctx?.canvas.width ?? 0; }
-    get height(): number { return this.ctx?.canvas.height ?? 0; }
-    get center(): [number, number] { return [this.width / 2, this.height / 2]; }
+    get width(): number { return this.context.canvas.width; }
+    get height(): number { return this.context.canvas.height; }
 
     constructor(canvas?: HTMLCanvasElement) {
-        this.ctx = (canvas ?? document.createElement('canvas')).getContext('2d')!; // TODO should handle this better
-
-        this.ctx.canvas.style.backgroundColor = '#000000';
-        this.ctx.canvas.style.display = 'block';
-
-        this.ctx.font = `${this.fontSize}px ${this.fontName}`;
-        this.ctx.textAlign = this.textAlign;
-        this.ctx.textBaseline = this.textBaseline;
-
-        this.resize();
-        this.clear();
+        this.canvas = canvas ?? document.createElement('canvas');
+        this.context = this.canvas.getContext('2d')!;
     }
 
-    appendTo(target?: HTMLElement, autoResize: boolean = true) {
-        if (this.ctx.canvas.parentElement) {
-            this.ctx.canvas.parentElement.removeChild(this.ctx.canvas);
+    appendTo(target: HTMLElement): void {
+        if (this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
         }
 
-        if (target) {
-            target.appendChild(this.ctx.canvas);
-
-            if (autoResize) {
-                this.resize();
-            }
-        }
+        target.appendChild(this.canvas);
     }
 
     resize(displayWidth?: number, displayHeight?: number): boolean {
-        let resized = false;
-
+        // TODO: this is costly every frame:
         const { width, height } = (
-            this.ctx.canvas.parentElement?.getBoundingClientRect() ??
-            this.ctx.canvas.getBoundingClientRect()
+            this.canvas.parentElement?.getBoundingClientRect() ??
+            this.canvas.getBoundingClientRect()
         );
 
         displayWidth = (0 | (displayWidth ?? width));
         displayHeight = (0 | (displayHeight ?? height));
 
+        if (this.canvas.width !== displayWidth || this.canvas.height !== displayHeight) {
+            this.canvas.width = displayWidth
+            this.canvas.height = displayHeight;
 
-        if (this.width !== displayWidth || this.height !== displayHeight) {
-            this.ctx.canvas.width = displayWidth;
-            this.ctx.canvas.height = displayHeight;
-
-            resized = true;
+            return true;
         }
 
-        return resized;
+        return false;
     }
 
     clear() {
-        this.ctx?.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.context.clearRect(0, 0, this.width, this.height);
     }
 
-    drawPoint(xy: [number, number], params: DrawParams = {}) {
-        const [x, y] = xy;
+    drawRect(x: number, y: number, width: number, height: number, params: DrawParams = {}) {
+        if (this.drawCentered) {
+            x -= (width / 2);
+            y -= (height / 2);
+        }
 
-        const radius = params.radius || 1;
-        const fill = params.fill !== false;
-        const color = params.color || '#000000';
+        this.context.strokeStyle = params.strokeColor ?? params.color ?? 'white';
+        this.context.fillStyle = params.fillColor ?? params.color ?? 'white';
+        this.context.lineWidth = params.size ?? 1;
 
-        this.ctx.fillStyle = color;
-        this.ctx.strokeStyle = color;
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, radius, 0, 2 * Math.PI);
-        this.ctx[fill ? 'fill' : 'stroke']();
+        if (params.lineDash) {
+            this.context.setLineDash(params.lineDash);
+        }
+
+        this.context.beginPath();
+
+        if (params.filled === true) {
+            this.context.fillRect(x, y, width, height);
+
+            if (params.strokeColor !== undefined) this.context.strokeRect(x, y, width, height);
+        } else {
+            this.context.strokeRect(x, y, width, height);
+        }
+
+        if (params.lineDash) {
+            this.context.setLineDash([]);
+        }
     }
 
-    drawBox(xy: [number, number], wh: [number, number], params: DrawParams = {}) {
-        const [x, y] = xy;
-        const [w, h] = wh;
+    drawPixel(x: number, y: number, params: DrawParams = {}) {
+        const size = abs(params.size || 1);
 
-        const fill = params.fill !== false;
-        const color = params.color || '#000000';
-
-        this.ctx.fillStyle = color;
-        this.ctx.strokeStyle = color;
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-        this.ctx.lineTo(x + w, y);
-        this.ctx.lineTo(x + w, y + h);
-        this.ctx.lineTo(x, y + h);
-        this.ctx.closePath();
-        this.ctx[fill ? 'fill' : 'stroke']();
+        this.drawRect(x, y, size, size, {
+            ...params,
+            filled: true,
+        });
     }
 
-    drawLine(x1y1x2y2: [number, number, number, number], color = '#000000') {
-        const [x1, y1, x2, y2] = x1y1x2y2;
+    drawLine(x1: number, y1: number, x2: number, y2: number, params: DrawParams = {}) {
+        this.context.strokeStyle = params.color ?? 'white';
+        this.context.lineWidth = params.size ?? 1;
 
-        this.ctx.strokeStyle = color;
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.stroke();
+        if (params.lineDash) {
+            this.context.setLineDash(params.lineDash);
+        }
+
+        this.context.beginPath();
+        this.context.moveTo(x1, y1);
+        this.context.lineTo(x2, y2);
+        // this.context.closePath(); // TODO: do i need this?
+        this.context.stroke();
+
+        if (params.lineDash) {
+            this.context.setLineDash([]);
+        }
     }
 
-    drawText(
-        text: string,
-        xy: [number, number],
-        color = '#ffffff',
-        size = this.fontSize,
-        font = this.fontName
-    ) {
-        const [x, y] = xy;
+    drawCircle(x: number, y: number, radius: number, params: DrawParams = {}) {
+        this.context.strokeStyle = params.strokeColor ?? params.color ?? 'white';
+        this.context.fillStyle = params.fillColor ?? params.color ?? 'white';
+        this.context.lineWidth = params.size ?? 1;
 
-        this.ctx.fillStyle = color;
-        this.ctx.font = `${size}px ${font}`;
-        this.ctx.textAlign = this.textAlign;
-        this.ctx.textBaseline = this.textBaseline;
-        this.ctx.fillText(text, x, y + 0.5);
+        if (params.lineDash) {
+            this.context.setLineDash(params.lineDash);
+        }
+
+        this.context.beginPath();
+        this.context.arc(x, y, radius, 0, 2 * PI);
+
+        if (params.filled === true) this.context.fill();
+
+        this.context.stroke();
+
+        if (params.lineDash) {
+            this.context.setLineDash([]);
+        }
+    }
+
+    drawText(x: number, y: number, text: string, params: DrawParams = {}) {
+        this.context.font = `${params.size ?? 14}px ${params.fontName ?? 'monospace'}`;
+        this.context.textAlign = params.textAlign ?? 'left';
+        this.context.textBaseline = params.textBaseline ?? 'alphabetic';
+        this.context.fillStyle = params.color ?? 'white';
+
+        this.context.fillText(text, x, y);
     }
 }

@@ -61,10 +61,20 @@ class Input extends Emitter {
     getKeyState(keyCode: string): number;
     isMouseButtonDown(mouseButton: number): boolean;
     getMouseButtonState(button: number): number;
+
+    blockContextMenu(target: EventTarget): void;      // opt-in: suppress the native context menu on target, emit 'contextmenu' instead
+    stopBlockingContextMenu(): void;
 }
 ```
 
-Events emitted: `key_down`, `key_up`, `key_pressed` (plus per-code variants like `space_down`/`space_up`/`space_pressed`, using `KeyboardEvent.code` lowercased), `mouse_button_down`, `mouse_button_up`, `mouse_button_clicked` (plus per-button variants like `mouse_button_0_down`), `mouse_move`, `mouse_wheel`.
+Events emitted: `key_down`, `key_up`, `key_pressed` (plus per-code variants like `space_down`/`space_up`/`space_pressed`, using `KeyboardEvent.code` lowercased), `mouse_button_down`, `mouse_button_up`, `mouse_button_clicked` (plus per-button variants like `mouse_button_0_down`), `mouse_move`, `mouse_wheel`, and `contextmenu` (only if `blockContextMenu()` has been called).
+
+Right-click/context-menu suppression is opt-in, since blocking it globally would be too aggressive for most pages:
+
+```ts
+input.blockContextMenu(canvas);
+input.on('contextmenu', () => { /* your right-click action */ });
+```
 
 ```ts
 import { Input } from "@n3rdw1z4rd/core";

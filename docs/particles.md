@@ -49,12 +49,12 @@ class SpatialPartition3d {
 
 Note `getCell`/`getCellNeighbors` take different argument meanings between the two: 2D's `getCellNeighbors` takes grid coordinates just like `getCell` does; 3D's already expects cell indices (`cx`/`cy`/`cz`), not world positions.
 
-## particle-renderer (Renderer)
+## particle-renderer (ParticleRenderer)
 
-A double-buffered 2D canvas renderer purpose-built for per-pixel particle drawing (distinct from `renderer/canvas-renderer.ts`'s `CanvasRenderer`, which is a general shape/text drawing API).
+A double-buffered 2D canvas renderer purpose-built for per-pixel particle drawing (distinct from `rendering/canvas-renderer.ts`'s `CanvasRenderer`, which is a general shape/text drawing API). Both files now live under `src/rendering/`.
 
 ```ts
-class Renderer {
+class ParticleRenderer {
     readonly width: number;
     readonly height: number;
     screenContext: CanvasRenderingContext2D;
@@ -68,6 +68,8 @@ class Renderer {
 }
 ```
 
+(Note: this class was named `Renderer` in earlier versions of this package - if you're upgrading, update any type annotations that referenced `Renderer` directly.)
+
 ## ParticleSystem2d
 
 ```ts
@@ -75,14 +77,14 @@ class ParticleSystem2d {
     readonly particleCount: number; // 2000
 
     constructor();
-    update(renderer: Renderer, dt: number): void; // updates physics AND draws via renderer.setPixel
+    update(renderer: ParticleRenderer, dt: number): void; // updates physics AND draws via renderer.setPixel
 }
 ```
 
 ```ts
-import { ParticleSystem2d, Renderer } from "@n3rdw1z4rd/core";
+import { ParticleSystem2d, ParticleRenderer } from "@n3rdw1z4rd/core";
 
-const renderer = new Renderer();
+const renderer = new ParticleRenderer();
 renderer.appendTo(document.body);
 
 const particles = new ParticleSystem2d();

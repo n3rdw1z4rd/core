@@ -6,36 +6,55 @@ These are the non-Three.js rendering helpers - for a game/scene that either draw
 
 ## CanvasRenderer
 
-A general-purpose 2D canvas drawing API (points, boxes, lines, text) - distinct from [`particle-renderer.ts`'s `Renderer`](particles.md), which is specialized for per-pixel particle drawing.
+A general-purpose 2D canvas drawing API (rects, pixels, lines, circles, text) - distinct from [`particle-renderer.ts`'s `ParticleRenderer`](particles.md), which is specialized for per-pixel particle drawing.
 
 ```ts
+type CanvasColor = string | CanvasGradient | CanvasPattern;
+
 interface DrawParams {
-    radius?: number;
-    fill?: boolean;
-    color?: string | CanvasGradient | CanvasPattern;
+    color?: CanvasColor;         // used for both stroke and fill unless overridden below
+    strokeColor?: CanvasColor;   // overrides color for the stroke
+    fillColor?: CanvasColor;     // overrides color for the fill
+    filled?: boolean;            // default false (stroke-only)
+    size?: number;                // line width for shapes, font size (px) for text
+    fontName?: string;
+    textAlign?: CanvasTextAlign;
+    textBaseline?: CanvasTextBaseline;
+    lineDash?: number[];
 }
 
 class CanvasRenderer {
-    ctx: CanvasRenderingContext2D;
-    clearColor: string | CanvasGradient | CanvasPattern;
-    fontName: string; fontSize: number;
-    textAlign: CanvasTextAlign; textBaseline: CanvasTextBaseline;
-    readonly width: number; readonly height: number; readonly center: [number, number];
+    canvas: HTMLCanvasElement;
+    context: CanvasRenderingContext2D;
+    drawCentered: boolean; // default true - x/y is the shape's center, not its top-left/start
+    readonly width: number; readonly height: number;
 
     constructor(canvas?: HTMLCanvasElement);
-    appendTo(target?: HTMLElement, autoResize?: boolean): void;
+    appendTo(target: HTMLElement): void;
     resize(displayWidth?: number, displayHeight?: number): boolean;
     clear(): void;
-    drawPoint(xy: [number, number], params?: DrawParams): void;
-    drawBox(xy: [number, number], wh: [number, number], params?: DrawParams): void;
-    drawLine(x1y1x2y2: [number, number, number, number], color?: string): void;
-    drawText(text: string, xy: [number, number], color?: string, size?: number, font?: string): void;
+    drawRect(x: number, y: number, width: number, height: number, params?: DrawParams): void;
+    drawPixel(x: number, y: number, params?: DrawParams): void;   // a small filled square; size = side length
+    drawLine(x1: number, y1: number, x2: number, y2: number, params?: DrawParams): void;
+    drawCircle(x: number, y: number, radius: number, params?: DrawParams): void;
+    drawText(x: number, y: number, text: string, params?: DrawParams): void;
 }
 ```
 
-Coordinates and sizes are plain tuples - no vector-math library required.
+```ts
+import { CanvasRenderer } from "@n3rdw1z4rd/core";
 
-## Raw WebGL2 helpers (`renderer/webgl.ts`)
+const renderer = new CanvasRenderer();
+renderer.appendTo(document.body);
+
+renderer.drawCircle(100, 100, 20, { color: 'cyan', filled: true });
+renderer.drawLine(0, 0, 100, 100, { color: 'white', lineDash: [4, 4] });
+renderer.drawText(50, 50, 'hello', { color: 'white', size: 16 });
+```
+
+Coordinates and sizes are plain numbers, not tuples. `drawCentered` (default `true`) affects `drawRect`/`drawPixel`, which are positioned by center rather than top-left corner by default - set it to `false` if you want top-left-anchored placement instead.
+
+## Raw WebGL2 helpers (`rendering/webgl.ts`)
 
 Thin functional wrappers around the WebGL2 boilerplate you'd otherwise repeat in every project: context creation, shader compilation, program linking, and attribute/uniform location lookup.
 
