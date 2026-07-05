@@ -1,6 +1,6 @@
 import { Color, Vector3, type ColorRepresentation } from 'three';
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js' with { 'resolution-mode': 'import' };
-import { clamp } from '../math';
+import { clamp } from '../../math';
 
 export interface ColorSelectionOptions {
     signal: AbortSignal,

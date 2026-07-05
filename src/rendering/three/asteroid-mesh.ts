@@ -1,6 +1,6 @@
 import { IcosahedronGeometry, Mesh, MeshStandardMaterial } from 'three';
 import { createNoise3D } from 'simplex-noise';
-import { rng } from '../rng';
+import { rng } from '../../rng';
 
 export interface AsteroidOptions {
     radius?: number;

@@ -1,6 +1,6 @@
 import { Color } from './color';
 
-export class Renderer {
+export class ParticleRenderer {
     private _screenCanvas: HTMLCanvasElement;
     private _bufferCanvas: OffscreenCanvas;
 

@@ -1,11 +1,11 @@
-import '../css/main.css';
+import '../../css/main.css';
 import { AmbientLight, BoxGeometry, ColorRepresentation, DirectionalLight, GridHelper, Intersection, Mesh, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Scene, Vector2, WebGLRenderer, WebGLRendererParameters } from 'three';
-import type { OrbitControls } from 'three/examples/jsm/Addons.js' with { 'resolution-mode': 'import' };
-import { Clock } from '../clock';
-import { Input } from '../input';
-import { KeyValue } from '../types';
-import { rng } from '../rng';
+import { Clock } from '../../clock';
+import { Input } from '../../input';
+import { KeyValue } from '../../types';
+import { rng } from '../../rng';
 import { ThreeJsCameraRig } from './threejs-camera-rig';
+import type { OrbitControls } from 'three/examples/jsm/Addons.js' with { 'resolution-mode': 'import' };
 
 export interface SetupBasicSceneParams {
     ambientLight?: boolean,

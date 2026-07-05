@@ -1,5 +1,5 @@
-import { Color } from './color';
-import { Renderer } from './particle-renderer';
+import { Color } from './rendering/color';
+import { ParticleRenderer } from './rendering';
 import { rng } from './rng';
 import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partition-2d';
 
@@ -117,7 +117,7 @@ export class ParticleSystem2d {
         }
     };
 
-    private _updatePositions(deltaTimeSeconds: number, renderer: Renderer) {
+    private _updatePositions(deltaTimeSeconds: number, renderer: ParticleRenderer) {
         for (let i = 0; i < this.particleCount; i++) {
             const particle = this._particles[i];
             const oldCell = this._spatialPartition.getCell(particle.x, particle.y);
@@ -150,7 +150,7 @@ export class ParticleSystem2d {
         }
     };
 
-    public update(renderer: Renderer, dt: number) {
+    public update(renderer: ParticleRenderer, dt: number) {
         this._updateVelocities(dt);
         this._updatePositions(dt, renderer);
     }

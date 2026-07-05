@@ -1,5 +1,5 @@
 import { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, PointLight, Points, PointsMaterial, SphereGeometry, Vector3 } from 'three';
-import { rng } from '../rng';
+import { rng } from '../../rng';
 
 export function CreateStarfield(
     radius = 1000,

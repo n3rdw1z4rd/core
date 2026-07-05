@@ -1,5 +1,5 @@
 import { BoxGeometry, Vector3 } from 'three';
-import { Noise } from '../noise';
+import { Noise } from '../../noise';
 
 export class CubeSphereGeometry extends BoxGeometry {
     private _halfSize: number;

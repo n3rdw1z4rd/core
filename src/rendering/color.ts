@@ -1,5 +1,5 @@
-import { logwrn } from './logger';
-import { clamp } from './math';
+import { logwrn } from '../logger';
+import { clamp } from '../math';
 
 export class Color {
     private _hex: string = '#ffffffff';

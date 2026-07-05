@@ -1,4 +1,4 @@
-import { Emitter } from './emitter';
+import { Emitter } from '../emitter';
 
 export interface InputState {
     state: number,
@@ -15,7 +15,7 @@ export interface CommonEventProps {
 
 export class Input extends Emitter {
     public inputThreshold: number = 200;
-    
+
     private _keyStates: { [key: string]: InputState } = {};
     private _mouseButtonStates: { [key: number]: InputState } = {};
 
