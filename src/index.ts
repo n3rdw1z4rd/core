@@ -1,6 +1,5 @@
 export * from './astar';
 export * from './clock';
-export * from './clock-stats';
 export * from './color';
 export * from './dungeon-generator';
 export * from './ecs';
