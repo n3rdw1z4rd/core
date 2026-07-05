@@ -1,7 +1,12 @@
 import { clamp } from "./math";
+import { KeyValue } from "./types";
 
-export function isNullOrUndefined(target: any) {
+export function isNullOrUndefined(target: any): boolean {
     return (target === null || target === undefined);
+}
+
+export function isPositiveString(target: string): boolean {
+    return (target.length > 0);
 }
 
 export const getRedYellowGreenGradientHex = (min: number, max?: number): string => {
@@ -23,3 +28,16 @@ export const getRedYellowGreenGradientHex = (min: number, max?: number): string 
         '#00ff00'
     ])[index];
 }
+
+export function GetUrlParams(): KeyValue {
+    const params: KeyValue = {};
+
+    const url = new URLSearchParams(location.search);
+
+    for (const [key, value] of url.entries()) {
+        params[key] = value;
+    }
+
+    return params;
+}
+
