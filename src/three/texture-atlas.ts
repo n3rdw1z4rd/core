@@ -1,11 +1,13 @@
 import { TextureLoader, Texture, MeshLambertMaterial, MeshLambertMaterialParameters, NearestFilter, RepeatWrapping } from 'three';
 
+/** A loaded Three.js `Texture` plus its resolved pixel dimensions. */
 export interface TextureData {
     width: number,
     height: number,
     texture: Texture,
 }
 
+/** Loads an image as a Three.js `Texture`, resolving with its pixel dimensions alongside it. */
 export function LoadTexture(url: string): Promise<TextureData> {
     return new Promise<TextureData>((res, rej) => {
         (new TextureLoader()).load(
@@ -22,6 +24,11 @@ export function LoadTexture(url: string): Promise<TextureData> {
     });
 }
 
+/**
+ * Clones `texture` and configures its `offset`/`repeat` to sample only the
+ * `w` x `h` pixel region starting at `(x, y)` - i.e. a single sub-image
+ * from a larger sprite sheet/atlas texture.
+ */
 export function CreateSubTexture(
     texture: Texture,
     x: number, y: number,
@@ -50,6 +57,13 @@ export function CreateSubTexture(
     return texture;
 }
 
+/**
+ * A `MeshLambertMaterial` backed by a fixed-grid texture atlas: tiles are
+ * addressed by a single `voxel` index along a uniform grid of
+ * `textureWidth` x `textureHeight`-pixel cells. For pixel-based tile sizing
+ * with an optional border/margin instead of a fixed grid divisor, see
+ * {@link AtlasTextureMaterial}.
+ */
 export class TextureAtlas extends MeshLambertMaterial {
     private _uw: number;
     private _uh: number;
@@ -73,6 +87,7 @@ export class TextureAtlas extends MeshLambertMaterial {
         this.textureData.texture.magFilter = NearestFilter;
     }
 
+    /** Maps a tile index (`voxel`) and local UV (`ux`, `uy`, each 0-1 within the tile) to atlas-space UV coordinates. */
     getUv(voxel: number, ux: number, uy: number): [number, number] {
         return [
             (voxel + ux) * this._uw,
@@ -80,6 +95,7 @@ export class TextureAtlas extends MeshLambertMaterial {
         ];
     }
 
+    /** Loads a texture from `url` and builds a `TextureAtlas` from it. */
     public static CreateFromUrl(
         url: string,
         textureWidth: number,
@@ -95,18 +111,24 @@ export class TextureAtlas extends MeshLambertMaterial {
     }
 }
 
+/** Tile sizing/offset options for {@link AtlasTextureMaterial}, in source-texture pixels. */
 export interface AtlasParams {
     tilePixelWidth?: number,
     tilePixelHeight?: number,
+    /** Pixel offset into the source texture before the tile grid starts (e.g. for atlases with a border/margin). */
     tilePixelOffsetWidth?: number,
     tilePixelOffsetHeight?: number,
 }
 
+/** Standard `MeshLambertMaterial` constructor options, used as-is for {@link AtlasTextureMaterial}. */
 export interface AtlasTextureMaterialParams extends MeshLambertMaterialParameters { }
 
-// Alternate atlas material to TextureAtlas above: computes per-tile UVs from
-// pixel-based tile dimensions instead of a fixed grid divisor, and supports a
-// pixel offset into the source texture (e.g. for atlases with a border/margin).
+/**
+ * Alternate atlas material to {@link TextureAtlas}: computes per-tile UVs
+ * from pixel-based tile dimensions instead of a fixed grid divisor, and
+ * supports a pixel offset into the source texture (e.g. for atlases with a
+ * border/margin).
+ */
 export class AtlasTextureMaterial extends MeshLambertMaterial {
     public readonly textureData: TextureData;
 
@@ -147,6 +169,7 @@ export class AtlasTextureMaterial extends MeshLambertMaterial {
         this._uvHeight = this.tilePixelHeight / (this.textureData.height - this._textureOffsetHeight);
     }
 
+    /** Maps a tile index and quad-corner index (`0`=bottom-left, `1`=bottom-right, `2`=top-left, `3`=top-right) to atlas-space UV coordinates. */
     getTileUVs(tileIndex: number, vertexIndex: number): [number, number] {
         const col = tileIndex % this._tileCount;
         const row = Math.floor(tileIndex / this._tileCount);
@@ -169,6 +192,7 @@ export class AtlasTextureMaterial extends MeshLambertMaterial {
         return [uvx, uvy];
     }
 
+    /** Loads a texture from `url` and builds an `AtlasTextureMaterial` from it. */
     public static fromUrl(
         url: string,
         atlasParams: AtlasParams = {},

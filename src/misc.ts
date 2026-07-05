@@ -1,14 +1,17 @@
 import { clamp } from "./math";
 import { KeyValue } from "./types";
 
+/** Whether `target` is exactly `null` or `undefined` (not other falsy values like `0` or `''`). */
 export function isNullOrUndefined(target: any): boolean {
     return (target === null || target === undefined);
 }
 
+/** Whether `target` is a non-empty string. */
 export function isPositiveString(target: string): boolean {
     return (target.length > 0);
 }
 
+/** Picks a hex color from a fixed 11-step red-yellow-green ramp based on `min / max` (or just `min` against `1` if `max` is omitted) - handy for coloring a value on a "bad to good" scale. */
 export const getRedYellowGreenGradientHex = (min: number, max?: number): string => {
     if (max === undefined) {
         max = min;
@@ -29,6 +32,7 @@ export const getRedYellowGreenGradientHex = (min: number, max?: number): string 
     ])[index];
 }
 
+/** Parses the current page URL's query string into a plain key/value object. */
 export function GetUrlParams(): KeyValue {
     const params: KeyValue = {};
 

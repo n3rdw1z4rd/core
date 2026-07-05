@@ -1,6 +1,7 @@
 import { PerspectiveCamera, Group, Object3D } from 'three';
 import { clamp, deg2rad } from '../math';
 
+/** Constructor options for {@link ThreeJsCameraRig}. Pass an existing `camera`, or `fov`/`aspect`/`near`/`far` to build a new `PerspectiveCamera`. */
 export interface ThreeJsCameraRigParams {
     camera?: PerspectiveCamera,
     fov?: number,
@@ -9,9 +10,17 @@ export interface ThreeJsCameraRigParams {
     far?: number,
 }
 
+/**
+ * Orbit-style camera rig: a `Group` that yaws around its own Y axis, with a
+ * nested `gimbal` `Group` that pitches (tilts) and holds the actual
+ * `PerspectiveCamera`. Drive it with {@link orbit}/{@link dolly}, typically
+ * from mouse move/wheel events (see
+ * {@link ThreeJsBoilerPlate.enableCameraRigControls}).
+ */
 export class ThreeJsCameraRig extends Group {
     gimbal: Group;
     camera: PerspectiveCamera;
+    /** Optional object to rotate around instead of the rig itself, when following a target. */
     target: Object3D | undefined;
 
     mouseSensitivity: number = 0.01;
@@ -40,6 +49,7 @@ export class ThreeJsCameraRig extends Group {
         this.gimbal.add(this.camera);
     }
 
+    /** Yaws {@link target} (or the rig itself) and pitches the {@link gimbal}, scaled by {@link mouseSensitivity}. Pitch is clamped to `[minTiltAngle, maxTiltAngle]` when {@link clampTiltAngle} is true. */
     orbit(deltaX: number, deltaY: number) {
         (this.target || this).rotateY(-deltaX * this.mouseSensitivity);
 
@@ -52,6 +62,7 @@ export class ThreeJsCameraRig extends Group {
             : this.gimbal.rotation.x + (-deltaY * this.mouseSensitivity);
     }
 
+    /** Moves the camera along its local Z axis (zoom in/out), scaled by {@link wheelSensitivity} and clamped to `[minCameraDistance, maxCameraDistance]`. */
     dolly(deltaY: number) {
         this.camera.position.z = clamp(
             this.camera.position.z + (deltaY * this.wheelSensitivity),

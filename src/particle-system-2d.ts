@@ -19,10 +19,13 @@ const colors: Color[] = [
     Color.MAGENTA,
 ];
 
-// "Particle life" simulation: particles attract/repel each other based on a
-// randomized per-color attraction matrix, producing emergent clustering/
-// swarming behavior. cellSize (_range) drives a spatial partition so force
-// calculation only looks at nearby particles instead of all-pairs.
+/**
+ * "Particle life" simulation: particles attract/repel each other based on a
+ * randomized per-color attraction matrix, producing emergent clustering/
+ * swarming behavior. `cellSize` (`_range`) drives a {@link SpatialPartition2d}
+ * so force calculation only looks at nearby particles instead of all-pairs.
+ * Draws through a {@link Renderer}; call {@link update} once per frame.
+ */
 export class ParticleSystem2d {
     public readonly particleCount = 2000;
 
@@ -154,6 +157,7 @@ export class ParticleSystem2d {
         }
     };
 
+    /** Advances the simulation by `dt` seconds and draws each particle into `renderer`. Call once per frame. */
     public update(renderer: Renderer, dt: number) {
         this._updateVelocities(dt);
         this._updatePositions(dt, renderer);

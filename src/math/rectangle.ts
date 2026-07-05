@@ -1,5 +1,6 @@
 import { Vector } from '.';
 
+/** Axis-aligned rectangle defined by its top-left corner and size. */
 export class Rectangle {
     x: number;
     y: number;
@@ -13,10 +14,15 @@ export class Rectangle {
         this.height = height
     }
 
+    /** `width * height`. */
     area(): number {
         return this.width * this.height;
     }
 
+    /**
+     * Whether `target` (a point or another rectangle) lies within this
+     * rectangle, optionally expanded/shrunk by `padding`.
+     */
     contains(target: Vector | Rectangle, padding: number = 0): boolean {
         return (target instanceof Vector)
             ? (
@@ -33,6 +39,7 @@ export class Rectangle {
             );
     }
 
+    /** Whether this rectangle overlaps `other`, optionally padded. */
     intersects(other: Rectangle, padding: number = 0): boolean {
         return !(
             other.x - padding > this.x + this.width + padding ||
@@ -42,6 +49,7 @@ export class Rectangle {
         );
     }
 
+    /** Midpoint of the rectangle, as a new {@link Vector}. */
     center(): Vector {
         return new Vector(
             this.x + this.width / 2,
@@ -49,14 +57,17 @@ export class Rectangle {
         );
     }
 
+    /** Distance between the centers of this rectangle and `other`. */
     distanceTo(other: Rectangle): number {
         return this.center().distanceTo(other.center());
     }
 
+    /** Returns a new `Rectangle` with the same position and size. */
     clone(): Rectangle {
         return new Rectangle(this.x, this.y, this.width, this.height);
     }
 
+    /** Whether `other` has the same position and size. */
     equals(other: Rectangle): boolean {
         return (
             this.x === other.x &&
@@ -66,6 +77,7 @@ export class Rectangle {
         );
     }
 
+    /** Returns a new `Rectangle` expanded by `padding` on all sides (negative shrinks it). */
     grow(padding: number): Rectangle {
         return new Rectangle(
             this.x - padding,
@@ -75,6 +87,7 @@ export class Rectangle {
         );
     }
 
+    /** Alias for {@link contains} restricted to a `Vector` target. */
     vectorInside(vec: Vector, padding: number = 0): boolean {
         return (
             vec.x >= this.x - padding && vec.x <= this.x + this.width + padding &&

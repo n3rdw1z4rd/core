@@ -1,9 +1,13 @@
+/** Shared drawing options for {@link CanvasRenderer}'s shape methods. */
 export interface DrawParams {
+    /** Radius in pixels, used by {@link CanvasRenderer.drawPoint}. */
     radius?: number,
+    /** Whether to fill (default) or stroke the shape. */
     fill?: boolean,
     color?: string | CanvasGradient | CanvasPattern,
 }
 
+/** Thin wrapper around a 2D `CanvasRenderingContext2D` with resize handling and simple shape/text drawing helpers. */
 export class CanvasRenderer {
     ctx: CanvasRenderingContext2D;
 
@@ -13,10 +17,14 @@ export class CanvasRenderer {
     textAlign: CanvasTextAlign = 'center';
     textBaseline: CanvasTextBaseline = 'middle';
 
+    /** Canvas width in pixels. */
     get width(): number { return this.ctx?.canvas.width ?? 0; }
+    /** Canvas height in pixels. */
     get height(): number { return this.ctx?.canvas.height ?? 0; }
+    /** Midpoint of the canvas, `[width/2, height/2]`. */
     get center(): [number, number] { return [this.width / 2, this.height / 2]; }
 
+    /** Creates the renderer against `canvas` (or a new detached `<canvas>` if omitted). */
     constructor(canvas?: HTMLCanvasElement) {
         this.ctx = (canvas ?? document.createElement('canvas')).getContext('2d')!; // TODO should handle this better
 
@@ -31,6 +39,7 @@ export class CanvasRenderer {
         this.clear();
     }
 
+    /** Moves the canvas into `target` (detaching from any previous parent), optionally resizing to fit. */
     appendTo(target?: HTMLElement, autoResize: boolean = true) {
         if (this.ctx.canvas.parentElement) {
             this.ctx.canvas.parentElement.removeChild(this.ctx.canvas);
@@ -45,6 +54,7 @@ export class CanvasRenderer {
         }
     }
 
+    /** Resizes the canvas backing store to match its parent's (or explicit `displayWidth`/`displayHeight`) bounding box. Returns whether a resize actually happened. */
     resize(displayWidth?: number, displayHeight?: number): boolean {
         let resized = false;
 
@@ -67,10 +77,12 @@ export class CanvasRenderer {
         return resized;
     }
 
+    /** Clears the entire canvas. */
     clear() {
         this.ctx?.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
 
+    /** Draws a filled or stroked circle centered at `xy`. */
     drawPoint(xy: [number, number], params: DrawParams = {}) {
         const [x, y] = xy;
 
@@ -85,6 +97,7 @@ export class CanvasRenderer {
         this.ctx[fill ? 'fill' : 'stroke']();
     }
 
+    /** Draws a filled or stroked rectangle with top-left corner `xy` and size `wh`. */
     drawBox(xy: [number, number], wh: [number, number], params: DrawParams = {}) {
         const [x, y] = xy;
         const [w, h] = wh;
@@ -103,6 +116,7 @@ export class CanvasRenderer {
         this.ctx[fill ? 'fill' : 'stroke']();
     }
 
+    /** Draws a line between `(x1, y1)` and `(x2, y2)`, packed as a single 4-tuple. */
     drawLine(x1y1x2y2: [number, number, number, number], color = '#000000') {
         const [x1, y1, x2, y2] = x1y1x2y2;
 
@@ -113,6 +127,7 @@ export class CanvasRenderer {
         this.ctx.stroke();
     }
 
+    /** Draws `text` centered at `xy` using `this.textAlign`/`this.textBaseline`. */
     drawText(
         text: string,
         xy: [number, number],
@@ -129,26 +144,4 @@ export class CanvasRenderer {
         this.ctx.fillText(text, x, y + 0.5);
     }
 
-    // drawNamePlate(name: string, title: string, color = '#bbbbbb', s: number = 12, tile_size: number = 32) {
-    //     let x = (actor.position.x * tile_size);
-    //     let y = (actor.position.y * tile_size) - 18;
-
-    //     let healthPercent = (actor.health / actor.maxHealth);
-    //     let healthBarWidth = (healthPercent * tile_size)
-    //     let healthColor = getRedYellowGreenGradientHex(actor.health, actor.maxHealth);
-
-    //     this.drawBox(x, y, tile_size, 3, { fill: true, color: '#666666' });
-    //     this.drawBox(x, y, healthBarWidth, 3, { fill: true, color: healthColor });
-
-    //     if (actor.title) {
-    //         this.drawBox(x, y - 16, actor.name.length * (this.fontSize / 5), 10, { fill: true, color: '#000000' });
-    //         this.drawText(actor.name || '', x, y - 16, color, s);
-
-    //         this.drawBox(x, y - 7, actor.title.length * (this.fontSize / 5), 10, { fill: true, color: '#000000' });
-    //         this.drawText(`<${actor.title}>`, x, y - 6, '#00FFFF', s);
-    //     } else {
-    //         this.drawBox(x, y - 6, actor.name.length * (this.fontSize / 5), 10, { fill: true, color: '#000000' });
-    //         this.drawText(actor.name || '', x, y - 6, color, s);
-    //     }
-    // }
 }

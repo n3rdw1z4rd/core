@@ -1,8 +1,15 @@
+/** Minimal shape a {@link SpatialPartition2d} entity must have - just a position. */
 export interface SpatialPartitionEntity2d {
     x: number;
     y: number;
 }
 
+/**
+ * Uniform grid spatial partition for fast neighbor queries over 2D
+ * entities, assuming positions are normalized to `[0, 1)` (the grid spans
+ * exactly one unit square, divided into `cellSize`-sized cells). Cell
+ * lookups wrap around at the grid edges rather than clamping.
+ */
 export class SpatialPartition2d {
     cells: SpatialPartitionEntity2d[][][];
     cellSize: number;
@@ -21,17 +28,20 @@ export class SpatialPartition2d {
         }
     }
 
+    /** Adds an entity to the cell matching its current position. */
     addEntity(entity: SpatialPartitionEntity2d) {
         const cell = this.getCell(entity.x, entity.y);
         cell.push(entity);
     }
 
+    /** Returns the cell (list of entities) containing world position `(x, y)`. */
     getCell(x: number, y: number) {
         const cellX = Math.floor(x / this.cellSize);
         const cellY = Math.floor(y / this.cellSize);
         return this.cells[cellY][cellX];
     }
 
+    /** Returns the 8 neighboring cells around cell coordinates `(x, y)`, wrapping around the grid edges. */
     getCellNeighbors(x: number, y: number) {
         const neighbors = [];
 

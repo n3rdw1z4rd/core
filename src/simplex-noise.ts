@@ -7,9 +7,11 @@
 import { rng } from './rng';
 
 /**
-* You can pass in a random number generator object if you like.
-* It is assumed to have a random() method.
-*/
+ * Manually-ported classic simplex noise implementation (seeded from core's
+ * shared {@link rng}), kept alongside the `simplex-noise`-package-backed
+ * {@link Noise} class for reference/compatibility. Prefer {@link Noise}
+ * for new code - it's actively maintained upstream and supports 2D/3D/4D.
+ */
 export class SimplexNoise {
     grad3: number[][];
 
@@ -36,10 +38,12 @@ export class SimplexNoise {
         }
     }
 
+    /** Dot product of a gradient vector with `(x, y[, z])`. */
     dot(g: number[], x: number, y: number, z?: number): number {
         return g[0] * x + g[1] * y + ((typeof z === 'number') ? (g[2] * z) : 0);
     }
 
+    /** 2D simplex noise, in `[-1, 1]`. */
     noise2d(xin: number, yin: number): number {
         let n0, n1, n2; // Noise contributions from the three corners
 
@@ -116,7 +120,7 @@ export class SimplexNoise {
         return 70.0 * (n0 + n1 + n2);
     };
 
-    // 3D simplex noise
+    /** 3D simplex noise, in `[-1, 1]`. */
     noise3d(xin: number, yin: number, zin: number): number {
         let n0, n1, n2, n3; // Noise contributions from the four corners
 

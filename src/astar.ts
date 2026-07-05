@@ -1,12 +1,21 @@
 import type { Map2D } from './map2d';
 
+/** A grid coordinate used by {@link AStar}. */
 export interface AStarPoint {
     x: number;
     y: number;
 }
 
+/** Options for {@link AStar.findPath}. */
 export interface AStarFindPathParams {
+    /**
+     * When true, a path ending adjacent to the target (not just exactly on
+     * it) also counts as reaching the goal. Currently hard-coded to `true`
+     * internally regardless of this value - see the note on
+     * {@link AStar.findPath}.
+     */
     useAdjacent?: boolean;
+    /** Map values considered walkable. Defaults to `[0]`. */
     walkableValues?: number[];
 }
 
@@ -25,6 +34,7 @@ const DIRECTIONS_4_WAY: AStarPoint[] = [
     { x: -1, y: 0 },
 ];
 
+/** Grid pathfinder (4-directional A*) over a {@link Map2D}. */
 export class AStar {
     map: Map2D;
 
@@ -45,12 +55,15 @@ export class AStar {
         return `${x},${y}`;
     }
 
-    // NOTE: ported as-is from rogue-craft. useAdjacent is currently hard-coded
-    // to true below - the original had a known unresolved bug where setting it
-    // to false via params caused an infinite loop, so that path is disabled
-    // rather than exposed broken.
+    /**
+     * Finds a shortest path from `a` to `b` as a list of points (empty if
+     * none found). Ported as-is from rogue-craft: `params.useAdjacent` is
+     * currently hard-coded to `true` internally - the original had a known
+     * unresolved bug where setting it to `false` caused an infinite loop,
+     * so that path is disabled rather than exposed broken.
+     */
     findPath(a: AStarPoint, b: AStarPoint, params: AStarFindPathParams = {}): AStarPoint[] {
-        const useAdjacent = true; // (params.useAdjacent === true); // TODO: fix unending while loop when false
+        const useAdjacent = true; // TODO: fix unending while loop when params.useAdjacent === false
         const walkable = params.walkableValues ?? [0];
 
         const openSet: Node[] = [];
