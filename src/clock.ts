@@ -15,7 +15,7 @@ export class Clock extends Emitter {
     get fps(): number { return this._fps; }
     get isRunning(): boolean { return this._isRunning; }
 
-    public start() {
+    public start(): this {
         if (!this._isRunning) {
             this._startTime = performance.now();
             this._isRunning = true;
@@ -41,6 +41,8 @@ export class Clock extends Emitter {
 
             requestAnimationFrame(update);
         }
+
+        return this;
     }
 
     public stop() {

@@ -25,6 +25,7 @@ export interface ThreeJsBoilerPlateParams {
         far?: number,
     },
     seed?: number,
+    setupBasicSceneParams?: boolean | SetupBasicSceneParams,
 }
 
 export class ThreeJsBoilerPlate {
@@ -61,7 +62,7 @@ export class ThreeJsBoilerPlate {
 
         this.input
             .on('mouse_move', ({ deltaX, deltaY }: KeyValue) => {
-                if (this.input.isMouseButtonDown(0)) {
+                if (this.input.isDown('Button0')) {
                     this.cameraRig.orbit(deltaX, deltaY);
                 }
             })
@@ -128,8 +129,8 @@ export class ThreeJsBoilerPlate {
     }
 
     public pick(): Intersection | null {
-        const pickX = (this.input.mousePosition[0] / this.renderer.domElement.width) * 2 - 1;
-        const pickY = -(this.input.mousePosition[1] / this.renderer.domElement.height) * 2 + 1;
+        const pickX = (this.input.pointerPosition.x / this.renderer.domElement.width) * 2 - 1;
+        const pickY = -(this.input.pointerPosition.y / this.renderer.domElement.height) * 2 + 1;
 
         this.raycaster.setFromCamera(new Vector2(pickX, pickY), this.cameraRig.camera);
 

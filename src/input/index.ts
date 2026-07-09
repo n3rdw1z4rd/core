@@ -1,176 +1,89 @@
-import { Emitter } from '../emitter';
+import { Emitter } from "../emitter";
+import { log } from "../logger";
+import { Vector } from "../math";
 
-export interface InputState {
+export interface InputEventState {
     state: number,
-    timeStamp: number,
-}
-
-export interface CommonEventProps {
-    timeStamp: number,
-    altKey: boolean,
-    ctrlKey: boolean,
-    metaKey: boolean,
-    shiftKey: boolean,
+    time: number,
 }
 
 export class Input extends Emitter {
+    private _down = new Map<string, InputEventState>();
+    private _pointerPosition = new Vector();
+
     public inputThreshold: number = 200;
 
-    private _keyStates: { [key: string]: InputState } = {};
-    private _mouseButtonStates: { [key: number]: InputState } = {};
-
-    private _mousePosition: [number, number] = [0, 0];
-    private _mousePosition2: [number, number] = [0, 0];
-
-    private _contextMenuTarget: EventTarget | undefined;
-
-    public get mousePosition(): [number, number] { return this._mousePosition; }
-    public get mousePosition2(): [number, number] { return this._mousePosition2; }
+    public get down(): Map<string, InputEventState> { return this._down; }
+    public get pointerPosition(): Vector { return this._pointerPosition; }
 
     constructor() {
         super();
 
-        window.addEventListener('keydown', this._onKeyDown.bind(this) as EventListener);
-        window.addEventListener('keyup', this._onKeyUp.bind(this) as EventListener);
-        window.addEventListener('mousedown', this._onMouseButtonDown.bind(this) as EventListener);
-        window.addEventListener('mouseup', this._onMouseButtonUp.bind(this) as EventListener);
-        window.addEventListener('mousemove', this._onMouseMove.bind(this) as EventListener);
-        window.addEventListener('wheel', this._onWheel.bind(this) as EventListener);
-    }
+        window.addEventListener('contextmenu', (ev: PointerEvent) => {
+            log('contextmenu:', ev);
+        });
 
-    public blockContextMenu(target: EventTarget): void {
-        this.stopBlockingContextMenu();
+        window.addEventListener('keydown', (ev: KeyboardEvent) => {
+            const { code, repeat, timeStamp } = ev;
 
-        this._contextMenuTarget = target;
-        target.addEventListener('contextmenu', this._onContextMenu as EventListener);
-    }
+            if (!repeat) {
+                this._down.set(code, { state: 1, time: timeStamp });
+                this.emit('key_down', code, ev);
+            }
+        });
 
-    public stopBlockingContextMenu(): void {
-        this._contextMenuTarget?.removeEventListener('contextmenu', this._onContextMenu as EventListener);
-        this._contextMenuTarget = undefined;
-    }
+        window.addEventListener('keyup', (ev: KeyboardEvent) => {
+            const { code, timeStamp } = ev;
+            const delta = timeStamp - (this._down.get(code)?.time ?? 0);
 
-    private _onContextMenu = (ev: Event): void => {
-        ev.preventDefault();
-        this.emit('contextmenu');
-    };
+            this._down.set(code, { state: 0, time: timeStamp });
+            this.emit('key_up', code, ev);
 
-    private _getCommonEventProps(ev: KeyboardEvent | MouseEvent | WheelEvent): CommonEventProps {
-        const props: CommonEventProps = {
-            timeStamp: ev.timeStamp,
-            altKey: ev.altKey,
-            ctrlKey: ev.ctrlKey,
-            metaKey: ev.metaKey,
-            shiftKey: ev.shiftKey,
-        };
+            if (delta < this.inputThreshold) {
+                this.emit('key_pressed', code, ev);
+            }
+        });
 
-        return props;
-    }
+        window.addEventListener('pointerdown', (ev: PointerEvent) => {
+            const { button, timeStamp } = ev;
+            const code = `Button${button}`;
 
-    private _onKeyDown(ev: KeyboardEvent) {
-        const props = this._getCommonEventProps(ev);
+            if (!this._down.get(code)) {
+                this._down.set(code, { state: 1, time: timeStamp });
+                this.emit('pointer_down', code, ev);
+            }
+        });
 
-        const { code, key } = ev;
+        window.addEventListener('pointerup', (ev: PointerEvent) => {
+            const { button, timeStamp } = ev;
+            const code = `Button${button}`;
+            const delta = timeStamp - (this._down.get(code)?.time ?? 0);
 
-        if (!ev.repeat) {
-            this._keyStates[code] = { state: 1, timeStamp: props.timeStamp };
-            this.emit('key_down', { ...props, code, key });
-            this.emit(`${code.toLowerCase()}_down`, props);
-        }
-    }
+            this._down.set(code, { state: 0, time: timeStamp });
 
-    private _onKeyUp(ev: KeyboardEvent) {
-        const props = this._getCommonEventProps(ev);
+            if (delta < this.inputThreshold) {
+                this.emit('button_clicked', code, ev);
+            }
+        });
 
-        const { code, key } = ev;
-        const deltaStamp = props.timeStamp - (this._keyStates[code]?.timeStamp ?? 0);
+        window.addEventListener('mousemove', (ev: MouseEvent) => {
+            const { offsetX, offsetY, movementX, movementY } = ev;
 
-        this._keyStates[code] = { state: 0, timeStamp: props.timeStamp };
-        this.emit('key_up', { ...props, code, key });
-        this.emit(`${code.toLowerCase()}_up`, props);
+            this._pointerPosition.x = offsetX;
+            this._pointerPosition.y = offsetY;
 
-        if (deltaStamp < this.inputThreshold) {
-            this.emit('key_pressed', { ...props, code, key });
-            this.emit(`${code.toLowerCase()}_pressed`, props);
-        }
-    }
+            this.emit('pointer_move', movementX, movementY, ev);
+        });
 
-    private _onMouseButtonDown(ev: MouseEvent) {
-        const props = this._getCommonEventProps(ev);
+        window.addEventListener('wheel', (ev: WheelEvent) => {
+            const { deltaY } = ev;
 
-        const { button } = ev;
-
-        if (!this._mouseButtonStates[button]?.state) {
-            this._mouseButtonStates[button] = { state: 1, timeStamp: props.timeStamp };
-            this.emit('mouse_button_down', { ...props, button });
-            this.emit(`mouse_button_${button}_down`, props);
-        }
-    }
-
-    private _onMouseButtonUp(ev: MouseEvent) {
-        const props = this._getCommonEventProps(ev);
-
-        const { button } = ev;
-        const deltaStamp = props.timeStamp - (this._mouseButtonStates[button]?.timeStamp ?? 0);
-
-        this._mouseButtonStates[button] = { state: 0, timeStamp: props.timeStamp };
-        this.emit('mouse_button_up', { ...props, button });
-        this.emit(`mouse_button_${button}_up`, props);
-
-        if (deltaStamp < this.inputThreshold) {
-            this.emit('mouse_button_clicked', { ...props, button });
-            this.emit(`mouse_button_${button}_clicked`, props);
-        }
-    }
-
-    private _onMouseMove(ev: MouseEvent) {
-        const props = this._getCommonEventProps(ev);
-
-        const { buttons, offsetX, offsetY, movementX, movementY } = ev;
-
-        this._mousePosition = [offsetX, offsetY];
-
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        this._mousePosition2 = [
-            (ev.clientX / width) * 2 - 1,
-            -(ev.clientY / height) * 2 + 1,
-        ];
-
-        this.emit('mouse_move', {
-            ...props,
-            buttons,
-            x: offsetX,
-            y: offsetY,
-            deltaX: movementX,
-            deltaY: movementY,
+            // this.emit('wheel', deltaY > 0 ? 1 : -1, ev);
+            this.emit('wheel', deltaY, ev);
         });
     }
 
-    private _onWheel(ev: WheelEvent) {
-        const props = this._getCommonEventProps(ev);
-        const { deltaX, deltaY, deltaZ } = ev;
-
-        this.emit('mouse_wheel', {
-            ...props,
-            deltaX, deltaY, deltaZ,
-        });
-    }
-
-    public isKeyDown(keyCode: string): boolean {
-        return this._keyStates[keyCode]?.state === 1 ? true : false;
-    }
-
-    public getKeyState(keyCode: string): number {
-        return this._keyStates[keyCode]?.state ?? 0;
-    }
-
-    public isMouseButtonDown(mouseButton: number): boolean {
-        return this._mouseButtonStates[mouseButton]?.state === 1 ? true : false;
-    }
-
-    public getMouseButtonState(button: number): number {
-        return this._mouseButtonStates[button]?.state ?? 0;
+    isDown(name: string): boolean {
+        return this._down.get(name) ? true : false;
     }
 }
