@@ -1,5 +1,5 @@
 import { Emitter } from "../emitter";
-import { log } from "../logger";
+import { log } from "../log";
 import { Vector } from "../math";
 
 export interface InputEventState {

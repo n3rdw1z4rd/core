@@ -1,5 +1,5 @@
-import { logwrn } from '../logger';
 import { clamp } from '../math';
+import { log } from '../log';
 
 export class Color {
     private _hex: string = '#ffffffff';
@@ -38,7 +38,7 @@ export class Color {
             [this._r, this._g, this._b, this._a] = this._parse_hex_color_string(value);
             this._hex = value;
         } else {
-            logwrn(`Color: invalid color string: ${value}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Keeping the current color.`);
+            log(`Color: invalid color string: ${value}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Keeping the current color.`);
         }
     }
 
@@ -49,7 +49,7 @@ export class Color {
             if (r.startsWith('#')) {
                 [r, g, b, a] = this._parse_hex_color_string(r);
             } else {
-                logwrn(`Color: invalid color string: ${r}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Defaulting to opaque white.`);
+                log(`Color: invalid color string: ${r}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Defaulting to opaque white.`);
                 r = g = b = a = 255;
             }
         } else {
@@ -130,7 +130,7 @@ export class Color {
             const [r, g, b, a] = rgba.map(Number);
             return new Color(r, g, b, a);
         } else {
-            logwrn(`Color: invalid CSS color name: ${name}. Defaulting to transparent.`);
+            log(`Color: invalid CSS color name: ${name}. Defaulting to transparent.`);
             return Color.TRANSPARENT;
         }
     }

@@ -4,7 +4,7 @@ export * from './dungeon-generator';
 export * from './ecs';
 export * from './emitter';
 export * from './input';
-export * from './logger';
+export * from './log';
 export * from './map2d';
 export * from './map3d';
 export * from './math';
