@@ -11,7 +11,8 @@
     "scripts": {
         "build-old": "tsup && shx cp -r ./src/css ./dist/",
         "build": "tsup",
-        "dev": "tsup --watch"
+        "dev": "tsup --watch",
+        "test": "npx ts-node src/test"
     },
     "repository": {
         "type": "git",

@@ -4,34 +4,34 @@ export const HALF_PI = PI / 2;
 export const RADIAN_FACTOR = PI / 180.0;
 
 export interface XY {
-    readonly x: number,
-    readonly y: number,
+    x: number,
+    y: number,
 }
 
 export interface XYZ {
-    readonly x: number,
-    readonly y: number,
-    readonly z: number,
+    x: number,
+    y: number,
+    z: number,
 }
 
 export interface XYZW {
-    readonly x: number,
-    readonly y: number,
-    readonly z: number,
-    readonly w: number,
+    x: number,
+    y: number,
+    z: number,
+    w: number,
 }
 
 export interface RGB {
-    readonly r: number,
-    readonly g: number,
-    readonly b: number,
+    r: number,
+    g: number,
+    b: number,
 }
 
 export interface RGBA {
-    readonly r: number,
-    readonly g: number,
-    readonly b: number,
-    readonly a: number,
+    r: number,
+    g: number,
+    b: number,
+    a: number,
 }
 
 export const abs = (n: number): number => (n < 0 ? -n : n);
