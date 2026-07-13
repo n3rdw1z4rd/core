@@ -1,4 +1,4 @@
-import { imul, PI, sin, cos, sqrt } from "./math";
+import { imul, PI, sin, cos, sqrt, floor } from "./math";
 
 export class RandomNumberGenerator {
     private __seed: number;
@@ -56,6 +56,36 @@ export class RandomNumberGenerator {
     public randomUnitVector(): [number, number] {
         const theta = this.nextf * 2 * PI;
         return [cos(theta), sin(theta)];
+    }
+
+    public pointInUnitCircle(radius: number = 1, floored: boolean = false): [x: number, y: number] {
+        const theta = this.nextf * 2 * PI;
+        const r = sqrt(this.nextf) * radius;
+        const x = r * cos(theta);
+        const y = r * sin(theta);
+        return !floored ? [x, y] : [floor(x), floor(y)];
+    }
+
+    public pointInUnitSphere(radius: number = 1, floored: boolean = false): [x: number, y: number, z: number] {
+        var u = this.nextf;
+        var v = this.nextf;
+
+        var theta = u * 2.0 * PI;
+        var phi = Math.acos(2.0 * v - 1.0);
+
+        var r = radius * Math.cbrt(rng.nextf);
+
+        var sinTheta = sin(theta);
+        var cosTheta = cos(theta);
+
+        var sinPhi = sin(phi);
+        var cosPhi = cos(phi);
+
+        var x = r * sinPhi * cosTheta;
+        var y = r * sinPhi * sinTheta;
+        var z = r * cosPhi;
+
+        return !floored ? [x, y, z] : [floor(x), floor(y), floor(z)];
     }
 
     public parkMillerNormal(): number {
