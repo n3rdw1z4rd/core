@@ -66,7 +66,7 @@ export class Input extends Emitter {
             }
         });
 
-        window.addEventListener('mousemove', (ev: MouseEvent) => {
+        window.addEventListener('pointermove', (ev: PointerEvent) => {
             const { offsetX, offsetY, movementX, movementY } = ev;
 
             this._pointerPosition.x = offsetX;
