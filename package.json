@@ -44,17 +44,17 @@
     },
     "homepage": "https://github.com/n3rdw1z4rd/core#readme",
     "dependencies": {
-        "heap-js": "latest"
+        "heap-js": "^2.7.1"
     },
     "peerDependencies": {
-        "simplex-noise": "latest",
-        "three": "latest"
+        "simplex-noise": "^4.0.3",
+        "three": "^0.185.1"
     },
     "devDependencies": {
-        "@types/three": "latest",
-        "shx": "latest",
-        "tsup": "latest",
-        "typescript": "latest"
+        "@types/three": "^0.185.1",
+        "shx": "^0.4.0",
+        "tsup": "^8.5.1",
+        "typescript": "^7.0.2"
     },
     "allowScripts": {
         "esbuild@0.27.7": true,
