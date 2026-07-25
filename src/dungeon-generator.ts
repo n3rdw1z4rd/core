@@ -1,9 +1,10 @@
 import { AStar, type AStarFindPathParams } from './astar';
-import { distance2d, floor, max, min, Rectangle, round, squaredDistance, XY } from './math';
 import { Heap } from 'heap-js';
 import { Map2D } from './map2d';
 import { rng } from './rng';
 import log from './logger';
+import { distance2d, floor, max, min, round, squaredDistance, XY } from './math';
+import { Rectangle } from './rectangle';
 
 export type RectPair = { a: Rectangle, b: Rectangle };
 export type PointPair = { a: XY, b: XY };

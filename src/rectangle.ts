@@ -1,4 +1,4 @@
-import { Vector } from '.';
+import { Vector } from "./vector";
 
 export class Rectangle {
     x: number;

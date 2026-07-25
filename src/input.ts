@@ -1,5 +1,5 @@
-import { Vector } from "./math";
 import { Observable } from "./observable";
+import { Vector } from "./vector";
 
 export interface InputEventState {
     state: number,
