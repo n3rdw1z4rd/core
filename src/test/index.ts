@@ -1,8 +1,11 @@
 import { aStarTest } from "./astar-test";
-import log from '../logger';
 
-log('*** core test ***');
+const run = ((test: (...args: any[]) => void) => {
+    test();
+});
 
 (async () => {
-    aStarTest();
+    [
+        aStarTest,
+    ].forEach(run);
 })();

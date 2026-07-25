@@ -3,12 +3,10 @@ import { Map2D } from "../map2d";
 import { rng } from "../rng";
 import log from '../logger';
 
-log('astar test');
-
-const SEED = 42;
-const WIDTH = 48;
-const HEIGHT = 24;
-const DENSITY = 0.2;
+const DEFAULT_SEED = 42;
+const DEFAULT_WIDTH = 80;
+const DEFAULT_HEIGHT = 24;
+const DEFAULT_DENSITY = 0.2;
 
 const COLOR = {
     Black: 30,
@@ -29,17 +27,17 @@ const TILES = [
     { glyph: '!', color: COLOR.Yellow },
 ];
 
-function _generateWalls(): Map2D {
+function _generateWalls(width: number, height: number, density: number): Map2D {
     log('generating walls');
 
     const map = new Map2D(0);
 
-    let iterations = 0 | (WIDTH * HEIGHT) * DENSITY;
+    let iterations = 0 | (width * height) * density;
     log('iterations:', iterations);
 
     while (iterations--) {
-        const x = rng.range(WIDTH);
-        const y = rng.range(HEIGHT);
+        const x = rng.range(width);
+        const y = rng.range(height);
 
         map.set(x, y, 1);
 
@@ -67,11 +65,11 @@ function _generateWalls(): Map2D {
     return map;
 }
 
-function _drawMap(map: Map2D) {
-    for (let y = 0; y < HEIGHT; y++) {
+function _drawMap(map: Map2D, width: number, height: number) {
+    for (let y = 0; y < height; y++) {
         const row: string[] = [];
 
-        for (let x = 0; x < WIDTH; x++) {
+        for (let x = 0; x < width; x++) {
             const mapValue = map.get(x, y);
             const { glyph, color } = TILES[mapValue];
 
@@ -82,24 +80,30 @@ function _drawMap(map: Map2D) {
     }
 }
 
-export function aStarTest() {
-    log('SEED:', SEED);
-    log('WIDTH:', WIDTH);
-    log('HEIGHT:', HEIGHT);
-    log('DENSITY:', DENSITY);
+export function aStarTest(
+    seed: number = DEFAULT_SEED,
+    width: number = DEFAULT_WIDTH,
+    height: number = DEFAULT_HEIGHT,
+    density: number = DEFAULT_DENSITY,
+) {
+    log('*** astar test ***');
+    log('seed:', seed);
+    log('width:', width);
+    log('height:', height);
+    log('density:', density);
 
-    rng.seed = SEED;
+    rng.seed = seed;
 
-    const map = _generateWalls();
+    const map = _generateWalls(width, height, density);
 
     const start: AStarPoint = {
-        x: rng.range(WIDTH),
-        y: rng.range(HEIGHT),
+        x: rng.range(width),
+        y: rng.range(height),
     };
 
     const end: AStarPoint = {
-        x: rng.range(WIDTH),
-        y: rng.range(HEIGHT),
+        x: rng.range(width),
+        y: rng.range(height),
     };
 
     log('start:', start);
@@ -114,5 +118,5 @@ export function aStarTest() {
         map.set(p.x, p.y, 2);
     });
 
-    _drawMap(map);
+    _drawMap(map, width, height);
 }
