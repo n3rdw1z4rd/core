@@ -5,7 +5,9 @@ export type CanvasColor = string | CanvasGradient | CanvasPattern;
 export const DEFAULT_COLOR: CanvasColor = 'white';
 export const DEFAULT_PIXEL_SIZE: number = 1;
 
-export const DEFAULT_FONT = '18px monospace';
+export const DEFAULT_FONT_SIZE = 14;
+export const DEFAULT_FONT_NAME = 'monospace';
+export const DEFAULT_FONT = `${DEFAULT_FONT_SIZE}px ${DEFAULT_FONT_NAME}`;
 export const DEFAULT_TEXTALIGN = 'left';
 export const DEFAULT_TEXTBASELINE = 'alphabetic';
 
@@ -14,6 +16,10 @@ export interface DrawParams {
     filled?: boolean,
     size?: number,
     lineDash?: number[],
+    textAlign?: CanvasTextAlign,
+    textBaseline?: CanvasTextBaseline,
+    font?: string,
+    fontName?: string,
 }
 
 export interface SpriteParams extends DrawParams {
@@ -181,6 +187,11 @@ export class CanvasRenderer {
     }
 
     drawText(x: number, y: number, text: string, params: DrawParams = {}) {
+        this.context.font = params.font ??
+            `${params.size ?? DEFAULT_FONT_SIZE}px ${params.fontName ?? DEFAULT_FONT_NAME}`;
+
+        this.context.textAlign = params.textAlign ?? DEFAULT_TEXTALIGN;
+        this.context.textBaseline = params.textBaseline ?? DEFAULT_TEXTBASELINE;
         this.context.fillStyle = params.color ?? DEFAULT_COLOR;
         this.context.fillText(text, x, y);
     }
