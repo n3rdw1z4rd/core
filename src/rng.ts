@@ -50,7 +50,7 @@ export class RandomTools {
             min = 0;
         }
 
-        return floor(this.floatRange(min, max + 1));
+        return floor(this.floatRange(min, max));
     }
 
     //----------------------------------------------------------------------
