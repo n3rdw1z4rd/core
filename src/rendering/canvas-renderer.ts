@@ -1,4 +1,4 @@
-import { abs, clamp, TAU, floor, PI, cos, sin } from "../math";
+import { abs, clamp, TAU, floor, PI, cos, sin, XYZ } from "../math";
 
 export type CanvasColor = string | CanvasGradient | CanvasPattern;
 
@@ -56,6 +56,21 @@ export class CanvasRenderer {
 
     clear() {
         this.context.clearRect(0, 0, this.width, this.height);
+    }
+
+    render(callback: () => void, camera?: XYZ) {
+        camera = camera ?? { x: 0, y: 0, z: 1 };
+
+        this.clear();
+        this.context.save();
+
+        this.context.translate(this.width / 2, this.height / 2);
+        this.context.scale(camera.z, camera.z);
+        this.context.translate(-camera.x, -camera.y);
+
+        callback();
+
+        this.context.restore();
     }
 
     private drawPath(buildPath: () => void, params: DrawParams = {}) {
