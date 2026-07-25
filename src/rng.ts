@@ -1,151 +1,206 @@
-import { imul, PI, sin, cos, sqrt, floor } from "./math";
+import {
+    TAU,
+    acos,
+    cbrt,
+    cos,
+    floor,
+    sin,
+    sqrt,
+} from "./math";
 
-export class RandomNumberGenerator {
-    private __seed: number;
-    private _seed: number;
+import { Random } from "./random";
 
-    private _uid_characters: string =
-        '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+export class RandomTools {
+    readonly rng: Random;
 
-    constructor() {
-        this._seed = Date.now();
-        this.__seed = this._seed;
-        this._uid_characters = this.shuffle(this._uid_characters) as string;
+    get seed(): number { return this.rng.seed; }
+    set seed(seed: number) { this.rng.seed = seed; }
 
-        this.seed = this.nexti;
+    constructor(seed?: number | Random) {
+        this.rng =
+            seed instanceof Random
+                ? seed
+                : new Random(seed);
     }
 
-    public get seed(): number {
-        return this._seed;
+    //----------------------------------------------------------------------
+    // Numbers
+    //----------------------------------------------------------------------
+
+    nextFloat(): number {
+        return this.rng.float();
     }
 
-    public set seed(value: number) {
-        this._seed = value;
-        this.__seed = this._seed;
+    nextUint(): number {
+        return this.rng.uint();
     }
 
-    public get startingSeed(): number {
-        return this.__seed;
-    }
-
-    public get nextf(): number {
-        this._seed |= 0;
-        this._seed = (this._seed + 0x9e3779b9) | 0;
-
-        let t: number = this._seed ^ (this._seed >>> 16);
-        t = imul(t, 0x21f0aaad);
-        t = t ^ (t >>> 15);
-        t = imul(t, 0x735a2d97);
-
-        return ((t = t ^ (t >>> 15)) >>> 0) / 4294967296;
-    }
-
-    public get nexti(): number {
-        return (this.nextf * Number.MAX_SAFE_INTEGER) | 0;
-    }
-
-    public range(min: number, max?: number): number {
-        if (max === undefined) {
+    floatRange(min: number, max?: number): number {
+        if (typeof max !== 'number') {
             max = min;
             min = 0;
         }
 
-        return (min + this.nextf * (max - min)) | 0;
+        return min + this.rng.float() * (max - min);
     }
 
-    public randomUnitVector(): [number, number] {
-        const theta = this.nextf * 2 * PI;
-        return [cos(theta), sin(theta)];
+    range(min: number, max?: number): number {
+        if (typeof max !== 'number') {
+            max = min;
+            min = 0;
+        }
+
+        return floor(this.floatRange(min, max + 1));
     }
 
-    public pointInUnitCircle(radius: number = 1, floored: boolean = false): [x: number, y: number] {
-        const theta = this.nextf * 2 * PI;
-        const r = sqrt(this.nextf) * radius;
-        const x = r * cos(theta);
-        const y = r * sin(theta);
-        return !floored ? [x, y] : [floor(x), floor(y)];
+    //----------------------------------------------------------------------
+    // Collections
+    //----------------------------------------------------------------------
+
+    pick<T>(array: readonly T[]): T {
+        return array[this.range(0, array.length - 1)];
     }
 
-    public pointInUnitSphere(radius: number = 1, floored: boolean = false): [x: number, y: number, z: number] {
-        var u = this.nextf;
-        var v = this.nextf;
-
-        var theta = u * 2.0 * PI;
-        var phi = Math.acos(2.0 * v - 1.0);
-
-        var r = radius * Math.cbrt(rng.nextf);
-
-        var sinTheta = sin(theta);
-        var cosTheta = cos(theta);
-
-        var sinPhi = sin(phi);
-        var cosPhi = cos(phi);
-
-        var x = r * sinPhi * cosTheta;
-        var y = r * sinPhi * sinTheta;
-        var z = r * cosPhi;
-
-        return !floored ? [x, y, z] : [floor(x), floor(y), floor(z)];
+    sample<T>(
+        array: readonly T[],
+        count: number,
+    ): T[] {
+        return this.shuffle(array).slice(0, count);
     }
 
-    public parkMillerNormal(): number {
-        const mean = 1 / 2;
-        const stddev = 1 / 6;
+    shuffle<T>(array: readonly T[]): T[] {
+        const result = [...array];
+
+        for (let i = result.length - 1; i > 0; --i) {
+            const j = this.range(0, i);
+
+            [result[i], result[j]] =
+                [result[j], result[i]];
+        }
+
+        return result;
+    }
+
+    chance(probability: number): boolean {
+        return this.rng.float() < probability;
+    }
+
+    //----------------------------------------------------------------------
+    // Geometry
+    //----------------------------------------------------------------------
+
+    vector2(): [number, number] {
+        const θ = this.rng.angle();
+
+        return [
+            cos(θ),
+            sin(θ),
+        ];
+    }
+
+    pointOnCircle(radius = 1): [number, number] {
+        const θ = this.rng.angle();
+
+        return [
+            radius * cos(θ),
+            radius * sin(θ),
+        ];
+    }
+
+    pointInCircle(radius = 1): [number, number] {
+        const θ = this.rng.angle();
+        const r = sqrt(this.rng.float()) * radius;
+
+        return [
+            r * cos(θ),
+            r * sin(θ),
+        ];
+    }
+
+    pointOnSphere(radius = 1): [number, number, number] {
+        const u = this.rng.float();
+        const v = this.rng.float();
+
+        const θ = TAU * u;
+        const φ = acos(2 * v - 1);
+
+        const s = sin(φ);
+
+        return [
+            radius * s * cos(θ),
+            radius * s * sin(θ),
+            radius * cos(φ),
+        ];
+    }
+
+    pointInSphere(radius = 1): [number, number, number] {
+        const u = this.rng.float();
+        const v = this.rng.float();
+
+        const θ = TAU * u;
+        const φ = acos(2 * v - 1);
+
+        const r = radius * cbrt(this.rng.float());
+        const s = sin(φ);
+
+        return [
+            r * s * cos(θ),
+            r * s * sin(θ),
+            r * cos(φ),
+        ];
+    }
+
+    //----------------------------------------------------------------------
+    // Distributions
+    //----------------------------------------------------------------------
+
+    gaussian(
+        mean = 0,
+        standardDeviation = 1,
+    ): number {
 
         let u = 0;
         let v = 0;
 
-        while (u === 0) u = this.nextf;
-        while (v === 0) v = this.nextf;
+        while (u === 0) u = this.rng.float();
+        while (v === 0) v = this.rng.float();
 
-        const n = sqrt(-2.0 * Math.log(u)) * cos(2.0 * PI * v);
+        const z =
+            sqrt(-2 * Math.log(u)) *
+            cos(TAU * v);
 
-        return n * stddev + mean;
+        return mean + z * standardDeviation;
     }
 
-    public choose(...args: any[]): any {
-        if (args.length === 1) {
-            if (Array.isArray(args[0])) {
-                return args[0][this.range(args[0].length - 1)];
-            } else if (typeof args[0] === 'string') {
-                return args[0].charAt(this.range(args[0].length - 1));
-            } else {
-                return args[0];
-            }
-        } else {
-            return args[this.range(args.length - 1)];
-        }
+    //----------------------------------------------------------------------
+    // Matrices
+    //----------------------------------------------------------------------
+
+    matrix(
+        rows: number,
+        columns = rows,
+        min = 0,
+        max = 1,
+    ): number[][] {
+
+        return Array.from(
+            { length: rows },
+            () =>
+                Array.from(
+                    { length: columns },
+                    () =>
+                        this.floatRange(min, max),
+                ),
+        );
     }
 
-    public shuffle(value: Array<any> | string): Array<any> | string {
-        if (Array.isArray(value)) {
-            return value.sort(() => (0.5 - this.nextf));
-        } else {
-            return value.split('').sort(() => (0.5 - this.nextf)).join('');
-        }
-    }
+    transformMatrix(
+        rows: number,
+        columns = rows,
+    ): number[][] {
 
-    public uid(length: number = 16): string {
-        const uid: string[] = [];
-        for (let i = 0; i < length; i++) uid.push(this.choose(this._uid_characters));
-        return uid.join('');
-    }
-
-    public randomMatrix(size: number): number[][] {
-        const rows: number[][] = [];
-
-        for (let i = 0; i < size; i++) {
-            const row: number[] = [];
-
-            for (let j = 0; j < size; j++) {
-                row.push(this.nextf * 2 - 1);
-            }
-
-            rows.push(row);
-        }
-
-        return rows;
+        return this.matrix(rows, columns, -1, 1);
     }
 }
 
-export const rng: RandomNumberGenerator = new RandomNumberGenerator();
+export const rng = new RandomTools();

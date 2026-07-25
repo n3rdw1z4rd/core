@@ -1,9 +1,9 @@
 import { AStar, type AStarFindPathParams } from './astar';
-import { distance2d, Rectangle, squaredDistance, XY } from './math';
+import { distance2d, floor, max, min, Rectangle, round, squaredDistance, XY } from './math';
 import { Heap } from 'heap-js';
-import { log } from './log';
 import { Map2D } from './map2d';
 import { rng } from './rng';
+import log from './logger';
 
 export type RectPair = { a: Rectangle, b: Rectangle };
 export type PointPair = { a: XY, b: XY };
@@ -95,13 +95,13 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
 
     while (iterations < maxIterations) {
         const baseSize = rng.range(minRoomSize, maxRoomSize);
-        const aspectRatio = 0.75 + rng.parkMillerNormal() * 0.5;
+        const aspectRatio = 0.75 + rng.gaussian() * 0.5;
 
-        const width = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize * aspectRatio)));
-        const height = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize / aspectRatio)));
+        const width = min(maxRoomSize, max(minRoomSize, round(baseSize * aspectRatio)));
+        const height = min(maxRoomSize, max(minRoomSize, round(baseSize / aspectRatio)));
 
-        const x = Math.floor(rng.range(1 + padding, size - width - padding));
-        const y = Math.floor(rng.range(1 + padding, size - height - padding));
+        const x = floor(rng.range(1 + padding, size - width - padding));
+        const y = floor(rng.range(1 + padding, size - height - padding));
 
         const room = new Rectangle(x, y, width, height);
 
@@ -184,7 +184,7 @@ function _generateMST(rooms: Rectangle[], params: PathsParams = {}): RectPair[] 
     for (let i = 0; i < extraPathLevels && i < remainingEdges.length; i++) {
         const e = remainingEdges[i];
 
-        if (rng.nextf < extraPathDensity) {
+        if (rng.nextFloat() < extraPathDensity) {
             extraPaths.push({
                 a: rooms[e.from],
                 b: rooms[e.to],
@@ -277,7 +277,7 @@ export function GenerateDoors(map: Map2D, paths: XY[][], params: DoorsParams = {
     const doors: XY[] = [];
 
     possibleDoorPoints.forEach((doorPoint: XY) => {
-        if (rng.nextf < chanceExists && (
+        if (rng.nextFloat() < chanceExists && (
             (map.get(doorPoint.x, doorPoint.y - 1) === map.defaultValue && map.get(doorPoint.x, doorPoint.y + 1) === map.defaultValue) ||
             (map.get(doorPoint.x - 1, doorPoint.y) === map.defaultValue && map.get(doorPoint.x + 1, doorPoint.y) === map.defaultValue)
         )) {

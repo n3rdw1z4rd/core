@@ -1,7 +1,7 @@
 import { AStar, AStarPoint } from "../astar";
-import { log } from "../log";
 import { Map2D } from "../map2d";
 import { rng } from "../rng";
+import log from '../logger';
 
 log('astar test');
 
@@ -43,7 +43,7 @@ function _generateWalls(): Map2D {
 
         map.set(x, y, 1);
 
-        if (rng.nextf < 0.5) {
+        if (rng.nextFloat() < 0.5) {
             const directions = rng.shuffle([
                 [-1, 0],
                 [0, -1],

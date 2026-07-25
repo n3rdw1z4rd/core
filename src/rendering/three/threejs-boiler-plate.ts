@@ -31,7 +31,7 @@ export interface ThreeJsBoilerPlateParams {
 export class ThreeJsBoilerPlate {
     public clock = new Clock();
     public scene = new Scene();
-    public input = new Input();
+    public input = Input.instance;
     private raycaster = new Raycaster();
 
     public renderer: WebGLRenderer;
@@ -60,13 +60,14 @@ export class ThreeJsBoilerPlate {
         this.orbitControls?.dispose();
         this.orbitControls = undefined;
 
-        this.input
-            .on('mouse_move', ({ deltaX, deltaY }: KeyValue) => {
-                if (this.input.isDown('Button0')) {
-                    this.cameraRig.orbit(deltaX, deltaY);
-                }
-            })
-            .on('mouse_wheel', ({ deltaY }: KeyValue) => this.cameraRig.dolly(deltaY));
+        this.input.onPointerMove.subscribe((_: Input, ev: PointerEvent) => {
+            // { deltaX, deltaY }: KeyValue
+            if (this.input.isDown('Button0')) {
+                this.cameraRig.orbit(ev.movementX, ev.movementY);
+            }
+        });
+
+        this.input.onWheel.subscribe((_: Input, ev: WheelEvent) => this.cameraRig.dolly(ev.deltaY));
     }
 
     public async enableOrbitControls() {

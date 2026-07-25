@@ -16,7 +16,7 @@ export class Noise {
 
     public static noise2d(x: number, y: number): number {
         if (!Noise._n2d) {
-            Noise._n2d = createNoise2D(() => rng.nextf);
+            Noise._n2d = createNoise2D(() => rng.nextFloat());
         }
 
         return Noise._n2d(x, y);
@@ -24,7 +24,7 @@ export class Noise {
 
     public static noise3d(x: number, y: number, z: number): number {
         if (!Noise._n3d) {
-            Noise._n3d = createNoise3D(() => rng.nextf);
+            Noise._n3d = createNoise3D(() => rng.nextFloat());
         }
 
         return Noise._n3d(x, y, z);
@@ -32,7 +32,7 @@ export class Noise {
 
     public static noise4d(x: number, y: number, z: number, w: number): number {
         if (!Noise._n4d) {
-            Noise._n4d = createNoise4D(() => rng.nextf);
+            Noise._n4d = createNoise4D(() => rng.nextFloat());
         }
 
         return Noise._n4d(x, y, z, w);

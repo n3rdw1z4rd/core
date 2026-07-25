@@ -25,8 +25,8 @@ export class AsteroidMesh extends Mesh {
 
         super(geometry, material);
 
-        const noise3d = createNoise3D(() => rng.nextf);
-        const noise3d2 = secondaryNoise ? createNoise3D(() => rng.nextf) : null;
+        const noise3d = createNoise3D(rng.rng.float);
+        const noise3d2 = secondaryNoise ? createNoise3D(rng.rng.float) : null;
 
         const position = this.geometry.attributes.position;
         const vertices = position.array;

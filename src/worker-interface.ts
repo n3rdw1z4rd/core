@@ -1,14 +1,16 @@
-import { Emitter } from './emitter';
+import { Observable } from "./observable";
 
-export class WorkerInterface extends Emitter {
+export class WorkerInterface {
     private _worker: Worker;
 
-    constructor(url: string | URL) {
-        super();
+    readonly onError = new Observable<WorkerInterface>();
+    readonly onMessage = new Observable<WorkerInterface>();
 
+    constructor(url: string | URL) {
         this._worker = new Worker(url, { type: 'module' });
-        this._worker.onerror = (error: ErrorEvent) => this.emit('error', error);
-        this._worker.onmessage = (message: MessageEvent) => this.emit('message', message);
+
+        this._worker.onerror = (error: ErrorEvent) => this.onError.notify(this, error);
+        this._worker.onmessage = (message: MessageEvent) => this.onMessage.notify(this, message);
     }
 
     postMessage(message: any, options?: StructuredSerializeOptions | undefined) {

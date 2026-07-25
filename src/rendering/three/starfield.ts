@@ -10,8 +10,8 @@ export function CreateStarfield(
     const positions = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-        const theta = rng.nextf * Math.PI * 2;
-        const phi = Math.acos((rng.nextf * 2) - 1);
+        const theta = rng.nextFloat() * Math.PI * 2;
+        const phi = Math.acos((rng.nextFloat() * 2) - 1);
         const x = radius * Math.sin(phi) * Math.cos(theta);
         const y = radius * Math.sin(phi) * Math.sin(theta);
         const z = radius * Math.cos(phi);

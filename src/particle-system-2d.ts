@@ -2,6 +2,24 @@ import { Color } from './rendering/color';
 import { ParticleRenderer } from './rendering';
 import { rng } from './rng';
 import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partition-2d';
+import { abs, hypot2, pow } from './math';
+import { Random } from './random';
+
+export function randomMatrix(size: number): number[][] {
+    const rows: number[][] = [];
+
+    for (let i = 0; i < size; i++) {
+        const row: number[] = [];
+
+        for (let j = 0; j < size; j++) {
+            row.push(Random.float(i, j) * 2 - 1);
+        }
+
+        rows.push(row);
+    }
+
+    return rows;
+}
 
 interface Particle extends SpatialPartitionEntity2d {
     x: number;
@@ -27,7 +45,7 @@ export class ParticleSystem2d {
     private _range = 0.1;
     private _rangeFactor = 0.1;
 
-    private _attractionMatrix: number[][] = rng.randomMatrix(colors.length);
+    private _attractionMatrix: number[][] = randomMatrix(colors.length);
     private _particles: Particle[] = [];
 
     private _spatialPartition: SpatialPartition2d;
@@ -35,8 +53,8 @@ export class ParticleSystem2d {
     constructor() {
         for (let i = 0; i < this.particleCount; i++) {
             this._particles.push({
-                x: rng.nextf,
-                y: rng.nextf,
+                x: Random.float(i),
+                y: Random.float(i + 1),
                 vx: 0,
                 vy: 0,
                 color: rng.range(colors.length),
@@ -52,14 +70,14 @@ export class ParticleSystem2d {
         if (r < beta) {
             f = r / beta - 1;
         } else if (beta < r && r < 1) {
-            f = a * (1 - Math.abs(2 * r - 1 - beta) / (1 - beta));
+            f = a * (1 - abs(2 * r - 1 - beta) / (1 - beta));
         }
 
         return f;
     };
 
     private _updateVelocities(deltaTimeSeconds: number) {
-        const frictionFactor: number = Math.pow(
+        const frictionFactor: number = pow(
             0.5,
             deltaTimeSeconds / this._frictionHalfLife,
         );
@@ -85,12 +103,12 @@ export class ParticleSystem2d {
                             const p2: Particle = neighborCell[j] as Particle;
 
                             let rx: number = p2.x - p1.x;
-                            if (Math.abs(rx) > 0.5) rx = rx > 0 ? rx - 1 : rx + 1;
+                            if (abs(rx) > 0.5) rx = rx > 0 ? rx - 1 : rx + 1;
 
                             let ry: number = p2.y - p1.y;
-                            if (Math.abs(ry) > 0.5) ry = ry > 0 ? ry - 1 : ry + 1;
+                            if (abs(ry) > 0.5) ry = ry > 0 ? ry - 1 : ry + 1;
 
-                            const d: number = Math.hypot(rx, ry);
+                            const d: number = hypot2(rx, ry);
 
                             if (d > 0 && d < this._range) {
                                 const f: number = this._calcForce(

@@ -1,6 +1,6 @@
 # @n3rdw1z4rd/core
 
-A personal, browser-facing TypeScript toolkit consolidated out of several game/graphics side projects: math and RNG with no native `Math` dependency, an event emitter, two ECS flavors, procedural generation (pathfinding, Poisson-disk sampling, dungeon layout), a "particle life" simulation in 2D and 3D, and a set of Three.js helpers (camera rig, bootstrap scene, voxel meshing, texture atlases, procedural meshes).
+A personal, browser-facing TypeScript toolkit consolidated out of several game/graphics side projects: math and RNG with no native `Math` dependency, an event emitter (TODO: emitter replaced), two ECS flavors, procedural generation (pathfinding, Poisson-disk sampling, dungeon layout), a "particle life" simulation in 2D and 3D, and a set of Three.js helpers (camera rig, bootstrap scene, voxel meshing, texture atlases, procedural meshes).
 
 Nothing here is trying to be a general-purpose framework - it's the shared plumbing that kept getting copy-pasted between projects, pulled into one place so it only has to be fixed once.
 

@@ -22,11 +22,11 @@ export class Input {
 
     private _keyStates: Map<string, InputEventState>;
     private _buttonStates: Map<string, InputEventState>;
-    private _mousePosition = new Vector();
+    private _pointerPosition = new Vector();
 
     inputThreshold: number = 200;
 
-    get mouseScreenPosition(): Vector { return this._mousePosition.clone(); }
+    get pointerPosition(): Vector { return this._pointerPosition.clone(); }
 
     // get mouseWorldPosition(): Vector {
     //     return new Vector(
@@ -92,9 +92,9 @@ export class Input {
             }
         });
 
-        window.addEventListener('mousemove', (ev: MouseEvent) => {
-            this._mousePosition.x = ev.offsetX;
-            this._mousePosition.y = ev.offsetY;
+        window.addEventListener('pointermove', (ev: MouseEvent) => {
+            this._pointerPosition.x = ev.offsetX;
+            this._pointerPosition.y = ev.offsetY;
 
             this.onPointerMove.notify(this, ev);
         });

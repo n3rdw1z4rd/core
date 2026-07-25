@@ -34,8 +34,8 @@ export class Map3D {
 
     private _pos(key: number): [number, number, number] {
         const Z = key % BASE_3D;
-        const Y = Math.floor(key / BASE_3D) % BASE_3D;
-        const X = Math.floor(key / (BASE_3D * BASE_3D));
+        const Y = floor(key / BASE_3D) % BASE_3D;
+        const X = floor(key / (BASE_3D * BASE_3D));
 
         return [X - OFFSET_3D, Y - OFFSET_3D, Z - OFFSET_3D];
     }

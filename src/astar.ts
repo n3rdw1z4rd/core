@@ -1,4 +1,5 @@
 import type { Map2D } from './map2d';
+import { abs } from './math';
 
 export interface AStarPoint {
     x: number;
@@ -39,7 +40,7 @@ export class AStar {
     }
 
     private _manhattan(a: AStarPoint, b: AStarPoint): number {
-        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        return abs(a.x - b.x) + abs(a.y - b.y);
     }
 
     private _isWalkable(point: AStarPoint, walkable: number[] = [0]): boolean {

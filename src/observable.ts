@@ -6,7 +6,7 @@ class Texture {
 
     load() {
         // ...
-        this.onLoaded.notify(this);
+        this.onLoaded.notify(this, arg1, arg2, ...);
     }
 }
 

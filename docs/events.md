@@ -2,6 +2,8 @@
 
 `import { ... } from "@n3rdw1z4rd/core";`
 
+# TODO: Emitter has been replaced - update docs
+
 ## Emitter
 
 A minimal typed event emitter. Most classes in this package (`Input`, `PhysicsWorld`-style clients, `WorkerInterface`) extend it rather than rolling their own pub/sub.

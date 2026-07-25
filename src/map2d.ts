@@ -33,7 +33,7 @@ export class Map2D {
 
     private _pos(key: number): [number, number] {
         const Y = key % BASE_2D;
-        const X = Math.floor(key / BASE_2D);
+        const X = floor(key / BASE_2D);
         return [X - OFFSET_2D, Y - OFFSET_2D];
     }
 

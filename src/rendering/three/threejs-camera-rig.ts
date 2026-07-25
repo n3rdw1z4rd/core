@@ -1,5 +1,5 @@
 import { PerspectiveCamera, Group, Object3D } from 'three';
-import { clamp, deg2rad } from '../../math';
+import { clamp, degrees } from '../../math';
 
 export interface ThreeJsCameraRigParams {
     camera?: PerspectiveCamera,
@@ -20,8 +20,8 @@ export class ThreeJsCameraRig extends Group {
     minCameraDistance: number = 2;
     maxCameraDistance: number = 100.0;
 
-    minTiltAngle: number = deg2rad(-90);
-    maxTiltAngle: number = deg2rad(0);
+    minTiltAngle: number = degrees(-90);
+    maxTiltAngle: number = degrees(0);
     clampTiltAngle: boolean = false;
 
     constructor(params?: ThreeJsCameraRigParams) {

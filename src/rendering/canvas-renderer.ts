@@ -1,4 +1,4 @@
-import { abs, clamp, DOUBLE_PI, floor } from "../math";
+import { abs, clamp, TAU, floor, PI, cos, sin } from "../math";
 
 export type CanvasColor = string | CanvasGradient | CanvasPattern;
 
@@ -134,7 +134,7 @@ export class CanvasRenderer {
 
     drawCircle(x: number, y: number, radius: number, params: DrawParams = {}) {
         this.drawPath(() => {
-            this.context.arc(x, y, radius, 0, DOUBLE_PI);
+            this.context.arc(x, y, radius, 0, TAU);
         }, params);
     }
 
@@ -149,10 +149,10 @@ export class CanvasRenderer {
 
         this.drawPath(() => {
             for (let i = 0; i < sides; i++) {
-                const angle = (i / sides) * DOUBLE_PI - Math.PI / 2;
+                const angle = (i / sides) * TAU - PI / 2;
 
-                const px = x + Math.cos(angle) * radius;
-                const py = y + Math.sin(angle) * radius;
+                const px = x + cos(angle) * radius;
+                const py = y + sin(angle) * radius;
 
                 if (i === 0) {
                     this.context.moveTo(px, py);

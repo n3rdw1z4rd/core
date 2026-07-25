@@ -22,7 +22,7 @@ export class SimplexNoise {
         this.p = [];
 
         for (let i = 0; i < 256; i++) {
-            this.p.push(Math.floor(rng.nextf * 256));
+            this.p.push(Math.floor(rng.nextFloat() * 256));
         }
 
         this.perm = [];

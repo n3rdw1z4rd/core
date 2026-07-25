@@ -1,6 +1,8 @@
 import { BufferGeometry, Float32BufferAttribute, Group, PerspectiveCamera, Points, ShaderMaterial, Vector3 } from 'three';
 import { rng } from '../../rng';
 import { SpatialPartition3d, SpatialPartitionEntity3d } from '../../spatial-partition-3d';
+import { Random } from '../../random';
+import { randomMatrix } from '../../particle-system-2d';
 
 const vertexShader = `
 uniform float pointSize;
@@ -80,9 +82,9 @@ export class ParticleSystem3d extends Group {
 
         for (let i = 0; i < this.particleCount; i++) {
             this._particles.push({
-                x: rng.nextf,
-                y: rng.nextf,
-                z: rng.nextf,
+                x: rng.nextFloat(),
+                y: rng.nextFloat(),
+                z: rng.nextFloat(),
                 vx: 0,
                 vy: 0,
                 vz: 0,
@@ -90,7 +92,7 @@ export class ParticleSystem3d extends Group {
             });
         }
 
-        this._attractionMatrix = rng.randomMatrix(Colors.length);
+        this._attractionMatrix = randomMatrix(Colors.length);
         this._spatialPartition = new SpatialPartition3d(this._range, this._particles);
     }
 
