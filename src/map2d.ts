@@ -2,11 +2,18 @@ import { floor } from "./math";
 
 const DEFAULT_VALUE = -1;
 
+// 2^21 per axis: safe range is roughly ±1,048,575, comfortably covers voxel/tile coordinates
+const BASE_2D = 0x200000;
+const OFFSET_2D = 0x100000;
+
+export type Map2DData = Map<number, number>;
+
 export class Map2D {
     readonly defaultValue: number;
 
-    private _data: Map<string, number>;
+    private _data: Map2DData;
 
+    get data(): Map2DData { return this._data; }
     get size(): number { return this._data.size; }
 
     constructor(defaultValue: number = DEFAULT_VALUE) {
@@ -18,12 +25,16 @@ export class Map2D {
         return [floor(x), floor(y)];
     }
 
-    private _key(x: number, y: number): string {
-        return `${x},${y}`;
+    private _key(x: number, y: number): number {
+        const X = (x + OFFSET_2D) & (BASE_2D - 1);
+        const Y = (y + OFFSET_2D) & (BASE_2D - 1);
+        return (X * BASE_2D) + Y;
     }
 
-    private _pos(key: string): [number, number] {
-        return key.split(',').map((v: string) => parseInt(v)) as [number, number];
+    private _pos(key: number): [number, number] {
+        const Y = key % BASE_2D;
+        const X = Math.floor(key / BASE_2D);
+        return [X - OFFSET_2D, Y - OFFSET_2D];
     }
 
     public clear() {
@@ -49,7 +60,7 @@ export class Map2D {
     }
 
     public forEach(callback: (x: number, y: number, v: number) => void) {
-        this._data.forEach((v: number, key: string) => {
+        this._data.forEach((v: number, key: number) => {
             const [x, y] = this._pos(key);
             callback(x, y, v);
         });

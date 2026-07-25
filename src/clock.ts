@@ -1,6 +1,6 @@
-import { Emitter } from "./emitter";
+import { Observable } from "./observable";
 
-export class Clock extends Emitter {
+export class Clock {
     private _startTime: number = 0;
     private _time: number = 0;
     private _deltaTime: number = 0;
@@ -14,6 +14,8 @@ export class Clock extends Emitter {
     get elapsedTime(): number { return performance.now() - this._startTime; }
     get fps(): number { return this._fps; }
     get isRunning(): boolean { return this._isRunning; }
+
+    readonly onFrame = new Observable<Clock>();
 
     public start(): this {
         if (!this._isRunning) {
@@ -32,7 +34,7 @@ export class Clock extends Emitter {
                     this._frameCount = 0;
                 }
 
-                this.emit('frame', this._deltaTime);
+                this.onFrame.notify(this);
 
                 if (this._isRunning) {
                     requestAnimationFrame(update);

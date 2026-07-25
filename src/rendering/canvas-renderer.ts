@@ -1,73 +1,91 @@
-import { abs, PI } from "../math";
+import { abs, clamp, DOUBLE_PI, floor } from "../math";
 
 export type CanvasColor = string | CanvasGradient | CanvasPattern;
 
+export const DEFAULT_COLOR: CanvasColor = 'white';
+export const DEFAULT_PIXEL_SIZE: number = 1;
+
+export const DEFAULT_FONT = '18px monospace';
+export const DEFAULT_TEXTALIGN = 'left';
+export const DEFAULT_TEXTBASELINE = 'alphabetic';
+
 export interface DrawParams {
     color?: CanvasColor,
-    strokeColor?: CanvasColor,
-    fillColor?: CanvasColor,
     filled?: boolean,
     size?: number,
-    fontName?: string,
-    textAlign?: CanvasTextAlign,
-    textBaseline?: CanvasTextBaseline,
     lineDash?: number[],
 }
 
+export interface SpriteParams extends DrawParams {
+    sourceX?: number,
+    sourceY?: number,
+    sourceWidth?: number,
+    sourceHeight?: number,
+}
+
 export class CanvasRenderer {
-    canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
 
-    drawCentered: boolean = true;
-
-    get width(): number { return this.context.canvas.width; }
-    get height(): number { return this.context.canvas.height; }
+    get canvas(): HTMLCanvasElement { return this.context.canvas; }
+    get width(): number { return this.canvas.width; }
+    get height(): number { return this.canvas.height; }
 
     constructor(canvas?: HTMLCanvasElement) {
-        this.canvas = canvas ?? document.createElement('canvas');
-        this.context = this.canvas.getContext('2d')!;
+        this.context = (canvas ?? document.createElement('canvas'))
+            .getContext('2d')!;
+
+        this.context.font = DEFAULT_FONT;
+        this.context.textAlign = DEFAULT_TEXTALIGN;
+        this.context.textBaseline = DEFAULT_TEXTBASELINE;
     }
 
-    appendTo(target: HTMLElement): void {
-        if (this.canvas.parentNode) {
-            this.canvas.parentNode.removeChild(this.canvas);
+    resize(width?: number, height?: number): boolean {
+        let resized = false;
+
+        width = width ?? this.canvas.parentElement?.clientWidth ?? this.width;
+        height = height ?? this.canvas.parentElement?.clientHeight ?? this.height;
+
+        if (this.canvas.width != width || this.canvas.height != height) {
+            this.canvas.width = width;
+            this.canvas.height = height;
+            resized = true;
         }
 
-        target.appendChild(this.canvas);
-    }
-
-    resize(displayWidth?: number, displayHeight?: number): boolean {
-        // TODO: this is costly every frame:
-        const { width, height } = (
-            this.canvas.parentElement?.getBoundingClientRect() ??
-            this.canvas.getBoundingClientRect()
-        );
-
-        displayWidth = (0 | (displayWidth ?? width));
-        displayHeight = (0 | (displayHeight ?? height));
-
-        if (this.canvas.width !== displayWidth || this.canvas.height !== displayHeight) {
-            this.canvas.width = displayWidth
-            this.canvas.height = displayHeight;
-
-            return true;
-        }
-
-        return false;
+        return resized;
     }
 
     clear() {
         this.context.clearRect(0, 0, this.width, this.height);
     }
 
-    drawRect(x: number, y: number, width: number, height: number, params: DrawParams = {}) {
-        if (this.drawCentered) {
-            x -= (width / 2);
-            y -= (height / 2);
+    private drawPath(buildPath: () => void, params: DrawParams = {}) {
+        this.context.fillStyle = params.color ?? DEFAULT_COLOR;
+        this.context.strokeStyle = params.color ?? DEFAULT_COLOR;
+        this.context.lineWidth = params.size ?? 1;
+
+        if (params.lineDash) {
+            this.context.setLineDash(params.lineDash);
         }
 
-        this.context.strokeStyle = params.strokeColor ?? params.color ?? 'white';
-        this.context.fillStyle = params.fillColor ?? params.color ?? 'white';
+        this.context.beginPath();
+        buildPath();
+        this.context.stroke();
+
+        if (params.filled) {
+            this.context.fill();
+        }
+
+        if (params.lineDash) {
+            this.context.setLineDash([]);
+        }
+    }
+
+    drawRect(x: number, y: number, width: number, height: number, params: DrawParams = {}) {
+        x -= (width / 2);
+        y -= (height / 2);
+
+        this.context.fillStyle = params.color ?? DEFAULT_COLOR;
+        this.context.strokeStyle = params.color ?? DEFAULT_COLOR;
         this.context.lineWidth = params.size ?? 1;
 
         if (params.lineDash) {
@@ -76,12 +94,10 @@ export class CanvasRenderer {
 
         this.context.beginPath();
 
-        if (params.filled === true) {
-            this.context.fillRect(x, y, width, height);
+        this.context.strokeRect(x, y, width, height);
 
-            if (params.strokeColor !== undefined) this.context.strokeRect(x, y, width, height);
-        } else {
-            this.context.strokeRect(x, y, width, height);
+        if (params.filled) {
+            this.context.fillRect(x, y, width, height);
         }
 
         if (params.lineDash) {
@@ -90,7 +106,7 @@ export class CanvasRenderer {
     }
 
     drawPixel(x: number, y: number, params: DrawParams = {}) {
-        const size = abs(params.size || 1);
+        const size = abs(params.size || DEFAULT_PIXEL_SIZE);
 
         this.drawRect(x, y, size, size, {
             ...params,
@@ -99,7 +115,7 @@ export class CanvasRenderer {
     }
 
     drawLine(x1: number, y1: number, x2: number, y2: number, params: DrawParams = {}) {
-        this.context.strokeStyle = params.color ?? 'white';
+        this.context.strokeStyle = params.color ?? DEFAULT_COLOR;
         this.context.lineWidth = params.size ?? 1;
 
         if (params.lineDash) {
@@ -109,7 +125,6 @@ export class CanvasRenderer {
         this.context.beginPath();
         this.context.moveTo(x1, y1);
         this.context.lineTo(x2, y2);
-        // this.context.closePath(); // TODO: do i need this?
         this.context.stroke();
 
         if (params.lineDash) {
@@ -118,32 +133,65 @@ export class CanvasRenderer {
     }
 
     drawCircle(x: number, y: number, radius: number, params: DrawParams = {}) {
-        this.context.strokeStyle = params.strokeColor ?? params.color ?? 'white';
-        this.context.fillStyle = params.fillColor ?? params.color ?? 'white';
-        this.context.lineWidth = params.size ?? 1;
+        this.drawPath(() => {
+            this.context.arc(x, y, radius, 0, DOUBLE_PI);
+        }, params);
+    }
 
-        if (params.lineDash) {
-            this.context.setLineDash(params.lineDash);
-        }
+    drawPolygon(
+        x: number,
+        y: number,
+        radius: number,
+        sides: number,
+        params: DrawParams = {}
+    ) {
+        sides = floor(clamp(sides, 3, 36));
 
-        this.context.beginPath();
-        this.context.arc(x, y, radius, 0, 2 * PI);
+        this.drawPath(() => {
+            for (let i = 0; i < sides; i++) {
+                const angle = (i / sides) * DOUBLE_PI - Math.PI / 2;
 
-        if (params.filled === true) this.context.fill();
+                const px = x + Math.cos(angle) * radius;
+                const py = y + Math.sin(angle) * radius;
 
-        this.context.stroke();
+                if (i === 0) {
+                    this.context.moveTo(px, py);
+                } else {
+                    this.context.lineTo(px, py);
+                }
+            }
 
-        if (params.lineDash) {
-            this.context.setLineDash([]);
-        }
+            this.context.closePath();
+        }, params);
     }
 
     drawText(x: number, y: number, text: string, params: DrawParams = {}) {
-        this.context.font = `${params.size ?? 14}px ${params.fontName ?? 'monospace'}`;
-        this.context.textAlign = params.textAlign ?? 'left';
-        this.context.textBaseline = params.textBaseline ?? 'alphabetic';
-        this.context.fillStyle = params.color ?? 'white';
-
+        this.context.fillStyle = params.color ?? DEFAULT_COLOR;
         this.context.fillText(text, x, y);
+    }
+
+    drawSprite(
+        x: number,
+        y: number,
+        image: CanvasImageSource,
+        width: number,
+        height: number,
+        params: SpriteParams = {}
+    ) {
+        x -= (width / 2);
+        y -= (height / 2);
+
+        if (params.sourceWidth !== undefined && params.sourceHeight !== undefined) {
+            this.context.drawImage(
+                image,
+                params.sourceX ?? 0,
+                params.sourceY ?? 0,
+                params.sourceWidth,
+                params.sourceHeight,
+                x, y, width, height,
+            );
+        } else {
+            this.context.drawImage(image, x, y, width, height);
+        }
     }
 }
