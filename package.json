@@ -50,10 +50,10 @@
         "three": "^0.185.1"
     },
     "devDependencies": {
-        "@types/three": "^0.185.3",
+        "@types/three": "^0.185.4",
         "shx": "^0.4.0",
         "tsup": "^8.5.1",
-        "typescript": "^5.9.3"
+        "typescript": "^6.0.3"
     },
     "allowScripts": {
         "esbuild@0.27.7": true,
