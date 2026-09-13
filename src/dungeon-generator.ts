@@ -2,7 +2,7 @@ import { AStar, type AStarFindPathParams } from './astar';
 import { Heap } from 'heap-js';
 import { Map2D } from './map2d';
 import { rng } from './rng';
-import log from './log';
+import { log } from './log';
 import { distance2d, squaredDistance } from './math';
 import { Rectangle } from './rectangle';
 import { XY } from './types';

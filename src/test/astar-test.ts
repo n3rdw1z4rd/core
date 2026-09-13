@@ -1,6 +1,6 @@
 import { Map2D } from "../map2d";
 import { rng } from "../rng";
-import log from '../log';
+import { log } from '../log';
 import { AStar } from "../astar";
 import { XY } from "../types";
 
