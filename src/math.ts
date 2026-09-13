@@ -1,7 +1,3 @@
-// -----------------------------------------------------------------------------
-// Constants
-// -----------------------------------------------------------------------------
-
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;
 export const HALF_PI = Math.PI / 2;
@@ -22,198 +18,55 @@ export const SQRT1_2 = Math.SQRT1_2;
 
 export const EPSILON = Number.EPSILON;
 
-// -----------------------------------------------------------------------------
-// Types
-// -----------------------------------------------------------------------------
-
-export interface XY {
-    readonly x: number;
-    readonly y: number;
-}
-
-export interface XYZ {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-}
-
-export interface XYZW {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly w: number;
-}
-
-export interface RGB {
-    readonly r: number;
-    readonly g: number;
-    readonly b: number;
-}
-
-export interface RGBA {
-    readonly r: number;
-    readonly g: number;
-    readonly b: number;
-    readonly a: number;
-}
-
-// -----------------------------------------------------------------------------
-// Basic math
-// -----------------------------------------------------------------------------
-
-export const abs = Math.abs;
-export const min = Math.min;
-export const max = Math.max;
-
-export const floor = Math.floor;
-export const ceil = Math.ceil;
-export const round = Math.round;
-export const trunc = Math.trunc;
-
-export const sign = Math.sign;
-
-export const sqrt = Math.sqrt;
-export const cbrt = Math.cbrt;
-
-export const pow = Math.pow;
-
-export const exp = Math.exp;
-export const expm1 = Math.expm1;
-
-export const log = Math.log;
-export const log1p = Math.log1p;
-export const log2 = Math.log2;
-export const log10 = Math.log10;
-
-export const hypot = Math.hypot;
-
-export const imul = Math.imul;
-
-// -----------------------------------------------------------------------------
-// Trigonometry
-// -----------------------------------------------------------------------------
-
-export const sin = Math.sin;
-export const cos = Math.cos;
-export const tan = Math.tan;
-
-export const asin = Math.asin;
-export const acos = Math.acos;
-export const atan = Math.atan;
-export const atan2 = Math.atan2;
-
-export const sinh = Math.sinh;
-export const cosh = Math.cosh;
-export const tanh = Math.tanh;
-
-// -----------------------------------------------------------------------------
-// Utility
-// -----------------------------------------------------------------------------
-
-export const clamp = (
-    value: number,
-    minValue: number,
-    maxValue: number
-): number => min(max(value, minValue), maxValue);
+export const clamp = (value: number, minValue: number, maxValue: number): number =>
+    Math.min(Math.max(value, minValue), maxValue);
 
 export const saturate = (value: number): number =>
     clamp(value, 0, 1);
 
-export const lerp = (
-    start: number,
-    end: number,
-    t: number
-): number =>
+export const lerp = (start: number, end: number, t: number): number =>
     start + (end - start) * t;
 
-export const inverseLerp = (
-    start: number,
-    end: number,
-    value: number
-): number =>
+export const inverseLerp = (start: number, end: number, value: number): number =>
     (value - start) / (end - start);
 
-export const map = (
-    value: number,
-    inMin: number,
-    inMax: number,
-    outMin: number,
-    outMax: number
-): number =>
-    outMin +
-    ((value - inMin) * (outMax - outMin)) /
-    (inMax - inMin);
+// export const map = (
+//     value: number,
+//     inMin: number,
+//     inMax: number,
+//     outMin: number,
+//     outMax: number
+// ): number =>
+//     outMin +
+//     ((value - inMin) * (outMax - outMin)) /
+//     (inMax - inMin);
 
-export const smoothstep = (
-    edge0: number,
-    edge1: number,
-    value: number
-): number => {
+export const smoothstep = (edge0: number, edge1: number, value: number): number => {
     const t = saturate((value - edge0) / (edge1 - edge0));
     return t * t * (3 - 2 * t);
 };
 
 export const fract = (value: number): number =>
-    value - floor(value);
+    value - Math.floor(value);
 
-export const mod = (
-    value: number,
-    divisor: number
-): number =>
+export const mod = (value: number, divisor: number): number =>
     ((value % divisor) + divisor) % divisor;
 
-export const wrap = (
-    value: number,
-    minValue: number,
-    maxValue: number
-): number => {
+export const wrap = (value: number, minValue: number, maxValue: number): number => {
     const range = maxValue - minValue;
     return minValue + mod(value - minValue, range);
 };
 
-// -----------------------------------------------------------------------------
-// Angle
-// -----------------------------------------------------------------------------
-
-export const radians = (
-    degrees: number
-): number =>
-    degrees * DEG2RAD;
-
-export const degrees = (
-    radians: number
-): number =>
-    radians * RAD2DEG;
-
-export const normalizeRadians = (
-    radians: number
-): number =>
-    wrap(radians, -PI, PI);
-
-// -----------------------------------------------------------------------------
-// Distance
-// -----------------------------------------------------------------------------
-
-export const hypot2 = (
-    x: number,
-    y: number
-): number =>
-    hypot(x, y);
-
-export const hypot3 = (
-    x: number,
-    y: number,
-    z: number
-): number =>
-    hypot(x, y, z);
+export const radians = (degrees: number): number => degrees * DEG2RAD;
+export const degrees = (radians: number): number => radians * RAD2DEG;
+export const normalizeRadians = (radians: number): number => wrap(radians, -PI, PI);
 
 export const distance2d = (
     x1: number,
     y1: number,
     x2: number,
-    y2: number
-): number =>
-    hypot(x2 - x1, y2 - y1);
+    y2: number,
+): number => Math.hypot(x2 - x1, y2 - y1);
 
 export const distance3d = (
     x1: number,
@@ -222,12 +75,7 @@ export const distance3d = (
     x2: number,
     y2: number,
     z2: number
-): number =>
-    hypot(
-        x2 - x1,
-        y2 - y1,
-        z2 - z1
-    );
+): number => Math.hypot(x2 - x1, y2 - y1, z2 - z1);
 
 export const squaredDistance = (
     x1: number,
@@ -247,35 +95,44 @@ export const manhattanDistance = (
     x2: number,
     y2: number
 ): number =>
-    abs(x2 - x1) + abs(y2 - y1);
-
-// -----------------------------------------------------------------------------
-// Comparison
-// -----------------------------------------------------------------------------
+    Math.abs(x2 - x1) + Math.abs(y2 - y1);
 
 export const nearlyEqual = (
     a: number,
     b: number,
     epsilon = EPSILON
 ): boolean =>
-    abs(a - b) <= epsilon;
-
-// -----------------------------------------------------------------------------
-// Rounding
-// -----------------------------------------------------------------------------
+    Math.abs(a - b) <= epsilon;
 
 export const roundTo = (
     value: number,
     digits = 0
 ): number => {
     const factor = 10 ** digits;
-    return round(value * factor) / factor;
+    return Math.round(value * factor) / factor;
 };
 
-// -----------------------------------------------------------------------------
-// Misc.
-// -----------------------------------------------------------------------------
+export const hash32 = (n: number): number => {
+    n |= 0;
 
-export const isFinite = Number.isFinite;
-export const isInteger = Number.isInteger;
-export const isNaN = Number.isNaN;
+    n ^= n >>> 16;
+    n = Math.imul(n, 0x85ebca6b);
+
+    n ^= n >>> 13;
+    n = Math.imul(n, 0xc2b2ae35);
+
+    n ^= n >>> 16;
+
+    return n >>> 0;
+};
+
+export const hash32mix = (...values: number[]): number => {
+    let n = 0;
+
+    for (const value of values) {
+        n ^= value | 0;
+        n = hash32(n);
+    }
+
+    return n;
+};

@@ -1,1 +1,4 @@
-export declare type KeyValue = { [key: string]: any };
+export interface XY { x: number, y: number }
+export interface XYZ { x: number, y: number, z: number }
+
+export type KeyValue = Record<string, any>;

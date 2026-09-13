@@ -1,4 +1,4 @@
-import { KeyValue } from '../types';
+import { KeyValue } from './types';
 
 export enum ShaderType {
     VERTEX = WebGL2RenderingContext.VERTEX_SHADER,

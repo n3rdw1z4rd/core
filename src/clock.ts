@@ -1,53 +1,56 @@
 import { Observable } from "./observable";
 
-export class Clock {
-    private _startTime: number = 0;
-    private _time: number = 0;
-    private _deltaTime: number = 0;
-    private _frameTime: number = 0;
-    private _frameCount: number = 0;
-    private _fps: number = 0;
-    private _isRunning: boolean = false;
+export const ONE_SECOND = 1000;
 
-    get time(): number { return this._time; }
-    get deltaTime(): number { return this._deltaTime; }
-    get elapsedTime(): number { return performance.now() - this._startTime; }
+export class Clock {
+    private _fps: number = 0;
+    private _frameCount: number = 0;
+    private _frameTime: number = 0;
+    private _isRunning: boolean = false;
+    private _lastTime: number = 0;
+
+    readonly onFpsUpdate = new Observable();
+    readonly onFrame = new Observable();
+
+    readonly startTime = performance.now();
+
+    get elapsedTime(): number { return performance.now() - this.startTime; }
     get fps(): number { return this._fps; }
     get isRunning(): boolean { return this._isRunning; }
 
-    readonly onFrame = new Observable<Clock>();
+    update(time: number): number {
+        const deltaTime = (time - this._lastTime) / ONE_SECOND;
 
-    public start(): this {
-        if (!this._isRunning) {
-            this._startTime = performance.now();
-            this._isRunning = true;
+        this._lastTime = time;
 
-            const update = (time: DOMHighResTimeStamp) => {
-                this._deltaTime = (time - this._time) / 1000;
-                this._time = time;
+        if (this._frameTime + ONE_SECOND >= time) {
+            this._frameCount++;
+        } else {
+            this._frameTime = time;
+            this._fps = this._frameCount;
+            this._frameCount = 0;
 
-                if (this._frameTime + 1000 >= time) {
-                    this._frameCount += 1;
-                } else {
-                    this._frameTime = time;
-                    this._fps = this._frameCount;
-                    this._frameCount = 0;
-                }
-
-                this.onFrame.notify(this);
-
-                if (this._isRunning) {
-                    requestAnimationFrame(update);
-                }
-            };
-
-            requestAnimationFrame(update);
+            this.onFpsUpdate.notify(this.fps);
         }
 
-        return this;
+        return deltaTime;
     }
 
-    public stop() {
+    start() {
+        if (!this._isRunning) {
+            const animate = (time: DOMHighResTimeStamp) => {
+                this.onFrame.notify(this.update(time));
+
+                if (this._isRunning)
+                    requestAnimationFrame(animate);
+            };
+
+            this._isRunning = true;
+            requestAnimationFrame(animate);
+        }
+    }
+
+    stop() {
         this._isRunning = false;
     }
 }

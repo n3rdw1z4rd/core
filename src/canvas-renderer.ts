@@ -1,10 +1,9 @@
-import { abs, clamp, TAU, floor, PI, cos, sin, XYZ } from "../math";
+import { clamp, TAU, PI } from "./math";
 
 export type CanvasColor = string | CanvasGradient | CanvasPattern;
 
 export const DEFAULT_COLOR: CanvasColor = 'white';
 export const DEFAULT_PIXEL_SIZE: number = 1;
-
 export const DEFAULT_FONT_SIZE = 14;
 export const DEFAULT_FONT_NAME = 'monospace';
 export const DEFAULT_FONT = `${DEFAULT_FONT_SIZE}px ${DEFAULT_FONT_NAME}`;
@@ -64,21 +63,6 @@ export class CanvasRenderer {
         this.context.clearRect(0, 0, this.width, this.height);
     }
 
-    render(callback: () => void, camera?: XYZ) {
-        camera = camera ?? { x: 0, y: 0, z: 1 };
-
-        this.clear();
-        this.context.save();
-
-        this.context.translate(this.width / 2, this.height / 2);
-        this.context.scale(camera.z, camera.z);
-        this.context.translate(-camera.x, -camera.y);
-
-        callback();
-
-        this.context.restore();
-    }
-
     private drawPath(buildPath: () => void, params: DrawParams = {}) {
         this.context.fillStyle = params.color ?? DEFAULT_COLOR;
         this.context.strokeStyle = params.color ?? DEFAULT_COLOR;
@@ -127,7 +111,7 @@ export class CanvasRenderer {
     }
 
     drawPixel(x: number, y: number, params: DrawParams = {}) {
-        const size = abs(params.size || DEFAULT_PIXEL_SIZE);
+        const size = Math.abs(params.size || DEFAULT_PIXEL_SIZE);
 
         this.drawRect(x, y, size, size, {
             ...params,
@@ -166,14 +150,14 @@ export class CanvasRenderer {
         sides: number,
         params: DrawParams = {}
     ) {
-        sides = floor(clamp(sides, 3, 36));
+        sides = Math.floor(clamp(sides, 3, 36));
 
         this.drawPath(() => {
             for (let i = 0; i < sides; i++) {
                 const angle = (i / sides) * TAU - PI / 2;
 
-                const px = x + cos(angle) * radius;
-                const py = y + sin(angle) * radius;
+                const px = x + Math.cos(angle) * radius;
+                const py = y + Math.sin(angle) * radius;
 
                 if (i === 0) {
                     this.context.moveTo(px, py);

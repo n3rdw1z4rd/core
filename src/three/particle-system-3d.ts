@@ -1,8 +1,7 @@
 import { BufferGeometry, Float32BufferAttribute, Group, PerspectiveCamera, Points, ShaderMaterial, Vector3 } from 'three';
-import { rng } from '../../rng';
-import { SpatialPartition3d, SpatialPartitionEntity3d } from '../../spatial-partition-3d';
-import { Random } from '../../random';
-import { randomMatrix } from '../../particle-system-2d';
+import { SpatialPartition3d, SpatialPartitionEntity3d } from '../spatial-partition-3d';
+import { rng } from '../rng';
+import { randomMatrix } from '../particle-system-2d';
 
 const vertexShader = `
 uniform float pointSize;

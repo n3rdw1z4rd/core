@@ -1,11 +1,9 @@
-import { floor } from "./math";
-
 export class Tilemap<T = number> {
     map: Map<string, T> = new Map();
 
     private _key(x: number, y: number): string {
-        x = floor(x);
-        y = floor(y);
+        x = Math.floor(x);
+        y = Math.floor(y);
 
         return `${x}x${y}`;
     }

@@ -1,5 +1,5 @@
 import { PerspectiveCamera, Group, Object3D } from 'three';
-import { clamp, degrees } from '../../math';
+import { clamp, degrees } from '../math';
 
 export interface ThreeJsCameraRigParams {
     camera?: PerspectiveCamera,

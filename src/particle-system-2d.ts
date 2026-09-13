@@ -1,9 +1,8 @@
-import { Color } from './rendering/color';
-import { ParticleRenderer } from './rendering';
+import { Color } from './color';
 import { rng } from './rng';
 import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partition-2d';
-import { abs, hypot2, pow } from './math';
 import { Random } from './random';
+import { ParticleRenderer } from './particle-renderer';
 
 export function randomMatrix(size: number): number[][] {
     const rows: number[][] = [];
@@ -70,14 +69,14 @@ export class ParticleSystem2d {
         if (r < beta) {
             f = r / beta - 1;
         } else if (beta < r && r < 1) {
-            f = a * (1 - abs(2 * r - 1 - beta) / (1 - beta));
+            f = a * (1 - Math.abs(2 * r - 1 - beta) / (1 - beta));
         }
 
         return f;
     };
 
     private _updateVelocities(deltaTimeSeconds: number) {
-        const frictionFactor: number = pow(
+        const frictionFactor: number = Math.pow(
             0.5,
             deltaTimeSeconds / this._frictionHalfLife,
         );
@@ -103,12 +102,12 @@ export class ParticleSystem2d {
                             const p2: Particle = neighborCell[j] as Particle;
 
                             let rx: number = p2.x - p1.x;
-                            if (abs(rx) > 0.5) rx = rx > 0 ? rx - 1 : rx + 1;
+                            if (Math.abs(rx) > 0.5) rx = rx > 0 ? rx - 1 : rx + 1;
 
                             let ry: number = p2.y - p1.y;
-                            if (abs(ry) > 0.5) ry = ry > 0 ? ry - 1 : ry + 1;
+                            if (Math.abs(ry) > 0.5) ry = ry > 0 ? ry - 1 : ry + 1;
 
-                            const d: number = hypot2(rx, ry);
+                            const d: number = Math.hypot(rx, ry);
 
                             if (d > 0 && d < this._range) {
                                 const f: number = this._calcForce(

@@ -1,31 +1,20 @@
 import type { Map2D } from './map2d';
-import { abs } from './math';
-
-export interface AStarPoint {
-    x: number;
-    y: number;
-}
+import { Map3D } from './map3d';
+import type { XY } from './types';
 
 export interface AStarFindPathParams {
-    /**
-     * When true, a path ending adjacent to the target (not just exactly on
-     * it) also counts as reaching the goal. Currently hard-coded to `true`
-     * internally regardless of this value - see the note on
-     * {@link AStar.findPath}.
-     */
-    useAdjacent?: boolean;
     walkableValues?: number[];
 }
 
 interface Node {
-    pos: AStarPoint;
+    pos: XY;
     g: number;
     h: number;
     f: number;
     parent?: Node;
 }
 
-const DIRECTIONS_4_WAY: AStarPoint[] = [
+const DIRECTIONS_4_WAY: XY[] = [
     { x: 0, y: -1 },
     { x: 1, y: 0 },
     { x: 0, y: 1 },
@@ -33,17 +22,17 @@ const DIRECTIONS_4_WAY: AStarPoint[] = [
 ];
 
 export class AStar {
-    map: Map2D;
+    map: Map2D | Map3D;
 
-    constructor(map: Map2D) {
+    constructor(map: Map2D | Map3D) {
         this.map = map;
     }
 
-    private _manhattan(a: AStarPoint, b: AStarPoint): number {
-        return abs(a.x - b.x) + abs(a.y - b.y);
+    private _manhattan(a: XY, b: XY): number {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     }
 
-    private _isWalkable(point: AStarPoint, walkable: number[] = [0]): boolean {
+    private _isWalkable(point: XY, walkable: number[] = [0]): boolean {
         const value = this.map.get(point.x, point.y);
         return walkable.includes(value);
     }
@@ -52,8 +41,7 @@ export class AStar {
         return `${x},${y}`;
     }
 
-    findPath(a: AStarPoint, b: AStarPoint, params: AStarFindPathParams = {}): AStarPoint[] {
-        const useAdjacent = true; // TODO: fix unending while loop when params.useAdjacent === false
+    findPath(a: XY, b: XY, params: AStarFindPathParams = {}): XY[] {
         const walkable = params.walkableValues ?? [0];
 
         const openSet: Node[] = [];
@@ -73,12 +61,11 @@ export class AStar {
         const targetKeys = new Set<string>();
         targetKeys.add(this._key(b.x, b.y));
 
-        if (useAdjacent) {
-            for (const dir of DIRECTIONS_4_WAY) {
-                const nx = b.x + dir.x;
-                const ny = b.y + dir.y;
-                targetKeys.add(this._key(nx, ny));
-            }
+        for (const dir of DIRECTIONS_4_WAY) {
+            const nx = b.x + dir.x;
+            const ny = b.y + dir.y;
+
+            targetKeys.add(this._key(nx, ny));
         }
 
         while (openSet.length > 0) {
@@ -88,7 +75,7 @@ export class AStar {
             const currentKey = this._key(current.pos.x, current.pos.y);
 
             if (targetKeys.has(currentKey)) {
-                const path: AStarPoint[] = [];
+                const path: XY[] = [];
 
                 let curr: Node | undefined = current;
 
@@ -105,7 +92,7 @@ export class AStar {
             closedSet.add(currentKey);
 
             for (const dir of DIRECTIONS_4_WAY) {
-                const neighborPos: AStarPoint = {
+                const neighborPos: XY = {
                     x: current.pos.x + dir.x,
                     y: current.pos.y + dir.y,
                 };

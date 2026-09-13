@@ -1,7 +1,8 @@
-import { AStar, AStarPoint } from "../astar";
 import { Map2D } from "../map2d";
 import { rng } from "../rng";
-import log from '../logger';
+import log from '../log';
+import { AStar } from "../astar";
+import { XY } from "../types";
 
 const DEFAULT_SEED = 42;
 const DEFAULT_WIDTH = 80;
@@ -96,12 +97,12 @@ export function aStarTest(
 
     const map = _generateWalls(width, height, density);
 
-    const start: AStarPoint = {
+    const start: XY = {
         x: rng.range(width),
         y: rng.range(height),
     };
 
-    const end: AStarPoint = {
+    const end: XY = {
         x: rng.range(width),
         y: rng.range(height),
     };
@@ -114,7 +115,7 @@ export function aStarTest(
 
     const aStar = new AStar(map);
 
-    aStar.findPath(start, end).forEach((p: AStarPoint) => {
+    aStar.findPath(start, end).forEach((p: XY) => {
         map.set(p.x, p.y, 2);
     });
 

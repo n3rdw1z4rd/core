@@ -1,38 +1,25 @@
-import {
-    TAU,
-    acos,
-    cbrt,
-    cos,
-    floor,
-    sin,
-    sqrt,
-} from "./math";
-
 import { Random } from "./random";
+import { TAU } from "./math";
 
-export class RandomTools {
-    readonly rng: Random;
+export class Rng {
+    readonly random: Random;
 
-    get seed(): number { return this.rng.seed; }
-    set seed(seed: number) { this.rng.seed = seed; }
+    get seed(): number { return this.random.seed; }
+    set seed(seed: number) { this.random.seed = seed; }
 
     constructor(seed?: number | Random) {
-        this.rng =
+        this.random =
             seed instanceof Random
                 ? seed
                 : new Random(seed);
     }
 
-    //----------------------------------------------------------------------
-    // Numbers
-    //----------------------------------------------------------------------
-
     nextFloat(): number {
-        return this.rng.float();
+        return this.random.float();
     }
 
     nextUint(): number {
-        return this.rng.uint();
+        return this.random.uint();
     }
 
     floatRange(min: number, max?: number): number {
@@ -41,7 +28,7 @@ export class RandomTools {
             min = 0;
         }
 
-        return min + this.rng.float() * (max - min);
+        return min + this.random.float() * (max - min);
     }
 
     range(min: number, max?: number): number {
@@ -50,12 +37,8 @@ export class RandomTools {
             min = 0;
         }
 
-        return floor(this.floatRange(min, max));
+        return Math.floor(this.floatRange(min, max));
     }
-
-    //----------------------------------------------------------------------
-    // Collections
-    //----------------------------------------------------------------------
 
     pick<T>(array: readonly T[]): T {
         return array[this.range(0, array.length - 1)];
@@ -82,77 +65,69 @@ export class RandomTools {
     }
 
     chance(probability: number): boolean {
-        return this.rng.float() < probability;
+        return this.random.float() < probability;
     }
 
-    //----------------------------------------------------------------------
-    // Geometry
-    //----------------------------------------------------------------------
-
     vector2(): [number, number] {
-        const θ = this.rng.angle();
+        const θ = this.random.angle();
 
         return [
-            cos(θ),
-            sin(θ),
+            Math.cos(θ),
+            Math.sin(θ),
         ];
     }
 
     pointOnCircle(radius = 1): [number, number] {
-        const θ = this.rng.angle();
+        const θ = this.random.angle();
 
         return [
-            radius * cos(θ),
-            radius * sin(θ),
+            radius * Math.cos(θ),
+            radius * Math.sin(θ),
         ];
     }
 
     pointInCircle(radius = 1): [number, number] {
-        const θ = this.rng.angle();
-        const r = sqrt(this.rng.float()) * radius;
+        const θ = this.random.angle();
+        const r = Math.sqrt(this.random.float()) * radius;
 
         return [
-            r * cos(θ),
-            r * sin(θ),
+            r * Math.cos(θ),
+            r * Math.sin(θ),
         ];
     }
 
     pointOnSphere(radius = 1): [number, number, number] {
-        const u = this.rng.float();
-        const v = this.rng.float();
+        const u = this.random.float();
+        const v = this.random.float();
 
         const θ = TAU * u;
-        const φ = acos(2 * v - 1);
+        const φ = Math.acos(2 * v - 1);
 
-        const s = sin(φ);
+        const s = Math.sin(φ);
 
         return [
-            radius * s * cos(θ),
-            radius * s * sin(θ),
-            radius * cos(φ),
+            radius * s * Math.cos(θ),
+            radius * s * Math.sin(θ),
+            radius * Math.cos(φ),
         ];
     }
 
     pointInSphere(radius = 1): [number, number, number] {
-        const u = this.rng.float();
-        const v = this.rng.float();
+        const u = this.random.float();
+        const v = this.random.float();
 
         const θ = TAU * u;
-        const φ = acos(2 * v - 1);
+        const φ = Math.acos(2 * v - 1);
 
-        const r = radius * cbrt(this.rng.float());
-        const s = sin(φ);
+        const r = radius * Math.cbrt(this.random.float());
+        const s = Math.sin(φ);
 
         return [
-            r * s * cos(θ),
-            r * s * sin(θ),
-            r * cos(φ),
+            r * s * Math.cos(θ),
+            r * s * Math.sin(θ),
+            r * Math.cos(φ),
         ];
     }
-
-    //----------------------------------------------------------------------
-    // Distributions
-    //----------------------------------------------------------------------
 
     gaussian(
         mean = 0,
@@ -162,19 +137,15 @@ export class RandomTools {
         let u = 0;
         let v = 0;
 
-        while (u === 0) u = this.rng.float();
-        while (v === 0) v = this.rng.float();
+        while (u === 0) u = this.random.float();
+        while (v === 0) v = this.random.float();
 
         const z =
-            sqrt(-2 * Math.log(u)) *
-            cos(TAU * v);
+            Math.sqrt(-2 * Math.log(u)) *
+            Math.cos(TAU * v);
 
         return mean + z * standardDeviation;
     }
-
-    //----------------------------------------------------------------------
-    // Matrices
-    //----------------------------------------------------------------------
 
     matrix(
         rows: number,
@@ -201,6 +172,10 @@ export class RandomTools {
 
         return this.matrix(rows, columns, -1, 1);
     }
+
+    rgb(): [number, number, number] {
+        return [this.range(256), this.range(256), this.range(256)];
+    }
 }
 
-export const rng = new RandomTools();
+export const rng = new Rng();

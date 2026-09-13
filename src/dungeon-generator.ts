@@ -2,9 +2,10 @@ import { AStar, type AStarFindPathParams } from './astar';
 import { Heap } from 'heap-js';
 import { Map2D } from './map2d';
 import { rng } from './rng';
-import log from './logger';
-import { distance2d, floor, max, min, round, squaredDistance, XY } from './math';
+import log from './log';
+import { distance2d, squaredDistance } from './math';
 import { Rectangle } from './rectangle';
+import { XY } from './types';
 
 export type RectPair = { a: Rectangle, b: Rectangle };
 export type PointPair = { a: XY, b: XY };
@@ -98,11 +99,11 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
         const baseSize = rng.range(minRoomSize, maxRoomSize);
         const aspectRatio = 0.75 + rng.gaussian() * 0.5;
 
-        const width = min(maxRoomSize, max(minRoomSize, round(baseSize * aspectRatio)));
-        const height = min(maxRoomSize, max(minRoomSize, round(baseSize / aspectRatio)));
+        const width = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize * aspectRatio)));
+        const height = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize / aspectRatio)));
 
-        const x = floor(rng.range(1 + padding, size - width - padding));
-        const y = floor(rng.range(1 + padding, size - height - padding));
+        const x = Math.floor(rng.range(1 + padding, size - width - padding));
+        const y = Math.floor(rng.range(1 + padding, size - height - padding));
 
         const room = new Rectangle(x, y, width, height);
 

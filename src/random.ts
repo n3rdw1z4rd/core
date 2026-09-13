@@ -1,18 +1,4 @@
-import { TAU, imul } from "./math";
-
-const hash32 = (seed: number): number => {
-    seed |= 0;
-
-    seed ^= seed >>> 16;
-    seed = imul(seed, 0x85ebca6b);
-
-    seed ^= seed >>> 13;
-    seed = imul(seed, 0xc2b2ae35);
-
-    seed ^= seed >>> 16;
-
-    return seed >>> 0;
-};
+import { hash32mix, TAU } from "./math";
 
 export class Random {
     private _seed: number;
@@ -29,39 +15,20 @@ export class Random {
         this._seed = value | 0;
     }
 
-    //--------------------------------------------------------------------------
-    // Internal
-    //--------------------------------------------------------------------------
-
-    private static _mix(...values: number[]): number {
-        let seed = 0;
-
-        for (const value of values) {
-            seed ^= value | 0;
-            seed = hash32(seed);
-        }
-
-        return seed;
-    }
-
-    //--------------------------------------------------------------------------
-    // Stateless
-    //--------------------------------------------------------------------------
-
     static hash(...values: number[]): number {
-        return this._mix(...values);
+        return hash32mix(...values);
     }
 
     static uint(...values: number[]): number {
-        return this._mix(...values);
+        return hash32mix(...values);
     }
 
     static float(...values: number[]): number {
-        return this._mix(...values) / 0x100000000;
+        return hash32mix(...values) / 0x100000000;
     }
 
     static bool(...values: number[]): boolean {
-        return (this._mix(...values) & 1) !== 0;
+        return (hash32mix(...values) & 1) !== 0;
     }
 
     static sign(...values: number[]): -1 | 1 {
@@ -71,10 +38,6 @@ export class Random {
     static angle(...values: number[]): number {
         return this.float(...values) * TAU;
     }
-
-    //--------------------------------------------------------------------------
-    // Stateful
-    //--------------------------------------------------------------------------
 
     uint(): number {
         return Random.uint(this._seed++);

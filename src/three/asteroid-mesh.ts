@@ -1,6 +1,6 @@
 import { IcosahedronGeometry, Mesh, MeshStandardMaterial } from 'three';
 import { createNoise3D } from 'simplex-noise';
-import { rng } from '../../rng';
+import { rng } from '../rng';
 
 export interface AsteroidOptions {
     radius?: number;
@@ -25,8 +25,8 @@ export class AsteroidMesh extends Mesh {
 
         super(geometry, material);
 
-        const noise3d = createNoise3D(rng.rng.float);
-        const noise3d2 = secondaryNoise ? createNoise3D(rng.rng.float) : null;
+        const noise3d = createNoise3D(rng.nextFloat);
+        const noise3d2 = secondaryNoise ? createNoise3D(rng.nextFloat) : null;
 
         const position = this.geometry.attributes.position;
         const vertices = position.array;

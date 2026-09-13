@@ -1,4 +1,4 @@
-import { ceil, cos, floor, PI, sin, SQRT2 } from './math';
+import { PI, SQRT2 } from './math';
 import { rng } from './rng';
 
 interface Vec2 {
@@ -14,8 +14,8 @@ export function PoissonDiskSampler(
 ): Vec2[] {
     const k = maxPoints;
     const cellSize = minDist / SQRT2;
-    const gridWidth = ceil(width / cellSize);
-    const gridHeight = ceil(height / cellSize);
+    const gridWidth = Math.ceil(width / cellSize);
+    const gridHeight = Math.ceil(height / cellSize);
     const grid: (Vec2 | null)[][] = Array.from({ length: gridWidth }, () =>
         Array(gridHeight).fill(null)
     );
@@ -25,8 +25,8 @@ export function PoissonDiskSampler(
 
     function gridIndex(p: Vec2) {
         return {
-            i: floor(p.x / cellSize),
-            j: floor(p.y / cellSize)
+            i: Math.floor(p.x / cellSize),
+            j: Math.floor(p.y / cellSize)
         };
     }
 
@@ -57,7 +57,7 @@ export function PoissonDiskSampler(
     active.push(initial);
 
     while (active.length) {
-        const index = floor(rng.range(0, active.length));
+        const index = Math.floor(rng.range(0, active.length));
         const point = active[index];
 
         let found = false;
@@ -65,8 +65,8 @@ export function PoissonDiskSampler(
             const angle = rng.range(0, PI * 2);
             const dist = rng.range(minDist, 2 * minDist);
             const newPoint: Vec2 = {
-                x: point.x + cos(angle) * dist,
-                y: point.y + sin(angle) * dist
+                x: point.x + Math.cos(angle) * dist,
+                y: point.y + Math.sin(angle) * dist
             };
 
             if (

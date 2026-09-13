@@ -1,4 +1,5 @@
-import { distance2d, XY } from '.';
+import { distance2d } from "./math";
+import type { XY } from "./types";
 
 export class Vector {
     x: number;
