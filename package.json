@@ -9,7 +9,7 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsup && shx cp -r ./src/css ./dist/",
+        "build": "tsup && cp -r ./src/css ./dist/",
         "dev": "tsup --watch",
         "test": "npx ts-node src/test"
     },
@@ -51,12 +51,11 @@
     },
     "devDependencies": {
         "@types/three": "^0.186.0",
-        "shx": "^0.4.0",
         "tsup": "^8.5.1",
         "typescript": "^6.0.3"
     },
     "allowScripts": {
-        "esbuild@0.27.7": true,
-        "fsevents@2.3.3": true
+        "fsevents@2.3.3": true,
+        "esbuild@0.27.7": true
     }
 }
