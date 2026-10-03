@@ -5,7 +5,7 @@ export * from './clock'
 export * from './color-palette'
 export * from './color'
 export * from './css';
-export * from './debug-label'
+// export * from './debug-label'
 export * from './disposable'
 export * from './dungeon-generator'
 export * from './ecs'
