@@ -3,7 +3,6 @@ export * from './atlas-texture-material';
 export * from './camera-rig';
 export * from './cube-sphere-geometry';
 export * from './ecs';
-export * from './palette-controller';
 export * from './particle-system-3d';
 export * from './renderer';
 export * from './starfield';
