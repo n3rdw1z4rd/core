@@ -24,7 +24,6 @@ export * from './rng'
 export * from './signal'
 export * from './spatial-partition-2d'
 export * from './spatial-partition-3d'
-export * from './three';
 export * from './tilemap'
 export * from './types'
 export * from './vector'
