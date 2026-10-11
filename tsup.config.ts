@@ -5,7 +5,7 @@ export default defineConfig([
         // ESM: one output file per source module (plus shared chunks). Together with
         // "sideEffects" in package.json, this lets consumers' bundlers drop every module
         // they don't import, instead of pulling in the whole library and three.js.
-        entry: ["src/**/*.ts", "!src/test/**", "!src/debug-label.ts"],
+        entry: ["src/**/*.ts", "!src/test/**"],
         format: ["esm"],
         splitting: true,
     },
