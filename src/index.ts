@@ -1,4 +1,3 @@
-// export * from './test';
 export * from './astar'
 export * from './canvas-renderer'
 export * from './clock'
@@ -11,7 +10,6 @@ export * from './dungeon-generator'
 export * from './ecs'
 export * from './emitter'
 export * from './event-queue'
-// export * from './hash-map'
 export * from './input'
 export * from './log'
 export * from './map2d'
