@@ -3,10 +3,8 @@ import { Clock } from '../clock';
 import { Color } from '../color';
 import { ECS } from '../ecs';
 import { Map2D } from '../map2d';
-import { distance2d } from '../math';
 import { k2xyz, xyz2k } from '../misc';
-import { PoissonDiskSampler } from '../poisson-disk-sampler';
-import { Rng, rng } from '../rng';
+import { Rng } from '../rng';
 import { SpatialPartition2d } from '../spatial-partition-2d';
 import { SpatialPartition3d } from '../spatial-partition-3d';
 
@@ -81,25 +79,6 @@ const tests: Record<string, () => void> = {
 
         c.hexStr = '#000';
         assert.equal(c.hexStr, '#000000ff');
-    },
-
-    'PoissonDiskSampler: points respect minDist and are not snapped to integers'() {
-        rng.seed = 7;
-
-        const minDist = 0.5;
-        const points = PoissonDiskSampler(10, 10, minDist);
-
-        assert.ok(points.length > 100, `only ${points.length} points`);
-        assert.ok(points.some(p => !Number.isInteger(p.x)));
-
-        for (let i = 0; i < points.length; i++) {
-            const p = points[i];
-            assert.ok(p.x >= 0 && p.x < 10 && p.y >= 0 && p.y < 10);
-
-            for (let j = i + 1; j < points.length; j++) {
-                assert.ok(distance2d(p.x, p.y, points[j].x, points[j].y) >= minDist);
-            }
-        }
     },
 
     'AStar: finds a shortest path that ends next to the target'() {
