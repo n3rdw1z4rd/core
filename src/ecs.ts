@@ -119,3 +119,5 @@ export class ECS {
         this.#nextEntity = 0;
     }
 }
+
+export const ecs = new ECS();
