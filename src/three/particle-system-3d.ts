@@ -1,4 +1,5 @@
-import { BufferAttribute, BufferGeometry, DynamicDrawUsage, Group, PerspectiveCamera, Points, ShaderMaterial, Vector3 } from 'three';
+import { BufferAttribute, BufferGeometry, DynamicDrawUsage, Group, PerspectiveCamera, Points, ShaderMaterial, Sphere, Vector3 } from 'three';
+import { Random } from '../random';
 import { fract } from '../math';
 import { SpatialPartition3d, SpatialPartitionEntity3d } from '../spatial-partition-3d';
 import { rng } from '../rng';
@@ -42,6 +43,7 @@ const Colors = [
 
 export class ParticleSystem3d extends Group {
     public readonly particleCount = 1000;
+    public readonly seed: number;
 
     private _geometry: BufferGeometry;
     private _particles: Particle[] = [];
@@ -57,8 +59,11 @@ export class ParticleSystem3d extends Group {
 
     private _spatialPartition: SpatialPartition3d;
 
-    constructor() {
+    // the same seed always produces the same starting state (positions, colors, attraction matrix)
+    constructor(seed: number = rng.nextUint()) {
         super();
+
+        this.seed = seed;
 
         const uniforms = {
             pointSize: { value: 4 },
@@ -75,6 +80,9 @@ export class ParticleSystem3d extends Group {
         this._geometry.setAttribute('position', new BufferAttribute(this._positions, 3).setUsage(DynamicDrawUsage));
         this._geometry.setAttribute('color', new BufferAttribute(this._colors, 4).setUsage(DynamicDrawUsage));
 
+        // particles always stay inside the unit cube, so the bounds never change
+        this._geometry.boundingSphere = new Sphere(new Vector3(0.5, 0.5, 0.5), Math.sqrt(3) / 2);
+
         const material = new ShaderMaterial({
             uniforms,
             vertexShader,
@@ -89,17 +97,17 @@ export class ParticleSystem3d extends Group {
 
         for (let i = 0; i < this.particleCount; i++) {
             this._particles.push({
-                x: rng.nextFloat(),
-                y: rng.nextFloat(),
-                z: rng.nextFloat(),
+                x: Random.float(seed, i, 0),
+                y: Random.float(seed, i, 1),
+                z: Random.float(seed, i, 2),
                 vx: 0,
                 vy: 0,
                 vz: 0,
-                color: rng.range(Colors.length),
+                color: Math.floor(Random.float(seed, i, 3) * Colors.length),
             });
         }
 
-        this._attractionMatrix = randomMatrix(Colors.length, rng.nextUint());
+        this._attractionMatrix = randomMatrix(Colors.length, seed);
         this._spatialPartition = new SpatialPartition3d(this._range, this._particles);
     }
 
@@ -226,7 +234,6 @@ export class ParticleSystem3d extends Group {
 
         this._geometry.attributes.position.needsUpdate = true;
         this._geometry.attributes.color.needsUpdate = true;
-        this._geometry.computeBoundingSphere();
     }
 
     public update(camera: PerspectiveCamera, dt: number) {
