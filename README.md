@@ -10,13 +10,22 @@ Nothing here is trying to be a general-purpose framework - it's the shared plumb
 npm install @n3rdw1z4rd/core
 ```
 
-Peer dependencies (install whichever your project actually uses):
+Peer dependency (only needed for the Three.js helpers):
 
 ```
-npm install three simplex-noise
+npm install three
 ```
 
-`three` is only required if you import from `@n3rdw1z4rd/core/three` (or the top-level barrel, which re-exports it). `simplex-noise` is required for `Noise` and `AsteroidMesh`.
+`three` is only required if you import from `@n3rdw1z4rd/core/three` (or the top-level barrel, which re-exports it).
+
+Core has no noise implementation of its own. `AsteroidMesh` and `CubeSphereGeometry.applyFractalBrownianMotion` take a noise function, e.g. from [`simplex-noise`](https://www.npmjs.com/package/simplex-noise):
+
+```ts
+import { createNoise3D } from "simplex-noise";
+import { AsteroidMesh, rng } from "@n3rdw1z4rd/core";
+
+const asteroid = new AsteroidMesh({ noise3d: createNoise3D(() => rng.nextFloat()) });
+```
 
 This package ships both CJS and ESM builds plus `.d.ts` types (built with `tsup`). It targets the browser - most modules touch `window`, `document`, or `HTMLCanvasElement`.
 

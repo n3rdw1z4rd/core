@@ -1,34 +1,30 @@
 import { IcosahedronGeometry, Mesh, MeshStandardMaterial } from 'three';
-import { createNoise3D } from 'simplex-noise';
-import { rng } from '../rng';
+import type { NoiseFunction3D } from '../types';
 
 export interface AsteroidOptions {
+    noise3d: NoiseFunction3D;
     radius?: number;
     detail?: number;
     noiseScale?: number;
     displacement?: number;
-    secondaryNoise?: boolean;
+    secondaryNoise?: NoiseFunction3D; // optional extra detail layer, sampled at twice the frequency and half the weight
     color?: number;
 }
 
 export class AsteroidMesh extends Mesh {
-    constructor(options: AsteroidOptions = {}) {
+    constructor(options: AsteroidOptions) {
         const radius = options.radius ?? 1;
         const detail = options.detail ?? 1;
         const noiseScale = options.noiseScale ?? 1.0;
         const displacement = options.displacement ?? 0.1;
-        const secondaryNoise = options.secondaryNoise ?? false;
+        const noise3d = options.noise3d;
+        const noise3d2 = options.secondaryNoise;
         const color = options.color ?? 0x888888;
 
         const geometry = new IcosahedronGeometry(radius, detail);
         const material = new MeshStandardMaterial({ color });
 
         super(geometry, material);
-
-        const random = () => rng.nextFloat();
-
-        const noise3d = createNoise3D(random);
-        const noise3d2 = secondaryNoise ? createNoise3D(random) : null;
 
         const position = this.geometry.attributes.position;
         const vertices = position.array;
@@ -39,8 +35,8 @@ export class AsteroidMesh extends Mesh {
             const z = vertices[i + 2];
 
             const n1 = noise3d(x * noiseScale, y * noiseScale, z * noiseScale);
-            const n2 = secondaryNoise
-                ? 0.5 * noise3d2!(x * noiseScale * 2, y * noiseScale * 2, z * noiseScale * 2)
+            const n2 = noise3d2
+                ? 0.5 * noise3d2(x * noiseScale * 2, y * noiseScale * 2, z * noiseScale * 2)
                 : 0;
 
             const noiseValue = n1 + n2;

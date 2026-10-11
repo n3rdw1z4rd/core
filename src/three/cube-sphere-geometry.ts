@@ -1,5 +1,5 @@
 import { BoxGeometry, Vector3 } from 'three';
-import { Noise } from '../noise';
+import type { NoiseFunction3D } from '../types';
 
 export class CubeSphereGeometry extends BoxGeometry {
     private _halfSize: number;
@@ -31,7 +31,7 @@ export class CubeSphereGeometry extends BoxGeometry {
         attrNormals.needsUpdate = true;
     }
 
-    applyFractalBrownianMotion(octaves: number, persistence: number, scale: number, amplitude: number) {
+    applyFractalBrownianMotion(noise3d: NoiseFunction3D, octaves: number, persistence: number, scale: number, amplitude: number) {
         const attrPositions = this.attributes.position;
         const position = new Vector3();
 
@@ -39,7 +39,7 @@ export class CubeSphereGeometry extends BoxGeometry {
             position.fromBufferAttribute(attrPositions, i);
             position.normalize().multiplyScalar(this._halfSize);
 
-            const noiseValue = this.fBm(position.x * scale, position.y * scale, position.z * scale, octaves, persistence);
+            const noiseValue = this.fBm(noise3d, position.x * scale, position.y * scale, position.z * scale, octaves, persistence);
             position.addScaledVector(position.clone().normalize(), noiseValue * amplitude);
 
             attrPositions.setXYZ(i, position.x, position.y, position.z);
@@ -51,14 +51,14 @@ export class CubeSphereGeometry extends BoxGeometry {
         this.computeBoundingSphere();
     }
 
-    private fBm(x: number, y: number, z: number, octaves: number, persistence: number): number {
+    private fBm(noise3d: NoiseFunction3D, x: number, y: number, z: number, octaves: number, persistence: number): number {
         let total = 0;
         let frequency = 1;
         let amplitude = 1;
         let maxValue = 0;
 
         for (let i = 0; i < octaves; i++) {
-            total += Noise.noise3d(x * frequency, y * frequency, z * frequency) * amplitude;
+            total += noise3d(x * frequency, y * frequency, z * frequency) * amplitude;
             maxValue += amplitude;
             amplitude *= persistence;
             frequency *= 2;

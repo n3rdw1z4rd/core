@@ -47,8 +47,7 @@
         "procedural-generation",
         "pathfinding",
         "voxel",
-        "particle-system",
-        "simplex-noise"
+        "particle-system"
     ],
     "author": "",
     "license": "MIT",
@@ -61,7 +60,6 @@
         "heap-js": "^2.7.1"
     },
     "peerDependencies": {
-        "simplex-noise": "^4.0.3",
         "three": "^0.186.1"
     },
     "devDependencies": {
