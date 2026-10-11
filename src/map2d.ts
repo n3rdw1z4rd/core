@@ -4,12 +4,17 @@ export const DEFAULT_MAP_2D_VALUE = -1;
 const BASE_2D = 0x200000;
 const OFFSET_2D = 0x100000;
 
+// inclusive per-axis coordinate range; anything outside wraps around and collides with other coordinates
+export const MAP_2D_MIN_COORD = -OFFSET_2D;
+export const MAP_2D_MAX_COORD = BASE_2D - OFFSET_2D - 1;
+
 export type Map2DData = Map<number, number>;
 
 export class Map2D {
     readonly defaultValue: number;
 
     private _data: Map2DData;
+    private _warnedOutOfRange = false;
 
     get data(): Map2DData { return this._data; }
     get size(): number { return this._data.size; }
@@ -27,6 +32,21 @@ export class Map2D {
     }
 
     private _key(x: number, y: number): number {
+        if (
+            !this._warnedOutOfRange && (
+                x < MAP_2D_MIN_COORD || x > MAP_2D_MAX_COORD ||
+                y < MAP_2D_MIN_COORD || y > MAP_2D_MAX_COORD
+            )
+        ) {
+            this._warnedOutOfRange = true; // once per map, so hot loops don't flood the console
+
+            console.warn(
+                `Map2D: (${x}, ${y}) is outside the supported range ` +
+                `[${MAP_2D_MIN_COORD}, ${MAP_2D_MAX_COORD}] per axis; it wraps around and collides ` +
+                `with other coordinates. Further warnings for this map are suppressed.`,
+            );
+        }
+
         const X = (x + OFFSET_2D) & (BASE_2D - 1);
         const Y = (y + OFFSET_2D) & (BASE_2D - 1);
         return (X * BASE_2D) + Y;

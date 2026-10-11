@@ -5,7 +5,7 @@ import { ECS } from '../ecs';
 import { Texture } from 'three';
 import { CubeSphereGeometry } from '../three/cube-sphere-geometry';
 import { TextureAtlas } from '../three/texture-atlas';
-import { Map2D } from '../map2d';
+import { MAP_2D_MAX_COORD, MAP_2D_MIN_COORD, Map2D } from '../map2d';
 import { MAP_3D_MAX_COORD, MAP_3D_MIN_COORD, Map3D } from '../map3d';
 import { k2xyz, xyz2k } from '../misc';
 import { ParticleSystem2d } from '../particle-system-2d';
@@ -184,7 +184,7 @@ const tests: Record<string, () => void> = {
         assert.deepEqual(px(atlas.getUV(5, 0, 0)), [18, 30]);  // second row, bottom-left
     },
 
-    'Map3D: warns once when a coordinate is outside the supported range'() {
+    'Map2D / Map3D: warn once when a coordinate is outside the supported range'() {
         const warn = console.warn;
         const warnings: unknown[] = [];
         console.warn = (...args: unknown[]) => { warnings.push(args); };
@@ -198,6 +198,15 @@ const tests: Record<string, () => void> = {
             map.set(MAP_3D_MAX_COORD + 1, 0, 0, 2);
             map.get(0, 0, MAP_3D_MIN_COORD - 1);
             assert.equal(warnings.length, 1);
+
+            const map2 = new Map2D(0);
+
+            map2.set(MAP_2D_MAX_COORD, MAP_2D_MIN_COORD, 1); // edges are fine
+            assert.equal(warnings.length, 1);
+
+            map2.set(MAP_2D_MAX_COORD + 1, 0, 2);
+            map2.get(0, MAP_2D_MIN_COORD - 1);
+            assert.equal(warnings.length, 2);
         } finally {
             console.warn = warn;
         }
