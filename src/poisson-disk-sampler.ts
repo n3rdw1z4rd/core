@@ -54,8 +54,8 @@ export function PoissonDiskSampler(
     }
 
     const initial: Vec2 = {
-        x: rng.floatRange(0, width),
-        y: rng.floatRange(0, height)
+        x: rng.nextFloat() * width,
+        y: rng.nextFloat() * height
     };
     const { i: i0, j: j0 } = gridIndex(initial);
     grid[i0][j0] = initial;
@@ -68,8 +68,8 @@ export function PoissonDiskSampler(
 
         let found = false;
         for (let n = 0; n < k; n++) {
-            const angle = rng.floatRange(0, TAU);
-            const dist = rng.floatRange(minDist, 2 * minDist);
+            const angle = rng.nextFloat() * TAU;
+            const dist = minDist + rng.nextFloat() * minDist;
             const newPoint: Vec2 = {
                 x: point.x + Math.cos(angle) * dist,
                 y: point.y + Math.sin(angle) * dist

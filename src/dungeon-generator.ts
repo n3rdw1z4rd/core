@@ -102,8 +102,8 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
         const width = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize * aspectRatio)));
         const height = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize / aspectRatio)));
 
-        const x = Math.floor(rng.range(1 + padding, size - width - padding));
-        const y = Math.floor(rng.range(1 + padding, size - height - padding));
+        const x = rng.range(1 + padding, size - width - padding);
+        const y = rng.range(1 + padding, size - height - padding);
 
         const room = new Rectangle(x, y, width, height);
 

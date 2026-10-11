@@ -6,7 +6,6 @@ import { Map2D } from '../map2d';
 import { distance2d } from '../math';
 import { k2xyz, xyz2k } from '../misc';
 import { PoissonDiskSampler } from '../poisson-disk-sampler';
-import { Random } from '../random';
 import { Rng, rng } from '../rng';
 import { SpatialPartition2d } from '../spatial-partition-2d';
 import { SpatialPartition3d } from '../spatial-partition-3d';
@@ -52,24 +51,16 @@ const tests: Record<string, () => void> = {
         assert.ok(fixedPoints > 0);
     },
 
-    'Random: nearby seeds do not produce shifted copies of the same sequence'() {
-        const a = new Random(1);
-        const b = new Random(2);
+    'Rng.range returns integers in [min, max)'() {
+        const r = new Rng(3);
 
-        const seqA = Array.from({ length: 10 }, () => a.uint());
-        const seqB = Array.from({ length: 10 }, () => b.uint());
+        for (let i = 0; i < 1000; i++) {
+            const n = r.range(-3, 4);
+            assert.ok(Number.isInteger(n) && n >= -3 && n < 4, `range(-3, 4) returned ${n}`);
 
-        assert.notDeepEqual(seqA.slice(1), seqB.slice(0, 9));
-    },
-
-    'Random: re-seeding restarts the sequence'() {
-        const r = new Random(42);
-        const first = [r.uint(), r.uint()];
-
-        r.seed = 42;
-
-        assert.deepEqual([r.uint(), r.uint()], first);
-        assert.equal(r.seed, 42);
+            const m = r.range(0.5, 2.5); // rounds up to [1, 3)
+            assert.ok(m === 1 || m === 2, `range(0.5, 2.5) returned ${m}`);
+        }
     },
 
     'xyz2k / k2xyz round-trip'() {

@@ -22,22 +22,18 @@ export class Rng {
         return this.random.uint();
     }
 
-    floatRange(min: number, max?: number): number {
-        if (typeof max !== 'number') {
-            max = min;
-            min = 0;
-        }
-
-        return min + this.random.float() * (max - min);
-    }
-
+    // random integer in [min, max); range(max) is [0, max). Non-integer bounds are rounded up,
+    // so the result is always an integer inside the requested range.
     range(min: number, max?: number): number {
         if (typeof max !== 'number') {
             max = min;
             min = 0;
         }
 
-        return Math.floor(this.floatRange(min, max));
+        min = Math.ceil(min);
+        max = Math.ceil(max);
+
+        return min + Math.floor(this.random.float() * (max - min));
     }
 
     pick<T>(array: readonly T[]): T {
@@ -160,7 +156,7 @@ export class Rng {
                 Array.from(
                     { length: columns },
                     () =>
-                        this.floatRange(min, max),
+                        min + this.random.float() * (max - min),
                 ),
         );
     }
