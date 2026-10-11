@@ -46,10 +46,10 @@ export class AtlasTextureMaterial extends MeshLambertMaterial {
         this._textureOffsetWidth = atlasParams.tilePixelOffsetWidth ?? 0;
         this._textureOffsetHeight = atlasParams.tilePixelOffsetHeight ?? 0;
 
-        this._tileCount = Math.floor(this.textureData.width / this.tilePixelWidth);
+        this._tileCount = Math.floor((this.textureData.width - this._textureOffsetWidth) / this.tilePixelWidth);
 
-        this._uvWidth = this.tilePixelWidth / (this.textureData.width - this._textureOffsetWidth);
-        this._uvHeight = this.tilePixelHeight / (this.textureData.height - this._textureOffsetHeight);
+        this._uvWidth = this.tilePixelWidth / this.textureData.width;
+        this._uvHeight = this.tilePixelHeight / this.textureData.height;
     }
 
     getTileUVs(tileIndex: number, vertexIndex: number): [number, number] {

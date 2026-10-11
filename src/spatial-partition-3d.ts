@@ -1,3 +1,5 @@
+import { mod } from './math';
+
 export interface SpatialPartitionEntity3d {
     x: number;
     y: number;
@@ -26,10 +28,13 @@ export class SpatialPartition3d {
         }
     }
 
+    // positions are expected in [0, 1); anything outside wraps around, matching getCellNeighbors
     getCell(x: number, y: number, z: number) {
-        const cx = Math.floor(x / this.cellSize);
-        const cy = Math.floor(y / this.cellSize);
-        const cz = Math.floor(z / this.cellSize);
+        const gridSize = this.cells.length;
+
+        const cx = mod(Math.floor(x / this.cellSize), gridSize);
+        const cy = mod(Math.floor(y / this.cellSize), gridSize);
+        const cz = mod(Math.floor(z / this.cellSize), gridSize);
 
         return this.cells[cz][cy][cx];
     }

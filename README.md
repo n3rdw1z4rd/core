@@ -37,8 +37,22 @@ clock.onFrame.subscribe((dt) => {
 clock.start();
 ```
 
-Everything (including the `three/*` modules) is re-exported from the package root, so `import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core"` works. Import from the `three` subpath if you want to make the Three.js dependency explicit in your own code:
+Everything (including the `three/*` modules) is re-exported from the package root, so `import { CameraRig } from "@n3rdw1z4rd/core"` works. Import from the `three` subpath if you want to make the Three.js dependency explicit in your own code:
 
 ```ts
-import { ThreeJsBoilerPlate } from "@n3rdw1z4rd/core/three";
+import { CameraRig } from "@n3rdw1z4rd/core/three";
+```
+
+The optional stylesheet (reset + dark defaults) is shipped as plain CSS:
+
+```ts
+import "@n3rdw1z4rd/core/css/main.css";
+```
+
+## Development
+
+```
+npm run build          # tsup -> dist/ (index + three entries, CJS + ESM + .d.ts)
+npm test               # regression tests (pure-logic modules, runs in Node)
+npm test -- astar      # also draws the visual A* demo in the terminal
 ```

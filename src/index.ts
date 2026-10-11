@@ -12,7 +12,6 @@ export * from './ecs'
 export * from './emitter'
 export * from './event-queue'
 // export * from './hash-map'
-export * from './index'
 export * from './input'
 export * from './log'
 export * from './map2d'
@@ -31,21 +30,7 @@ export * from './signal'
 export * from './simplex-noise'
 export * from './spatial-partition-2d'
 export * from './spatial-partition-3d'
-export * from './three/asteroid-mesh';
-export * from './three/atlas-texture-material';
-export * from './three/camera-rig';
-export * from './three/cube-sphere-geometry';
-export * from './three/ecs';
-export * from './three/palette-controller';
-export * from './three/particle-system-3d';
-export * from './three/renderer';
-export * from './three/starfield';
-export * from './three/texture-atlas';
-export * from './three/texture-utils';
-export * from './three/threejs-camera-rig';
-export * from './three/threejs-player-controller';
-export * from './three/voxel-geometry';
-export * from './three/voxel-mesh';
+export * from './three';
 export * from './tilemap'
 export * from './types'
 export * from './vector'

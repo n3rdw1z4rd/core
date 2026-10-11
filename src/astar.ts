@@ -1,5 +1,6 @@
+import { Heap } from 'heap-js';
 import type { Map2D } from './map2d';
-import { Map3D } from './map3d';
+import type { Map3D } from './map3d';
 import type { XY } from './types';
 
 export interface AStarFindPathParams {
@@ -41,10 +42,16 @@ export class AStar {
         return `${x},${y}`;
     }
 
+    /**
+     * Finds a 4-way path from `a` to a tile next to (or on) `b`. The returned path excludes `a`
+     * and ends on the first tile it reaches that is `b` or orthogonally adjacent to it, so `b`
+     * itself can be unwalkable (a wall, a door, another entity). Returns [] when no path exists
+     * or `a` is already next to `b`.
+     */
     findPath(a: XY, b: XY, params: AStarFindPathParams = {}): XY[] {
         const walkable = params.walkableValues ?? [0];
 
-        const openSet: Node[] = [];
+        const openSet = new Heap<Node>((n1, n2) => n1.f - n2.f);
         const closedSet = new Set<string>();
         const nodeMap = new Map<string, Node>();
 
@@ -69,10 +76,13 @@ export class AStar {
         }
 
         while (openSet.length > 0) {
-            openSet.sort((a, b) => a.f - b.f);
-
-            const current = openSet.shift()!;
+            const current = openSet.pop()!;
             const currentKey = this._key(current.pos.x, current.pos.y);
+
+            // stale heap entry: this node was already expanded via a cheaper route
+            if (closedSet.has(currentKey)) {
+                continue;
+            }
 
             if (targetKeys.has(currentKey)) {
                 const path: XY[] = [];
@@ -118,9 +128,11 @@ export class AStar {
                     nodeMap.set(key, neighbor);
                     openSet.push(neighbor);
                 } else if (g < neighbor.g) {
-                    neighbor.g = g;
-                    neighbor.f = g + neighbor.h;
-                    neighbor.parent = current;
+                    // re-queue with the better cost; the old entry is skipped when popped
+                    neighbor = { ...neighbor, g, f: g + neighbor.h, parent: current };
+
+                    nodeMap.set(key, neighbor);
+                    openSet.push(neighbor);
                 }
             }
         }

@@ -1,11 +1,11 @@
 import { aStarTest } from "./astar-test";
+import { regressionTest } from "./regression-test";
 
-const run = ((test: (...args: any[]) => void) => {
-    test();
-});
+declare const process: { argv: string[] };
 
-(async () => {
-    [
-        aStarTest,
-    ].forEach(run);
-})();
+// `npm test` runs the assertions; `npm test -- astar` also draws the visual A* demo
+regressionTest();
+
+if (process.argv.includes('astar')) {
+    aStarTest();
+}

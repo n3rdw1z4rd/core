@@ -90,6 +90,7 @@ export class VoxelMesh extends Mesh {
 
     clearVoxels() {
         this.voxels.clear();
+        this.needsGeometryUpdate = true;
     }
 
     setSize(width: number, depth: number, height: number) {
@@ -140,7 +141,11 @@ export class VoxelMesh extends Mesh {
             const colors: number[] = [];
             const indices: number[] = [];
 
+            const color = new Color();
+
             this.forEachVoxel((x: number, y: number, z: number, n: number) => {
+                color.set(this.colorPalette[n] ?? 0xffffff);
+
                 VoxelFaces.forEach((faces: Array<number[]>) => {
                     const [dx, dy, dz] = faces[0];
                     const neighborVoxel = this.get(x + dx, y + dy, z + dz);
@@ -154,8 +159,7 @@ export class VoxelMesh extends Mesh {
                             positions.push(x + px, y + py, z + pz);
                             normals.push(nx, ny, nz);
 
-                            const { r, g, b } = new Color(this.colorPalette[n]);
-                            colors.push(r, g, b, 1);
+                            colors.push(color.r, color.g, color.b, 1);
                         });
 
                         indices.push(

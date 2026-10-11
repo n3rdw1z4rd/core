@@ -14,10 +14,14 @@ export class WebGlRenderer {
     public get width(): number { return this.gl.canvas.width; }
     public get height(): number { return this.gl.canvas.height; }
 
-    constructor() {
-        this.gl = CreateWebGlContext();
+    constructor(params: RendererParams = {}) {
+        this.gl = CreateWebGlContext(params.canvas);
 
         this.gl.enable(this.gl.DEPTH_TEST);
+
+        if (params.parent) {
+            this.appendTo(params.parent);
+        }
     }
 
     public appendTo(htmlElement?: HTMLElement) {

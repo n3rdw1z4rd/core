@@ -1,6 +1,6 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
 import { Map3D } from "../map3d";
-import { rng } from "../rng";
+import { Random } from "../random";
 import type { ColorPalette } from "../color-palette";
 
 export class VoxelGeometry extends BufferGeometry {
@@ -75,10 +75,11 @@ export function BuildVoxelGeometry(
         );
     }
 
-    function randomColor(): number { return rng.range(256 ** 3); }
+    // stable per voxel value, so the mesh doesn't change color every time it is rebuilt
+    function fallbackColor(n: number): number { return Random.uint(n) & 0xffffff; }
 
     voxelMap.forEach((x: number, y: number, z: number, n: number) => {
-        const color = palette[n] ?? randomColor();
+        const color = palette[n] ?? fallbackColor(n);
 
         for (const face of VOXEL_FACES) {
             const neighbor =

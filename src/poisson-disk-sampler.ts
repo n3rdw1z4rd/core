@@ -1,4 +1,4 @@
-import { PI, SQRT2 } from './math';
+import { SQRT2, TAU } from './math';
 import { rng } from './rng';
 
 interface Vec2 {
@@ -6,6 +6,12 @@ interface Vec2 {
     y: number;
 }
 
+/**
+ * Bridson's Poisson-disk sampling: returns points in [0, width) x [0, height) that are all
+ * at least `minDist` apart.
+ *
+ * @param maxPoints candidate attempts per active point before it is retired (Bridson's `k`)
+ */
 export function PoissonDiskSampler(
     width: number,
     height: number,
@@ -48,8 +54,8 @@ export function PoissonDiskSampler(
     }
 
     const initial: Vec2 = {
-        x: rng.range(0, width),
-        y: rng.range(0, height)
+        x: rng.floatRange(0, width),
+        y: rng.floatRange(0, height)
     };
     const { i: i0, j: j0 } = gridIndex(initial);
     grid[i0][j0] = initial;
@@ -57,13 +63,13 @@ export function PoissonDiskSampler(
     active.push(initial);
 
     while (active.length) {
-        const index = Math.floor(rng.range(0, active.length));
+        const index = rng.range(0, active.length);
         const point = active[index];
 
         let found = false;
         for (let n = 0; n < k; n++) {
-            const angle = rng.range(0, PI * 2);
-            const dist = rng.range(minDist, 2 * minDist);
+            const angle = rng.floatRange(0, TAU);
+            const dist = rng.floatRange(minDist, 2 * minDist);
             const newPoint: Vec2 = {
                 x: point.x + Math.cos(angle) * dist,
                 y: point.y + Math.sin(angle) * dist

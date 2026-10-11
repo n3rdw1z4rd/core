@@ -10,33 +10,35 @@ export class Color {
 
     public get r(): number { return this._r; }
     public set r(value: number) {
-        this._r = clamp(value, 0, 255);
+        this._r = Color._channel(value);
         this._hex = this._to_hex();
     }
 
     public get g(): number { return this._g; }
     public set g(value: number) {
-        this._g = clamp(value, 0, 255);
+        this._g = Color._channel(value);
         this._hex = this._to_hex();
     }
 
     public get b(): number { return this._b; }
     public set b(value: number) {
-        this._b = clamp(value, 0, 255);
+        this._b = Color._channel(value);
         this._hex = this._to_hex();
     }
 
     public get a(): number { return this._a; }
     public set a(value: number) {
-        this._a = clamp(value, 0, 255);
+        this._a = Color._channel(value);
         this._hex = this._to_hex();
     }
 
     public get hexStr(): string { return this._hex; }
     public set hexStr(value: string) {
-        if (value.startsWith('#')) {
-            [this._r, this._g, this._b, this._a] = this._parse_hex_color_string(value);
-            this._hex = value;
+        const rgba = Color._parse_hex_color_string(value);
+
+        if (rgba) {
+            [this._r, this._g, this._b, this._a] = rgba;
+            this._hex = this._to_hex();
         } else {
             log(`Color: invalid color string: ${value}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Keeping the current color.`);
         }
@@ -46,8 +48,10 @@ export class Color {
 
     constructor(r: string | number = 255, g: number = 255, b: number = 255, a: number = 255) {
         if (typeof r === 'string') {
-            if (r.startsWith('#')) {
-                [r, g, b, a] = this._parse_hex_color_string(r);
+            const rgba = Color._parse_hex_color_string(r);
+
+            if (rgba) {
+                [r, g, b, a] = rgba;
             } else {
                 log(`Color: invalid color string: ${r}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Defaulting to opaque white.`);
                 r = g = b = a = 255;
@@ -66,19 +70,30 @@ export class Color {
         return clamp(0 | (value > 0.0 && value < 1.0 ? value * 255 : value), 0, 255);
     }
 
+    private static _channel(value: number): number {
+        return clamp(Math.round(value), 0, 255);
+    }
+
     private _to_hex(): string {
         return `#${this.r.toString(16).padStart(2, '0')}${this.g.toString(16).padStart(2, '0')}${this.b.toString(16).padStart(2, '0')}${this.a.toString(16).padStart(2, '0')}`;
     }
 
-    private _parse_hex_color_string(hex: string): number[] {
-        const result: RegExpExecArray | null = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex);
+    // accepts #rgb, #rgba, #rrggbb and #rrggbbaa; returns undefined for anything else
+    private static _parse_hex_color_string(hex: string): number[] | undefined {
+        let digits = /^#([a-f\d]{3,4}|[a-f\d]{6}|[a-f\d]{8})$/i.exec(hex)?.[1];
 
-        return result ? [
-            parseInt(result[1], 16),
-            parseInt(result[2], 16),
-            parseInt(result[3], 16),
-            result[4] ? parseInt(result[4], 16) : 255
-        ] : [255, 255, 255, 255];
+        if (!digits) return undefined;
+
+        if (digits.length <= 4) {
+            digits = [...digits].map(d => d + d).join('');
+        }
+
+        return [
+            parseInt(digits.slice(0, 2), 16),
+            parseInt(digits.slice(2, 4), 16),
+            parseInt(digits.slice(4, 6), 16),
+            digits.length === 8 ? parseInt(digits.slice(6, 8), 16) : 255,
+        ];
     }
 
     public static fromHsv(h: number, s: number, v: number, a: number = 255): Color {
@@ -124,11 +139,14 @@ export class Color {
         const computedColor = getComputedStyle(element).color;
         document.body.removeChild(element);
 
-        const rgba = computedColor.match(/\d+/g);
+        // computed colors look like 'rgb(255, 0, 0)' or 'rgba(255, 0, 0, 0.5)'
+        const rgba = computedColor.match(/[\d.]+/g)?.map(Number);
 
-        if (rgba && rgba.length === 4) {
-            const [r, g, b, a] = rgba.map(Number);
-            return new Color(r, g, b, a);
+        if (element.style.color && rgba && (rgba.length === 3 || rgba.length === 4)) {
+            const [r, g, b, a = 1] = rgba;
+            const color = new Color(r, g, b);
+            color.a = a * 255;
+            return color;
         } else {
             log(`Color: invalid CSS color name: ${name}. Defaulting to transparent.`);
             return Color.TRANSPARENT;

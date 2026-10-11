@@ -3,8 +3,8 @@ import { Observable } from "./observable";
 export class WorkerInterface {
     private _worker: Worker;
 
-    readonly onError = new Observable();
-    readonly onMessage = new Observable();
+    readonly onError = new Observable<ErrorEvent>();
+    readonly onMessage = new Observable<MessageEvent>();
 
     constructor(url: string | URL) {
         this._worker = new Worker(url, { type: 'module' });

@@ -1,0 +1,184 @@
+import { AStar } from '../astar';
+import { Clock } from '../clock';
+import { Color } from '../color';
+import { ECS } from '../ecs';
+import { Map2D } from '../map2d';
+import { distance2d } from '../math';
+import { k2xyz, xyz2k } from '../misc';
+import { PoissonDiskSampler } from '../poisson-disk-sampler';
+import { Random } from '../random';
+import { Rng, rng } from '../rng';
+import { SpatialPartition2d } from '../spatial-partition-2d';
+import { SpatialPartition3d } from '../spatial-partition-3d';
+
+// minimal assertions so the tests don't need @types/node (this is a browser library)
+const assert = {
+    ok(value: unknown, message = 'expected a truthy value'): void {
+        if (!value) throw new Error(message);
+    },
+    equal(actual: unknown, expected: unknown): void {
+        if (!Object.is(actual, expected)) throw new Error(`expected ${String(expected)}, got ${String(actual)}`);
+    },
+    deepEqual(actual: unknown, expected: unknown): void {
+        if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    },
+    notDeepEqual(actual: unknown, expected: unknown): void {
+        if (JSON.stringify(actual) === JSON.stringify(expected)) throw new Error(`expected values to differ: ${JSON.stringify(actual)}`);
+    },
+};
+
+declare const process: { exitCode?: number, argv: string[] };
+
+const tests: Record<string, () => void> = {
+    'Rng.pick can return the last element'() {
+        const r = new Rng(1);
+        const seen = new Set<number>();
+
+        for (let i = 0; i < 1000; i++) seen.add(r.pick([0, 1, 2]));
+
+        assert.deepEqual([...seen].sort(), [0, 1, 2]);
+    },
+
+    'Rng.shuffle can leave elements in place (Fisher-Yates, not Sattolo)'() {
+        const r = new Rng(2);
+        let fixedPoints = 0;
+
+        for (let i = 0; i < 200; i++) {
+            const shuffled = r.shuffle([0, 1, 2, 3]);
+            fixedPoints += shuffled.filter((v, j) => v === j).length;
+            assert.deepEqual([...shuffled].sort(), [0, 1, 2, 3]);
+        }
+
+        assert.ok(fixedPoints > 0);
+    },
+
+    'Random: nearby seeds do not produce shifted copies of the same sequence'() {
+        const a = new Random(1);
+        const b = new Random(2);
+
+        const seqA = Array.from({ length: 10 }, () => a.uint());
+        const seqB = Array.from({ length: 10 }, () => b.uint());
+
+        assert.notDeepEqual(seqA.slice(1), seqB.slice(0, 9));
+    },
+
+    'Random: re-seeding restarts the sequence'() {
+        const r = new Random(42);
+        const first = [r.uint(), r.uint()];
+
+        r.seed = 42;
+
+        assert.deepEqual([r.uint(), r.uint()], first);
+        assert.equal(r.seed, 42);
+    },
+
+    'xyz2k / k2xyz round-trip'() {
+        assert.equal(xyz2k(1, -2, 3), '1,-2,3');
+        assert.deepEqual(k2xyz(xyz2k(1, -2, 3)), [1, -2, 3]);
+        assert.deepEqual(k2xyz(xyz2k(4, 5, 6, '|'), '|'), [4, 5, 6]);
+    },
+
+    'Color: hex parsing and channel rounding'() {
+        assert.deepEqual(new Color('#ff8000').rgba, [255, 128, 0, 255]);
+        assert.deepEqual(new Color('#f80').rgba, [255, 136, 0, 255]);
+        assert.deepEqual(new Color('#ff800080').rgba, [255, 128, 0, 128]);
+
+        const c = new Color();
+        c.r = 127.6;
+        assert.equal(c.r, 128);
+        assert.equal(c.hexStr, '#80ffffff');
+
+        c.hexStr = '#000';
+        assert.equal(c.hexStr, '#000000ff');
+    },
+
+    'PoissonDiskSampler: points respect minDist and are not snapped to integers'() {
+        rng.seed = 7;
+
+        const minDist = 0.5;
+        const points = PoissonDiskSampler(10, 10, minDist);
+
+        assert.ok(points.length > 100, `only ${points.length} points`);
+        assert.ok(points.some(p => !Number.isInteger(p.x)));
+
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i];
+            assert.ok(p.x >= 0 && p.x < 10 && p.y >= 0 && p.y < 10);
+
+            for (let j = i + 1; j < points.length; j++) {
+                assert.ok(distance2d(p.x, p.y, points[j].x, points[j].y) >= minDist);
+            }
+        }
+    },
+
+    'AStar: finds a shortest path that ends next to the target'() {
+        const map = new Map2D(0);
+
+        // wall with a single gap at y = 5
+        for (let y = -10; y <= 10; y++) if (y !== 5) map.set(5, y, 1);
+
+        const path = new AStar(map).findPath({ x: 0, y: 0 }, { x: 10, y: 0 });
+
+        assert.ok(path.length > 0);
+        assert.ok(path.every(p => map.get(p.x, p.y) === 0));
+        assert.ok(path.some(p => p.x === 5 && p.y === 5));
+
+        const last = path[path.length - 1];
+        assert.equal(Math.abs(last.x - 10) + Math.abs(last.y), 1);
+        assert.equal(path.length, 19); // (0,0) -> (5,5) -> (9,0): 5+5 + 4+5 steps
+    },
+
+    'AStar: returns [] when the target is unreachable'() {
+        const map = new Map2D(0);
+
+        for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) if (x || y) map.set(x, y, 1);
+
+        assert.deepEqual(new AStar(map).findPath({ x: 0, y: 0 }, { x: 10, y: 10 }), []);
+    },
+
+    'ECS: instances have independent entity ids'() {
+        const a = new ECS();
+        const b = new ECS();
+
+        a.createEntity();
+        a.createEntity();
+        b.clear();
+
+        assert.equal(a.createEntity(), 2);
+        assert.equal(b.createEntity(), 0);
+    },
+
+    'SpatialPartition: coordinates on the upper edge do not index past the grid'() {
+        const p2 = new SpatialPartition2d(0.1, [{ x: 1, y: 1 }, { x: 0.999999, y: 0 }]);
+        assert.ok(Array.isArray(p2.getCell(1, 1)));
+
+        const p3 = new SpatialPartition3d(0.2, [{ x: 1, y: 1, z: 1 }]);
+        assert.ok(Array.isArray(p3.getCell(1, 1, 1)));
+    },
+
+    'Clock: first frame has zero delta time'() {
+        const clock = new Clock();
+
+        assert.equal(clock.update(5000), 0);
+        assert.equal(clock.update(5016), 0.016);
+    },
+};
+
+export function regressionTest() {
+    let failed = 0;
+
+    for (const [name, test] of Object.entries(tests)) {
+        try {
+            test();
+            console.log(`  ok   ${name}`);
+        } catch (error) {
+            failed++;
+            console.log(`  FAIL ${name}`);
+            console.log(error);
+        }
+    }
+
+    console.log(`${Object.keys(tests).length - failed} passed, ${failed} failed`);
+
+    if (failed) process.exitCode = 1;
+}

@@ -16,15 +16,19 @@ export class CubeSphereGeometry extends BoxGeometry {
         this._halfSize = (this.size / 2);
 
         const attrPositions = this.attributes.position;
+        const attrNormals = this.attributes.normal;
         const position = new Vector3();
 
         for (let i = 0; i < attrPositions.count; i++) {
-            position.fromBufferAttribute(attrPositions, i);
-            position.normalize().multiplyScalar(this._halfSize);
+            position.fromBufferAttribute(attrPositions, i).normalize();
+            attrNormals.setXYZ(i, position.x, position.y, position.z); // a sphere's normal is its direction
+
+            position.multiplyScalar(this._halfSize);
             attrPositions.setXYZ(i, position.x, position.y, position.z);
         }
 
         attrPositions.needsUpdate = true;
+        attrNormals.needsUpdate = true;
     }
 
     applyFractalBrownianMotion(octaves: number, persistence: number, scale: number, amplitude: number) {
@@ -42,6 +46,9 @@ export class CubeSphereGeometry extends BoxGeometry {
         }
 
         attrPositions.needsUpdate = true;
+
+        this.computeVertexNormals();
+        this.computeBoundingSphere();
     }
 
     private fBm(x: number, y: number, z: number, octaves: number, persistence: number): number {

@@ -1,8 +1,9 @@
 import { KeyValue } from './types';
 
+// literal GLenum values so importing this module doesn't require WebGL2RenderingContext to exist
 export enum ShaderType {
-    VERTEX = WebGL2RenderingContext.VERTEX_SHADER,
-    FRAGMENT = WebGL2RenderingContext.FRAGMENT_SHADER,
+    VERTEX = 0x8B31, // gl.VERTEX_SHADER
+    FRAGMENT = 0x8B30, // gl.FRAGMENT_SHADER
 }
 
 export type ProgramLocations = { attributes: KeyValue, uniforms: KeyValue };

@@ -41,7 +41,7 @@ export class Rng {
     }
 
     pick<T>(array: readonly T[]): T {
-        return array[this.range(0, array.length - 1)];
+        return array[this.range(0, array.length)];
     }
 
     sample<T>(
@@ -55,7 +55,7 @@ export class Rng {
         const result = [...array];
 
         for (let i = result.length - 1; i > 0; --i) {
-            const j = this.range(0, i);
+            const j = this.range(0, i + 1);
 
             [result[i], result[j]] =
                 [result[j], result[i]];

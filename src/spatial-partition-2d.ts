@@ -1,3 +1,5 @@
+import { mod } from './math';
+
 export interface SpatialPartitionEntity2d {
     x: number;
     y: number;
@@ -26,9 +28,10 @@ export class SpatialPartition2d {
         cell.push(entity);
     }
 
+    // positions are expected in [0, 1); anything outside wraps around, matching getCellNeighbors
     getCell(x: number, y: number) {
-        const cellX = Math.floor(x / this.cellSize);
-        const cellY = Math.floor(y / this.cellSize);
+        const cellX = mod(Math.floor(x / this.cellSize), this.cells[0].length);
+        const cellY = mod(Math.floor(y / this.cellSize), this.cells.length);
         return this.cells[cellY][cellX];
     }
 

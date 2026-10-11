@@ -2,7 +2,7 @@ import type { Map2D, Map2DData } from "./map2d";
 
 export const DEFAULT_MAP_3D_VALUE = -1;
 
-// 2^22 per axis: safe range is roughly ±2,097,151, three axes still fit within Number.MAX_SAFE_INTEGER (2^53)
+// 2^17 per axis: safe range is roughly ±65,535, three axes (2^51) still fit within Number.MAX_SAFE_INTEGER (2^53)
 const BASE_3D = 0x20000;
 const OFFSET_3D = 0x10000;
 

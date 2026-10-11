@@ -128,6 +128,8 @@ function _generateMST(rooms: Rectangle[], params: PathsParams = {}): RectPair[] 
     const mst: RectPair[] = [];
     const extraPaths: RectPair[] = [];
 
+    if (rooms.length < 2) return [];
+
     const visited = new Set<number>();
     const heap = new Heap<{ cost: number; from: number; to: number }>((a, b) => a.cost - b.cost);
 
@@ -203,12 +205,13 @@ function _getRectEdgePoints(rect: Rectangle): XY[] {
     const x2 = rect.x + rect.width - 1;
     const y2 = rect.y + rect.height - 1;
 
-    for (let x1 = rect.x; x1 < x2; x1++) {
+    // inclusive bounds: the old `<` skipped the far corner, and returned nothing for 1-wide rooms
+    for (let x1 = rect.x; x1 <= x2; x1++) {
         points.push({ x: x1, y: rect.y });
         points.push({ x: x1, y: y2 });
     }
 
-    for (let y1 = rect.y; y1 < y2; y1++) {
+    for (let y1 = rect.y; y1 <= y2; y1++) {
         points.push({ x: rect.x, y: y1 });
         points.push({ x: x2, y: y1 });
     }
@@ -291,7 +294,7 @@ export function GenerateDoors(map: Map2D, paths: XY[][], params: DoorsParams = {
 }
 
 export function GenerateWalls(map: Map2D): XY[] {
-    const walls: XY[] = [];
+    const walls = new Map<string, XY>();
 
     map.forEach((x: number, y: number, _v: number) => {
         DIRECTIONS_8_WAY.forEach((dir: XY) => {
@@ -299,10 +302,10 @@ export function GenerateWalls(map: Map2D): XY[] {
             const ny = dir.y + y;
 
             if (map.get(nx, ny) === map.defaultValue) {
-                walls.push({ x: nx, y: ny });
+                walls.set(`${nx},${ny}`, { x: nx, y: ny }); // de-dupe tiles shared by several floor tiles
             }
         });
     });
 
-    return walls;
+    return [...walls.values()];
 }

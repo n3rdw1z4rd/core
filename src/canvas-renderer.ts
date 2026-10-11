@@ -74,11 +74,12 @@ export class CanvasRenderer {
 
         this.context.beginPath();
         buildPath();
-        this.context.stroke();
 
         if (params.filled) {
             this.context.fill();
         }
+
+        this.context.stroke();
 
         if (params.lineDash) {
             this.context.setLineDash([]);
@@ -97,13 +98,11 @@ export class CanvasRenderer {
             this.context.setLineDash(params.lineDash);
         }
 
-        this.context.beginPath();
-
-        this.context.strokeRect(x, y, width, height);
-
         if (params.filled) {
             this.context.fillRect(x, y, width, height);
         }
+
+        this.context.strokeRect(x, y, width, height);
 
         if (params.lineDash) {
             this.context.setLineDash([]);

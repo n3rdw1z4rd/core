@@ -155,7 +155,7 @@ export async function CreatePaletteController(
 
         setSelectedColor(colorIndex: number = 0) {
             this.colorButtons[this.currentColorIndex].style.removeProperty('border');
-            this.currentColorIndex = clamp(colorIndex, 0, this.colorPalette.length);
+            this.currentColorIndex = clamp(colorIndex, 0, this.colorButtons.length - 1);
             this.colorButtons[this.currentColorIndex].style.setProperty('border', this.selectedBorderStyle);
         }
 

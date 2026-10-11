@@ -41,7 +41,7 @@ export class Noise {
     public static fractal2d(x: number, y: number, fractalParams: FractalParams): number {
         const octaves = fractalParams.octaves;
         const lacunarity = fractalParams.lacunarity;
-        const gain = 0.5;
+        const gain = fractalParams.persistence;
 
         let amplitude = fractalParams.amplitude;
         let frequency = fractalParams.frequency;
@@ -64,7 +64,7 @@ export class Noise {
     public static fractal3d(x: number, y: number, z: number, fractalParams: FractalParams): number {
         const octaves = fractalParams.octaves;
         const lacunarity = fractalParams.lacunarity;
-        const gain = 0.5;
+        const gain = fractalParams.persistence;
 
         let amplitude = fractalParams.amplitude;
         let frequency = fractalParams.frequency;

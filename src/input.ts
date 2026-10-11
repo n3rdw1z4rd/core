@@ -47,6 +47,14 @@ export class Input extends Emitter {
         window.addEventListener('pointerup', this._onPointerButtonUp.bind(this) as EventListener);
         window.addEventListener('mousemove', this._onMouseMove.bind(this) as EventListener);
         window.addEventListener('wheel', this._onWheel.bind(this) as EventListener);
+        window.addEventListener('blur', this._onBlur.bind(this));
+    }
+
+    // keyup/pointerup never arrive if they happen while the window is unfocused,
+    // which would leave keys/buttons stuck "down"
+    private _onBlur() {
+        this._keyStates = {};
+        this._mouseButtonStates = {};
     }
 
     private _getCommonEventProps(event: KeyboardEvent | MouseEvent | PointerEvent | WheelEvent): CommonEventProps {

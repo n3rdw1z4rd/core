@@ -19,11 +19,8 @@ export class SimplexNoise {
             [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
         ];
 
-        this.p = [];
-
-        for (let i = 0; i < 256; i++) {
-            this.p.push(Math.floor(rng.nextFloat() * 256));
-        }
+        // a true permutation of 0..255 (random values with duplicates degrade the noise)
+        this.p = rng.shuffle(Array.from({ length: 256 }, (_, i) => i));
 
         this.perm = [];
 

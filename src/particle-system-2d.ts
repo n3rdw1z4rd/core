@@ -1,17 +1,19 @@
 import { Color } from './color';
+import { fract } from './math';
 import { rng } from './rng';
 import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partition-2d';
 import { Random } from './random';
 import { ParticleRenderer } from './particle-renderer';
 
-export function randomMatrix(size: number): number[][] {
+// attraction matrix in [-1, 1); seeded from `seed` so it can be reproduced
+export function randomMatrix(size: number, seed: number = 0): number[][] {
     const rows: number[][] = [];
 
     for (let i = 0; i < size; i++) {
         const row: number[] = [];
 
         for (let j = 0; j < size; j++) {
-            row.push(Random.float(i, j) * 2 - 1);
+            row.push(Random.float(seed, i, j) * 2 - 1);
         }
 
         rows.push(row);
@@ -42,9 +44,9 @@ export class ParticleSystem2d {
     private _particleSize = 2;
     private _frictionHalfLife = 0.04;
     private _range = 0.1;
-    private _rangeFactor = 0.1;
+    private _forceFactor = 6; // per second; equivalent to the old per-frame factor of 0.1 at 60fps
 
-    private _attractionMatrix: number[][] = randomMatrix(colors.length);
+    private _attractionMatrix: number[][] = randomMatrix(colors.length, rng.nextUint());
     private _particles: Particle[] = [];
 
     private _spatialPartition: SpatialPartition2d;
@@ -52,8 +54,8 @@ export class ParticleSystem2d {
     constructor() {
         for (let i = 0; i < this.particleCount; i++) {
             this._particles.push({
-                x: Random.float(i),
-                y: Random.float(i + 1),
+                x: rng.nextFloat(),
+                y: rng.nextFloat(),
                 vx: 0,
                 vy: 0,
                 color: rng.range(colors.length),
@@ -84,15 +86,13 @@ export class ParticleSystem2d {
         for (let y = 0; y < this._spatialPartition.cells.length; y++) {
             for (let x = 0; x < this._spatialPartition.cells[y].length; x++) {
                 const cell = this._spatialPartition.cells[y][x];
+                const neighborCells = this._spatialPartition.getCellNeighbors(x, y);
 
                 for (let i = 0; i < cell.length; i++) {
                     let fx: number = 0;
                     let fy: number = 0;
 
                     const p1: Particle = cell[i] as Particle;
-
-                    // Get neighboring cells
-                    const neighborCells = this._spatialPartition.getCellNeighbors(x, y);
 
                     // Check particles in the same and neighboring cells
                     for (const neighborCell of neighborCells) {
@@ -121,8 +121,9 @@ export class ParticleSystem2d {
                         }
                     }
 
-                    fx *= this._range * this._rangeFactor;
-                    fy *= this._range * this._rangeFactor;
+                    // scale by dt so the simulation runs at the same speed regardless of frame rate
+                    fx *= this._range * this._forceFactor * deltaTimeSeconds;
+                    fy *= this._range * this._forceFactor * deltaTimeSeconds;
 
                     p1.vx *= frictionFactor;
                     p1.vy *= frictionFactor;
@@ -142,11 +143,9 @@ export class ParticleSystem2d {
             particle.x += particle.vx * deltaTimeSeconds;
             particle.y += particle.vy * deltaTimeSeconds;
 
-            if (particle.x < 0) particle.x = 1 + (particle.x % 1);
-            if (particle.x > 1) particle.x = particle.x % 1;
-
-            if (particle.y < 0) particle.y = 1 + (particle.y % 1);
-            if (particle.y > 1) particle.y = particle.y % 1;
+            // wrap into [0, 1) - the old checks let exactly 1.0 through
+            particle.x = fract(particle.x);
+            particle.y = fract(particle.y);
 
             renderer.setPixel(
                 particle.x * renderer.width,

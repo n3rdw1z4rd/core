@@ -13,12 +13,12 @@ type Instances<T extends readonly ComponentType[]> = {
 export type System = (deltaTime: number) => void;
 
 export class ECS {
-    static #nextEntity = 0;
+    #nextEntity = 0;
 
     private readonly components = new Map<ComponentType, ComponentMap>();
 
     createEntity(): Entity {
-        return ECS.#nextEntity++;
+        return this.#nextEntity++;
     }
 
     addComponent<T extends Component>(
@@ -116,6 +116,6 @@ export class ECS {
 
     clear(): void {
         this.components.clear();
-        ECS.#nextEntity = 0;
+        this.#nextEntity = 0;
     }
 }

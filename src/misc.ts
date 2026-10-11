@@ -44,5 +44,5 @@ export function GetUrlParams(): KeyValue {
 export const xy2k = (x: number, y: number, delimiter: string = ','): string => (`${x}${delimiter}${y}`);
 export const k2xy = (key: string, delimiter: string = ','): [number, number] => key.split(delimiter).map(parseFloat) as [number, number];
 
-export const xyz2k = (x: number, y: number, z: number, delimiter: string = ','): string => (`${x}${delimiter},${y},${delimiter},${z}`);
-export const k2xyz = (key: string, delimiter: string = ','): [number, number] => key.split(delimiter).map(parseFloat) as [number, number];
+export const xyz2k = (x: number, y: number, z: number, delimiter: string = ','): string => (`${x}${delimiter}${y}${delimiter}${z}`);
+export const k2xyz = (key: string, delimiter: string = ','): [number, number, number] => key.split(delimiter).map(parseFloat) as [number, number, number];

@@ -58,6 +58,10 @@ export class CameraRig extends Group {
     }
 
     setTarget(target?: Object3D) {
+        if (this._target && this.parent === this._target) {
+            this._target.remove(this);
+        }
+
         if (target) {
             this.rotation.set(0, 0, 0);
             this.position.set(0, 0, 0);

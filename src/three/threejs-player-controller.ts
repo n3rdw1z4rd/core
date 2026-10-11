@@ -6,6 +6,8 @@ export class ThreeJsPlayerController extends Group {
     cameraRig: ThreeJsCameraRig;
     velocity: Vector3;
 
+    private _direction = new Vector3();
+
     constructor(camera: PerspectiveCamera) {
         super();
 
@@ -15,8 +17,8 @@ export class ThreeJsPlayerController extends Group {
     }
 
     update(deltaTime: number) {
-        if (this.velocity.length()) {
-            this.translateOnAxis(this.velocity.normalize(), this.moveSpeed * deltaTime);
+        if (this.velocity.lengthSq()) {
+            this.translateOnAxis(this._direction.copy(this.velocity).normalize(), this.moveSpeed * deltaTime);
         }
     }
 }
