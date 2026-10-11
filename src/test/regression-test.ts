@@ -2,6 +2,7 @@ import { AStar } from '../astar';
 import { Clock } from '../clock';
 import { Color } from '../color';
 import { ECS } from '../ecs';
+import { CubeSphereGeometry } from '../three/cube-sphere-geometry';
 import { Map2D } from '../map2d';
 import { k2xyz, xyz2k } from '../misc';
 import { ParticleSystem2d } from '../particle-system-2d';
@@ -138,6 +139,31 @@ const tests: Record<string, () => void> = {
 
         // particle i's y must not equal particle i+1's x
         assert.ok(a._particles.slice(0, -1).every((p: any, i: number) => p.y !== a._particles[i + 1].x));
+    },
+
+    'CubeSphereGeometry: shared edge vertices (no seams), outward winding, on the sphere'() {
+        const segments = 8;
+        const g = new CubeSphereGeometry(10, segments);
+        const p = g.attributes.position.array;
+        const index = g.index!.array;
+
+        const keys = new Set<string>();
+        for (let i = 0; i < p.length; i += 3) {
+            keys.add(`${p[i].toFixed(5)},${p[i + 1].toFixed(5)},${p[i + 2].toFixed(5)}`);
+            assert.ok(Math.abs(Math.hypot(p[i], p[i + 1], p[i + 2]) - 5) < 1e-4);
+        }
+
+        assert.equal(p.length / 3, 6 * (segments + 1) ** 2 - 12 * (segments + 1) + 8);
+        assert.equal(keys.size, p.length / 3);
+
+        for (let t = 0; t < index.length; t += 3) {
+            const [a, b, c] = [index[t], index[t + 1], index[t + 2]].map(k => [p[3 * k], p[3 * k + 1], p[3 * k + 2]]);
+            const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+            const e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+            const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+
+            assert.ok(n[0] * a[0] + n[1] * a[1] + n[2] * a[2] > 0, 'triangle faces inward');
+        }
     },
 
     'Clock: first frame has zero delta time'() {
