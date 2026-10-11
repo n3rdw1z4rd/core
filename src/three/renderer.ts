@@ -3,8 +3,9 @@ import { Vector2, WebGLRenderer, type WebGLRendererParameters } from "three";
 export class Renderer extends WebGLRenderer {
     private _size = new Vector2();
 
-    get width(): number { return this.domElement.width; }
-    get height(): number { return this.domElement.height; }
+    // CSS pixels, same as setSize() and resize(); domElement.width/height are CSS pixels * pixel ratio
+    get width(): number { return this.getSize(this._size).width; }
+    get height(): number { return this.getSize(this._size).height; }
     get aspectRatio(): number { return this.width / this.height; }
 
     constructor(parameters?: WebGLRendererParameters) {
@@ -16,14 +17,10 @@ export class Renderer extends WebGLRenderer {
     resize(width?: number, height?: number): boolean {
         let resized = false;
 
-        // compare in CSS pixels: domElement.width/height include the pixel ratio, which
-        // made every call look like a size change on high-DPI displays
-        const size = this.getSize(this._size);
+        width = width ?? this.domElement.parentElement?.clientWidth ?? this.width;
+        height = height ?? this.domElement.parentElement?.clientHeight ?? this.height;
 
-        width = width ?? this.domElement.parentElement?.clientWidth ?? size.width;
-        height = height ?? this.domElement.parentElement?.clientHeight ?? size.height;
-
-        if (size.width !== width || size.height !== height) {
+        if (this.width !== width || this.height !== height) {
             this.setSize(width, height);
             resized = true;
         }
