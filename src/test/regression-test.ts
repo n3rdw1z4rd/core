@@ -4,6 +4,7 @@ import { Color } from '../color';
 import { ECS } from '../ecs';
 import { Map2D } from '../map2d';
 import { k2xyz, xyz2k } from '../misc';
+import { ParticleSystem2d } from '../particle-system-2d';
 import { Rng } from '../rng';
 import { SpatialPartition2d } from '../spatial-partition-2d';
 import { SpatialPartition3d } from '../spatial-partition-3d';
@@ -124,6 +125,19 @@ const tests: Record<string, () => void> = {
 
         const p3 = new SpatialPartition3d(0.2, [{ x: 1, y: 1, z: 1 }]);
         assert.ok(Array.isArray(p3.getCell(1, 1, 1)));
+    },
+
+    'ParticleSystem2d: same seed gives the same, uncorrelated starting state'() {
+        const a = new ParticleSystem2d(42) as any;
+        const b = new ParticleSystem2d(42) as any;
+        const c = new ParticleSystem2d(43) as any;
+
+        assert.deepEqual(a._particles, b._particles);
+        assert.deepEqual(a._attractionMatrix, b._attractionMatrix);
+        assert.notDeepEqual(a._particles, c._particles);
+
+        // particle i's y must not equal particle i+1's x
+        assert.ok(a._particles.slice(0, -1).every((p: any, i: number) => p.y !== a._particles[i + 1].x));
     },
 
     'Clock: first frame has zero delta time'() {

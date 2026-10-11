@@ -40,25 +40,30 @@ const colors: Color[] = [
 
 export class ParticleSystem2d {
     public readonly particleCount = 2000;
+    public readonly seed: number;
 
     private _particleSize = 2;
     private _frictionHalfLife = 0.04;
     private _range = 0.1;
     private _forceFactor = 6; // per second; equivalent to the old per-frame factor of 0.1 at 60fps
 
-    private _attractionMatrix: number[][] = randomMatrix(colors.length, rng.nextUint());
+    private _attractionMatrix: number[][];
     private _particles: Particle[] = [];
 
     private _spatialPartition: SpatialPartition2d;
 
-    constructor() {
+    // the same seed always produces the same starting state (positions, colors, attraction matrix)
+    constructor(seed: number = rng.nextUint()) {
+        this.seed = seed;
+        this._attractionMatrix = randomMatrix(colors.length, seed);
+
         for (let i = 0; i < this.particleCount; i++) {
             this._particles.push({
-                x: rng.nextFloat(),
-                y: rng.nextFloat(),
+                x: Random.float(seed, i, 0),
+                y: Random.float(seed, i, 1),
                 vx: 0,
                 vy: 0,
-                color: rng.range(colors.length),
+                color: Math.floor(Random.float(seed, i, 2) * colors.length),
             });
         }
 
