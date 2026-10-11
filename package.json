@@ -13,18 +13,21 @@
         },
         "./three": {
             "types": "./dist/three.d.ts",
-            "import": "./dist/three.mjs",
+            "import": "./dist/three/index.mjs",
             "require": "./dist/three.js"
         },
         "./css/*": "./dist/css/*",
         "./dist/*": "./dist/*",
         "./package.json": "./package.json"
     },
+    "sideEffects": [
+        "*.css"
+    ],
     "files": [
         "dist"
     ],
     "scripts": {
-        "build": "tsup && cp -r ./src/css ./dist/",
+        "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsup && cp -r ./src/css ./dist/",
         "dev": "tsup --watch",
         "test": "npx ts-node src/test"
     },
