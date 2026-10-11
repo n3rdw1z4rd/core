@@ -2,7 +2,9 @@ import { AStar } from '../astar';
 import { Clock } from '../clock';
 import { Color } from '../color';
 import { ECS } from '../ecs';
+import { Texture } from 'three';
 import { CubeSphereGeometry } from '../three/cube-sphere-geometry';
+import { TextureAtlas } from '../three/texture-atlas';
 import { Map2D } from '../map2d';
 import { k2xyz, xyz2k } from '../misc';
 import { ParticleSystem2d } from '../particle-system-2d';
@@ -164,6 +166,21 @@ const tests: Record<string, () => void> = {
 
             assert.ok(n[0] * a[0] + n[1] * a[1] + n[2] * a[2] > 0, 'triangle faces inward');
         }
+    },
+
+    'TextureAtlas: tile UVs with offset and spacing, v = 0 at the tile bottom'() {
+        // 64x32 sheet: 2px left/top margin, 12px tiles with 4px gaps -> 4 columns, 2 rows
+        const atlas = new TextureAtlas({ width: 64, height: 32, texture: new Texture() }, { tileWidth: 12, offsetX: 2, offsetY: 2, spacing: 4 });
+
+        assert.equal(atlas.columns, 4);
+        assert.equal(atlas.rows, 2);
+
+        const px = ([u, v]: number[]) => [u * 64, (1 - v) * 32]; // back to pixels from the top-left
+
+        assert.deepEqual(px(atlas.getUV(0, 0, 1)), [2, 2]);    // tile 0 top-left
+        assert.deepEqual(px(atlas.getUV(0, 1, 0)), [14, 14]);  // tile 0 bottom-right
+        assert.deepEqual(px(atlas.getUV(1, 0, 1)), [18, 2]);   // spacing skipped
+        assert.deepEqual(px(atlas.getUV(5, 0, 0)), [18, 30]);  // second row, bottom-left
     },
 
     'Clock: first frame has zero delta time'() {

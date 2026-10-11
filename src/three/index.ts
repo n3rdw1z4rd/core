@@ -1,5 +1,4 @@
 export * from './asteroid-mesh';
-export * from './atlas-texture-material';
 export * from './camera-rig';
 export * from './cube-sphere-geometry';
 export * from './ecs';
