@@ -6,6 +6,7 @@ import { Texture } from 'three';
 import { CubeSphereGeometry } from '../three/cube-sphere-geometry';
 import { TextureAtlas } from '../three/texture-atlas';
 import { Map2D } from '../map2d';
+import { MAP_3D_MAX_COORD, MAP_3D_MIN_COORD, Map3D } from '../map3d';
 import { k2xyz, xyz2k } from '../misc';
 import { ParticleSystem2d } from '../particle-system-2d';
 import { Rng } from '../rng';
@@ -181,6 +182,25 @@ const tests: Record<string, () => void> = {
         assert.deepEqual(px(atlas.getUV(0, 1, 0)), [14, 14]);  // tile 0 bottom-right
         assert.deepEqual(px(atlas.getUV(1, 0, 1)), [18, 2]);   // spacing skipped
         assert.deepEqual(px(atlas.getUV(5, 0, 0)), [18, 30]);  // second row, bottom-left
+    },
+
+    'Map3D: warns once when a coordinate is outside the supported range'() {
+        const warn = console.warn;
+        const warnings: unknown[] = [];
+        console.warn = (...args: unknown[]) => { warnings.push(args); };
+
+        try {
+            const map = new Map3D(0);
+
+            map.set(MAP_3D_MAX_COORD, MAP_3D_MIN_COORD, 0, 1); // edges are fine
+            assert.equal(warnings.length, 0);
+
+            map.set(MAP_3D_MAX_COORD + 1, 0, 0, 2);
+            map.get(0, 0, MAP_3D_MIN_COORD - 1);
+            assert.equal(warnings.length, 1);
+        } finally {
+            console.warn = warn;
+        }
     },
 
     'Clock: first frame has zero delta time'() {

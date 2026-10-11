@@ -6,10 +6,15 @@ export const DEFAULT_MAP_3D_VALUE = -1;
 const BASE_3D = 0x20000;
 const OFFSET_3D = 0x10000;
 
+// inclusive per-axis coordinate range; anything outside wraps around and collides with other coordinates
+export const MAP_3D_MIN_COORD = -OFFSET_3D;
+export const MAP_3D_MAX_COORD = BASE_3D - OFFSET_3D - 1;
+
 export class Map3D {
     readonly defaultValue: number;
 
     private _data: Map2DData;
+    private _warnedOutOfRange = false;
 
     get data(): Map2DData { return this._data; }
     get size(): number { return this._data.size; }
@@ -27,6 +32,22 @@ export class Map3D {
     }
 
     private _key(x: number, y: number, z: number): number {
+        if (
+            !this._warnedOutOfRange && (
+                x < MAP_3D_MIN_COORD || x > MAP_3D_MAX_COORD ||
+                y < MAP_3D_MIN_COORD || y > MAP_3D_MAX_COORD ||
+                z < MAP_3D_MIN_COORD || z > MAP_3D_MAX_COORD
+            )
+        ) {
+            this._warnedOutOfRange = true; // once per map, so hot loops don't flood the console
+
+            console.warn(
+                `Map3D: (${x}, ${y}, ${z}) is outside the supported range ` +
+                `[${MAP_3D_MIN_COORD}, ${MAP_3D_MAX_COORD}] per axis; it wraps around and collides ` +
+                `with other coordinates. Further warnings for this map are suppressed.`,
+            );
+        }
+
         const X = (x + OFFSET_3D) & (BASE_3D - 1);
         const Y = (y + OFFSET_3D) & (BASE_3D - 1);
         const Z = (z + OFFSET_3D) & (BASE_3D - 1);
