@@ -1,4 +1,5 @@
-import { bindingLabel, key, mouse, pad, padAxis, wheel } from '../input/bindings';
+import { bindingLabel, gesture, key, mouse, pad, padAxis, wheel } from '../input/bindings';
+import { GestureRecognizer } from '../input/gestures';
 import { Input } from '../input/input';
 import { assert, type TestSuite } from './assert';
 
@@ -288,6 +289,105 @@ export const inputTests: TestSuite = {
             if (original) Object.defineProperty(nav, 'getGamepads', original);
             else delete nav.getGamepads;
         }
+    },
+
+    'GestureRecognizer: tap, double tap, long press, swipes'() {
+        const g = new GestureRecognizer();
+
+        g.down(1, 100, 100, 0);
+        g.up(1, 103, 102, 120);
+        assert.deepEqual(g.update(130).gestures, ['tap']);
+
+        g.down(1, 105, 100, 300); // second tap 180ms later, nearby
+        g.up(1, 105, 100, 380);
+        assert.deepEqual(g.update(390).gestures, ['tap', 'doubleTap']);
+
+        g.down(1, 105, 100, 500); // third tap: a plain tap again
+        g.up(1, 105, 100, 560);
+        assert.deepEqual(g.update(570).gestures, ['tap']);
+
+        g.down(1, 0, 0, 1000);
+        assert.deepEqual(g.update(1400).gestures, []);
+        assert.deepEqual(g.update(1520).gestures, ['longPress']); // fires once, while held
+        assert.deepEqual(g.update(1700).gestures, []);
+        g.up(1, 0, 0, 1800);
+        assert.deepEqual(g.update(1810).gestures, []); // no tap after a long press
+
+        for (const [dx, dy, expected] of [[120, 10, 'swipeRight'], [-80, 0, 'swipeLeft'], [5, -90, 'swipeUp'], [0, 60, 'swipeDown']] as const) {
+            g.down(2, 200, 200, 2000);
+            g.move(2, 200 + dx / 2, 200 + dy / 2);
+            g.up(2, 200 + dx, 200 + dy, 2200);
+            assert.deepEqual(g.update(2210).gestures, [expected]);
+        }
+
+        g.down(3, 0, 0, 3000); // too slow for a swipe, moved too far for a tap
+        g.up(3, 300, 0, 3900);
+        assert.deepEqual(g.update(3910).gestures, []);
+    },
+
+    'GestureRecognizer: two-finger pinch, pan and rotate; two fingers are not taps'() {
+        const g = new GestureRecognizer();
+
+        g.down(1, 100, 100, 0);
+        g.down(2, 200, 100, 10);
+        assert.equal(g.update(20).pinch, 1); // first frame with two fingers only sets the baseline
+
+        g.move(1, 50, 100);
+        g.move(2, 250, 100); // distance 100 -> 200
+        let frame = g.update(40);
+        assert.equal(frame.pinch, 2);
+        assert.deepEqual(frame.gestures, ['pinchOut']);
+
+        g.move(1, 60, 110);
+        g.move(2, 260, 110); // both down by 10, right by 10
+        frame = g.update(60);
+        assert.equal(frame.pinch, 1);
+        assert.deepEqual(frame.pan, { x: 10, y: 10 });
+        assert.deepEqual(frame.gestures, []);
+
+        g.move(1, 160, 10);
+        g.move(2, 160, 210); // rotated a quarter turn clockwise (on screen) around the same center
+        frame = g.update(80);
+        assert.ok(Math.abs(frame.rotate - Math.PI / 2) < 1e-9);
+
+        g.up(1, 160, 10, 100);
+        g.up(2, 160, 210, 100);
+        assert.deepEqual(g.update(110).gestures, []); // not taps
+        assert.equal(g.touches.length, 0);
+    },
+
+    'Input: touch feeds gestures into actions, not the mouse'() {
+        const { input, canvas } = setup();
+
+        input.actions.add('select', [gesture('tap')]).add('zoom_in', [gesture('pinchOut')]).add('fire', [mouse('left')]);
+
+        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 7, button: 0, buttons: 1, clientX: 30, clientY: 40 });
+        assert.deepEqual(input.touches.map(t => [t.id, t.x, t.y]), [[7, 30, 40]]);
+        assert.equal(input.lastDevice, 'touch');
+
+        fire(canvas, 'pointerup', { pointerType: 'touch', pointerId: 7, button: 0, buttons: 0, clientX: 31, clientY: 40 });
+
+        input.update();
+        assert.ok(input.isActionJustPressed('select'));
+        assert.ok(!input.isActionPressed('fire'));
+
+        input.update();
+        assert.ok(!input.isActionPressed('select')); // gestures are one-frame presses
+
+        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 1, clientX: 100, clientY: 100 });
+        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 200, clientY: 100 });
+        input.update();
+
+        fire(canvas, 'pointermove', { pointerType: 'touch', pointerId: 2, clientX: 300, clientY: 100 });
+        input.update();
+        assert.equal(input.gestures.pinch, 2);
+        assert.ok(input.isActionJustPressed('zoom_in'));
+
+        fire(canvas, 'pointercancel', { pointerType: 'touch', pointerId: 1 });
+        fire(canvas, 'pointercancel', { pointerType: 'touch', pointerId: 2 });
+        input.update();
+        assert.equal(input.touches.length, 0);
+        assert.equal(input.gestures.pinch, 1);
     },
 
     'ActionMap: bind / unbind / findBinding / JSON round trip; labels'() {

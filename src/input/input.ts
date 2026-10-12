@@ -1,5 +1,6 @@
 import { Observable } from '../observable';
 import { ActionMap } from './action-map';
+import { type GestureFrame, GestureRecognizer, type TouchPoint } from './gestures';
 import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, controlId } from './bindings';
 
 /** 0 = keyboard, mouse, pen, touch and VR; 1, 2, ... = gamepads. */
@@ -56,6 +57,8 @@ interface ActionState {
 
 const ANY = -1;
 
+const now = (): number => performance.now();
+
 // indexed by PointerEvent.button; BUTTON_BITS gives each one's bit in PointerEvent.buttons
 const MOUSE_BUTTONS: readonly MouseButton[] = ['left', 'middle', 'right', 'back', 'forward'];
 const BUTTON_BITS = [1, 4, 2, 8, 16];
@@ -82,6 +85,17 @@ const isEditable = (target: EventTarget | null): boolean => {
  */
 export class Input {
     readonly actions = new ActionMap();
+
+    /** Thresholds for taps, swipes etc. can be tuned via `gestureRecognizer.thresholds`. */
+    readonly gestureRecognizer = new GestureRecognizer();
+
+    /** Two-finger gesture values for the last frame (pinch 1 / pan 0 / rotate 0 when not gesturing). */
+    readonly gestures: Omit<GestureFrame, 'gestures'> = { pinch: 1, pan: { x: 0, y: 0 }, rotate: 0 };
+
+    // TODO: on-screen virtual joystick / buttons for touch, feeding padAxis-style values into the action map
+
+    /** Fingers currently on the target. */
+    get touches(): TouchPoint[] { return this.gestureRecognizer.touches; }
 
     readonly pointer: PointerState = {
         type: 'mouse', x: 0, y: 0, ndcX: 0, ndcY: 0, deltaX: 0, deltaY: 0, wheelX: 0, wheelY: 0, pressure: 0, tiltX: 0, tiltY: 0,
@@ -148,9 +162,13 @@ export class Input {
         }
 
         if (target) {
+            // without this the browser scrolls / zooms the page on touch instead of sending us the gestures
+            const style = (target as HTMLElement).style;
+            if (this._options.preventDefault && style) style.touchAction = 'none';
+
             this._listen(target, 'pointerdown', e => this._onPointerDown(e as PointerEvent));
             this._listen(target, 'pointerup', e => this._onPointerUp(e as PointerEvent));
-            this._listen(target, 'pointercancel', e => this._onPointerUp(e as PointerEvent));
+            this._listen(target, 'pointercancel', e => this._onPointerCancel(e as PointerEvent));
             this._listen(target, 'pointermove', e => this._onPointerMove(e as PointerEvent));
             this._listen(target, 'wheel', e => this._onWheel(e as WheelEvent), { passive: false });
             this._listen(target, 'contextmenu', e => { if (this._options.preventContextMenu) e.preventDefault(); });
@@ -170,6 +188,7 @@ export class Input {
         this._pending.deltaX = this._pending.deltaY = this._pending.wheelX = this._pending.wheelY = 0;
 
         this._pollGamepads();
+        this._updateGestures();
 
         const devices = [...this._controls.keys()];
         const fired: { action: string, phase: ActionPhase, device: InputDevice }[] = [];
@@ -301,6 +320,8 @@ export class Input {
      * are released automatically when the window loses focus, since their release events get lost.
      */
     releaseAll(device?: InputDevice): void {
+        if (device === undefined || device === 0) this.gestureRecognizer.clear();
+
         for (const [d, controls] of this._controls) {
             if (device !== undefined && d !== device) continue;
 
@@ -559,6 +580,20 @@ export class Input {
         }
     }
 
+    // ---- touch ----
+
+    private _updateGestures(): void {
+        const frame = this.gestureRecognizer.update(now());
+
+        this.gestures.pinch = frame.pinch;
+        this.gestures.pan = frame.pan;
+        this.gestures.rotate = frame.rotate;
+
+        for (const name of frame.gestures) {
+            this._pulse(0, { type: 'gesture', gesture: name });
+        }
+    }
+
     // ---- keyboard ----
 
     private _isBound(type: Binding['type'], predicate: (binding: Binding) => boolean): boolean {
@@ -606,8 +641,22 @@ export class Input {
         this.pointer.tiltY = event.tiltY ?? 0;
     }
 
+    private _local(event: PointerEvent): { x: number, y: number } {
+        const rect = (this._target as Element | undefined)?.getBoundingClientRect?.();
+
+        return { x: event.clientX - (rect?.left ?? 0), y: event.clientY - (rect?.top ?? 0) };
+    }
+
     private _onPointerDown(event: PointerEvent): void {
-        if (event.pointerType === 'touch') return; // touch: stage 3
+        if (event.pointerType === 'touch') {
+            const { x, y } = this._local(event);
+
+            this.gestureRecognizer.down(event.pointerId, x, y, now());
+            this._setLastDevice('touch');
+            (this._target as Element | undefined)?.setPointerCapture?.(event.pointerId);
+
+            return;
+        }
 
         this._updatePointer(event);
         this._setLastDevice(event.pointerType === 'pen' ? 'pen' : 'mouse');
@@ -621,7 +670,13 @@ export class Input {
     }
 
     private _onPointerUp(event: PointerEvent): void {
-        if (event.pointerType === 'touch') return;
+        if (event.pointerType === 'touch') {
+            const { x, y } = this._local(event);
+
+            this.gestureRecognizer.up(event.pointerId, x, y, now());
+
+            return;
+        }
 
         this._updatePointer(event);
 
@@ -630,8 +685,19 @@ export class Input {
         if (button) this._setControl(0, { type: 'mouse', button }, 0);
     }
 
+    private _onPointerCancel(event: PointerEvent): void {
+        if (event.pointerType === 'touch') this.gestureRecognizer.cancel(event.pointerId);
+        else this._onPointerUp(event);
+    }
+
     private _onPointerMove(event: PointerEvent): void {
-        if (event.pointerType === 'touch') return;
+        if (event.pointerType === 'touch') {
+            const { x, y } = this._local(event);
+
+            this.gestureRecognizer.move(event.pointerId, x, y);
+
+            return;
+        }
 
         this._updatePointer(event);
         this._setLastDevice(event.pointerType === 'pen' ? 'pen' : 'mouse');
