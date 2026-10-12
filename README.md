@@ -61,6 +61,26 @@ renderer.setAnimationLoop((time) => {
 });
 ```
 
+Input works through a Godot-style action map, so game code asks about actions rather than keys or buttons:
+
+```ts
+import { Input, key, mouse, pad, padAxis, gesture, xr } from "@n3rdw1z4rd/core";
+
+const input = new Input(canvas);   // includes ui_accept, ui_cancel, ui_left, ... defaults
+
+input.actions.add("jump", [key("Space"), pad("A"), gesture("tap"), xr("right", "primary")]);
+input.actions.add("move_left", [key("KeyA"), padAxis("leftX", -1)]);
+// ... move_right, move_forward, move_back
+
+// once per frame, before game logic
+input.update();
+
+if (input.isActionJustPressed("jump")) player.jump();
+const move = input.getVector("move_left", "move_right", "move_forward", "move_back");
+```
+
+Keyboard, mouse and pen, touch gestures, gamepads (each its own device for local multiplayer) and WebXR controllers (`input.attachXR(session)`) all feed the same actions. `input.actions.toJSON()` / `load()` save rebinds, and `input.captureBinding()` waits for the next input for rebinding menus.
+
 Three.js helpers come from the `three` subpath:
 
 ```ts

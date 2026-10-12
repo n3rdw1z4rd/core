@@ -1,4 +1,4 @@
-import { bindingLabel, gesture, key, mouse, pad, padAxis, wheel } from '../input/bindings';
+import { bindingLabel, gesture, key, mouse, pad, padAxis, wheel, xr, xrAxis } from '../input/bindings';
 import { GestureRecognizer } from '../input/gestures';
 import { Input } from '../input/input';
 import { assert, type TestSuite } from './assert';
@@ -388,6 +388,54 @@ export const inputTests: TestSuite = {
         input.update();
         assert.equal(input.touches.length, 0);
         assert.equal(input.gestures.pinch, 1);
+    },
+
+    async 'Input: VR controllers (buttons, thumbsticks, controller loss, session end, capture)'() {
+        const { input } = setup();
+
+        const controller = (handedness: string) => ({
+            handedness,
+            gamepad: { buttons: Array.from({ length: 6 }, () => ({ pressed: false, value: 0 })), axes: [0, 0, 0, 0] },
+        });
+
+        const left = controller('left');
+        const right = controller('right');
+        const session = Object.assign(new EventTarget(), { inputSources: [left, right] as ReturnType<typeof controller>[] });
+
+        input.actions.add('fire', [mouse('left'), xr('right', 'trigger')]);
+        input.actions.add('jump', [xr('right', 'primary')]);
+        input.actions.add('move_left', [xrAxis('left', 'thumbX', -1)]).add('move_right', [xrAxis('left', 'thumbX', 1)]);
+        input.actions.add('move_forward', [xrAxis('left', 'thumbY', -1)]).add('move_back', [xrAxis('left', 'thumbY', 1)]);
+
+        input.attachXR(session);
+
+        right.gamepad.buttons[0] = { pressed: true, value: 0.9 }; // trigger
+        right.gamepad.buttons[4] = { pressed: true, value: 1 };   // A
+        left.gamepad.axes = [0, 0, 0, -1];                        // left thumbstick pushed forward
+        input.update();
+
+        assert.ok(input.isActionJustPressed('fire'));
+        assert.ok(input.isActionPressed('jump', { device: 0 })); // VR is device 0, with keyboard and mouse
+        assert.deepEqual(input.getVector('move_left', 'move_right', 'move_forward', 'move_back'), { x: 0, y: -1 });
+        assert.equal(input.lastDevice, 'xr');
+
+        // the right controller disappears (switched off / hand tracking): its buttons release
+        session.inputSources = [left];
+        input.update();
+        assert.ok(input.isActionJustReleased('fire'));
+        assert.ok(input.isActionPressed('move_forward'));
+
+        // capture a VR button for rebinding
+        const captured = input.captureBinding();
+        left.gamepad.buttons[1] = { pressed: true, value: 1 }; // left squeeze
+        input.update();
+        assert.deepEqual(await captured, xr('left', 'squeeze'));
+
+        // session ends: everything from the controllers is released, polling stops
+        session.dispatchEvent(new Event('end'));
+        assert.equal(input.xrSession, undefined);
+        input.update();
+        assert.ok(input.isActionJustReleased('move_forward'));
     },
 
     'ActionMap: bind / unbind / findBinding / JSON round trip; labels'() {

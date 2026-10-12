@@ -1,7 +1,7 @@
 import { Observable } from '../observable';
 import { ActionMap } from './action-map';
 import { type GestureFrame, GestureRecognizer, type TouchPoint } from './gestures';
-import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, controlId } from './bindings';
+import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, XR_AXES, XR_BUTTONS, type XRHand, controlId } from './bindings';
 
 /** 0 = keyboard, mouse, pen, touch and VR; 1, 2, ... = gamepads. */
 export type InputDevice = number;
@@ -25,6 +25,14 @@ export interface GamepadInfo {
     device: InputDevice,  // gamepad.index + 1
     id: string,           // the browser's description of the controller
     standard: boolean,    // uses the standard mapping (button names are reliable); others map by index
+}
+
+/** The parts of a WebXR XRSession that Input reads (structural, so no WebXR typings are required). */
+export interface XRSessionLike extends EventTarget {
+    readonly inputSources: Iterable<{
+        readonly handedness: string,
+        readonly gamepad?: { readonly buttons: readonly { pressed: boolean, value: number }[], readonly axes: readonly number[] } | null,
+    }>,
 }
 
 export interface PointerState {
@@ -188,6 +196,7 @@ export class Input {
         this._pending.deltaX = this._pending.deltaY = this._pending.wheelX = this._pending.wheelY = 0;
 
         this._pollGamepads();
+        this._pollXR();
         this._updateGestures();
 
         const devices = [...this._controls.keys()];
@@ -390,6 +399,7 @@ export class Input {
         this._listeners.length = 0;
         this._actionListeners.length = 0;
         this.cancelCapture();
+        this.detachXR();
     }
 
     // ---- internals ----
@@ -591,6 +601,95 @@ export class Input {
 
         for (const name of frame.gestures) {
             this._pulse(0, { type: 'gesture', gesture: name });
+        }
+    }
+
+    // ---- VR controllers ----
+
+    private _xrSession?: XRSessionLike;
+    private _xrEnd?: () => void;
+    private readonly _xrHeld = new Set<string>(); // control ids the controllers currently drive
+
+    get xrSession(): XRSessionLike | undefined { return this._xrSession; }
+
+    /**
+     * Reads VR controller buttons and sticks from a WebXR session (e.g. `renderer.xr.getSession()`)
+     * into the action map. Controller poses stay with three.js (`renderer.xr.getController(i)`).
+     * XR controller state only updates during XR frames, so call update() from the XR animation
+     * loop (`renderer.setAnimationLoop`). Detaches automatically when the session ends.
+     */
+    attachXR(session: XRSessionLike): void {
+        this.detachXR();
+
+        this._xrSession = session;
+        this._xrEnd = () => this.detachXR();
+        session.addEventListener('end', this._xrEnd);
+    }
+
+    detachXR(): void {
+        if (this._xrSession && this._xrEnd) this._xrSession.removeEventListener('end', this._xrEnd);
+
+        this._xrSession = undefined;
+        this._xrEnd = undefined;
+        this._releaseXR(new Set());
+    }
+
+    private _pollXR(): void {
+        const session = this._xrSession;
+
+        if (!session) return;
+
+        const held = new Set<string>();
+        let active = false;
+
+        for (const source of session.inputSources) {
+            const hand = source.handedness as XRHand;
+            const gamepad = source.gamepad;
+
+            if ((hand !== 'left' && hand !== 'right') || !gamepad) continue;
+
+            for (let i = 0; i < XR_BUTTONS.length && i < gamepad.buttons.length; i++) {
+                const button = gamepad.buttons[i];
+                const value = button.value > 0 ? button.value : button.pressed ? 1 : 0;
+                const binding: Binding = { type: 'xr', hand, button: XR_BUTTONS[i] };
+
+                this._setControl(0, binding, value);
+                held.add(controlId(binding));
+                active ||= value >= 0.5;
+            }
+
+            for (let i = 0; i < XR_AXES.length && i < gamepad.axes.length; i++) {
+                const value = gamepad.axes[i];
+
+                for (const direction of [1, -1] as const) {
+                    const binding: Binding = { type: 'xrAxis', hand, axis: XR_AXES[i], direction };
+
+                    this._setControl(0, binding, Math.max(0, value * direction));
+                    held.add(controlId(binding));
+                }
+
+                active ||= Math.abs(value) >= 0.5;
+            }
+        }
+
+        // a controller that went away (switched off, hand tracking took over) releases its controls
+        this._releaseXR(held);
+
+        for (const id of held) this._xrHeld.add(id);
+
+        if (active) this._setLastDevice('xr');
+    }
+
+    private _releaseXR(keep: Set<string>): void {
+        const controls = this._controls.get(0)!;
+
+        for (const id of this._xrHeld) {
+            if (keep.has(id)) continue;
+
+            const state = controls.get(id);
+            if (state) state.value = 0;
+
+            this._xrHeld.delete(id);
         }
     }
 
