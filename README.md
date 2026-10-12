@@ -99,4 +99,5 @@ import "@n3rdw1z4rd/core/css/main.css";
 npm run build          # tsup -> dist/: ESM (one file per module), CJS (index + three), .d.ts
 npm test               # regression tests (run in Node)
 npm test -- astar      # also draws the visual A* demo in the terminal
+npm run test:browser   # WebGL tests in headless Chromium (playwright-core; set CHROMIUM_PATH if needed)
 ```

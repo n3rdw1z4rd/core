@@ -1,4 +1,5 @@
-import { KeyValue } from './types';
+// WebGL2 wrappers: thin, functional helpers over the raw API. They can be used on their own, and
+// WebGlRenderer builds on them. Nothing here touches WebGL at import time, so importing is safe anywhere.
 
 // literal GLenum values so importing this module doesn't require WebGL2RenderingContext to exist
 export enum ShaderType {
@@ -6,100 +7,708 @@ export enum ShaderType {
     FRAGMENT = 0x8B30, // gl.FRAGMENT_SHADER
 }
 
-export type ProgramLocations = { attributes: KeyValue, uniforms: KeyValue };
-export type ProgramInfo = { program: WebGLProgram, attributes: KeyValue, uniforms: KeyValue };
+// ---- context ----
 
-export function CreateWebGlContext(canvas?: HTMLCanvasElement): WebGL2RenderingContext {
-    return (canvas ?? document.createElement('canvas')).getContext('webgl2')!;
-}
+/**
+ * Creates a WebGL2 context. Throws (instead of returning null) when WebGL2 isn't available.
+ *
+ * @param canvas defaults to a new canvas element
+ */
+export function CreateWebGlContext(
+    canvas?: HTMLCanvasElement | OffscreenCanvas,
+    attributes?: WebGLContextAttributes,
+): WebGL2RenderingContext {
+    const target = canvas ?? document.createElement('canvas');
+    const gl = target.getContext('webgl2', attributes) as WebGL2RenderingContext | null;
 
-export function ResizeWebGlContext(
-    gl: WebGL2RenderingContext,
-    displayWidth?: number,
-    displayHeight?: number,
-): boolean {
-    const canvas = gl.canvas as HTMLCanvasElement;
-
-    const { width, height } = (
-        canvas.parentElement?.getBoundingClientRect() ??
-        canvas.getBoundingClientRect()
-    );
-
-    displayWidth = (0 | (displayWidth ?? width));
-    displayHeight = (0 | (displayHeight ?? height));
-
-    if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-        gl.canvas.width = displayWidth
-        gl.canvas.height = displayHeight;
-        gl.viewport(0, 0, displayWidth, displayHeight);
-
-        return true;
+    if (!gl) {
+        throw new Error('WebGL2 is not available (unsupported browser or GPU, or the context was lost)');
     }
 
-    return false;
+    return gl;
 }
 
+/**
+ * Sizes the drawing buffer to `width` x `height` CSS pixels times the pixel ratio (sharp on
+ * high-DPI screens) and sets the viewport. Without a size, uses the canvas's parent (or its own)
+ * size on the page. Returns whether the size changed.
+ */
+export function ResizeWebGlContext(
+    gl: WebGL2RenderingContext,
+    width?: number,
+    height?: number,
+    pixelRatio: number = globalThis.devicePixelRatio ?? 1,
+): boolean {
+    const canvas = gl.canvas;
+
+    if (width === undefined || height === undefined) {
+        const element = canvas as HTMLCanvasElement;
+        const rect = element.parentElement?.getBoundingClientRect?.() ?? element.getBoundingClientRect?.();
+
+        width ??= rect?.width ?? canvas.width;
+        height ??= rect?.height ?? canvas.height;
+    }
+
+    const bufferWidth = Math.max(1, Math.round(width * pixelRatio));
+    const bufferHeight = Math.max(1, Math.round(height * pixelRatio));
+
+    if (canvas.width === bufferWidth && canvas.height === bufferHeight) return false;
+
+    canvas.width = bufferWidth;
+    canvas.height = bufferHeight;
+    gl.viewport(0, 0, bufferWidth, bufferHeight);
+
+    return true;
+}
+
+// ---- shaders and programs ----
+
+// shows the lines a compile error points at, e.g. "ERROR: 0:12: 'foo' : undeclared identifier"
+function describeShaderError(log: string, source: string): string {
+    const lines = source.split('\n');
+    const errorLines = new Set([...log.matchAll(/ERROR:\s*\d+:(\d+):/g)].map(m => Number(m[1])));
+    const excerpt: string[] = [];
+
+    for (const line of [...errorLines].sort((a, b) => a - b)) {
+        for (let n = Math.max(1, line - 2); n <= Math.min(lines.length, line + 2); n++) {
+            excerpt.push(`${n === line ? '>' : ' '} ${String(n).padStart(4)} | ${lines[n - 1]}`);
+        }
+
+        excerpt.push('');
+    }
+
+    return [log.trim(), '', ...excerpt].join('\n').trimEnd();
+}
+
+/** Compiles a shader; throws an Error quoting the failing source lines. */
 export function CompileShader(gl: WebGL2RenderingContext, type: ShaderType, source: string): WebGLShader {
-    const shader: WebGLShader = gl.createShader(type)!;
+    const shader = gl.createShader(type);
+
+    if (!shader) throw new Error('CompileShader: could not create a shader (context lost?)');
 
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        throw `CompileShader: failed to compile shader: ${gl.getShaderInfoLog(shader)}`;
+        const log = gl.getShaderInfoLog(shader) ?? '';
+        const kind = type === ShaderType.VERTEX ? 'vertex' : 'fragment';
+
+        gl.deleteShader(shader);
+
+        throw new Error(`CompileShader: ${kind} shader failed to compile:\n${describeShaderError(log, source)}`);
     }
 
     return shader;
 }
 
-export function CreateProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader | string, fragmentShader: WebGLShader | string): WebGLProgram {
-    if (typeof vertexShader === 'string') {
-        vertexShader = CompileShader(gl, ShaderType.VERTEX, vertexShader) as WebGLShader;
+/**
+ * Links a program from shader sources (or compiled shaders). Shaders compiled here are deleted
+ * after linking; ones passed in are left to the caller.
+ */
+export function CreateProgram(
+    gl: WebGL2RenderingContext,
+    vertexShader: WebGLShader | string,
+    fragmentShader: WebGLShader | string,
+): WebGLProgram {
+    const vs = typeof vertexShader === 'string' ? CompileShader(gl, ShaderType.VERTEX, vertexShader) : vertexShader;
+
+    let fs: WebGLShader;
+
+    try {
+        fs = typeof fragmentShader === 'string' ? CompileShader(gl, ShaderType.FRAGMENT, fragmentShader) : fragmentShader;
+    } catch (error) {
+        if (typeof vertexShader === 'string') gl.deleteShader(vs);
+        throw error;
     }
 
-    if (typeof fragmentShader === 'string') {
-        fragmentShader = CompileShader(gl, ShaderType.FRAGMENT, fragmentShader) as WebGLShader;
-    }
+    const program = gl.createProgram();
 
-    const program: WebGLProgram = gl.createProgram()!;
+    if (!program) throw new Error('CreateProgram: could not create a program (context lost?)');
 
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
     gl.linkProgram(program);
 
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw `CreateProgram: failed to link program: ${gl.getProgramInfoLog(program)}`;
+    const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+    const log = linked ? '' : gl.getProgramInfoLog(program) ?? '';
+
+    for (const [shader, owned] of [[vs, typeof vertexShader === 'string'], [fs, typeof fragmentShader === 'string']] as const) {
+        gl.detachShader(program, shader);
+        if (owned) gl.deleteShader(shader);
+    }
+
+    if (!linked) {
+        gl.deleteProgram(program);
+        throw new Error(`CreateProgram: failed to link:\n${log.trim()}`);
     }
 
     return program;
 }
 
+export interface AttributeInfo {
+    location: number,
+    type: number,   // GL type of the attribute (gl.FLOAT_VEC3, gl.FLOAT_MAT4, ...)
+    size: number,
+}
+
+export interface UniformInfo {
+    location: WebGLUniformLocation,
+    type: number,         // GL type (gl.FLOAT_VEC3, gl.SAMPLER_2D, ...)
+    size: number,         // array length (1 for non-arrays)
+    textureUnit?: number, // samplers: first texture unit assigned to this uniform
+}
+
+export type ProgramLocations = {
+    attributes: Record<string, AttributeInfo>,
+    uniforms: Record<string, UniformInfo>,
+};
+
+export type ProgramInfo = ProgramLocations & { program: WebGLProgram };
+
+function isSamplerType(gl: WebGL2RenderingContext, type: number): boolean {
+    return samplerTarget(gl, type) !== undefined;
+}
+
+/** The texture target a sampler type binds to (TEXTURE_2D, TEXTURE_3D, ...), or undefined if it isn't a sampler. */
+function samplerTarget(gl: WebGL2RenderingContext, type: number): number | undefined {
+    switch (type) {
+        case gl.SAMPLER_2D: case gl.SAMPLER_2D_SHADOW: case gl.INT_SAMPLER_2D: case gl.UNSIGNED_INT_SAMPLER_2D:
+            return gl.TEXTURE_2D;
+        case gl.SAMPLER_3D: case gl.INT_SAMPLER_3D: case gl.UNSIGNED_INT_SAMPLER_3D:
+            return gl.TEXTURE_3D;
+        case gl.SAMPLER_CUBE: case gl.SAMPLER_CUBE_SHADOW: case gl.INT_SAMPLER_CUBE: case gl.UNSIGNED_INT_SAMPLER_CUBE:
+            return gl.TEXTURE_CUBE_MAP;
+        case gl.SAMPLER_2D_ARRAY: case gl.SAMPLER_2D_ARRAY_SHADOW: case gl.INT_SAMPLER_2D_ARRAY: case gl.UNSIGNED_INT_SAMPLER_2D_ARRAY:
+            return gl.TEXTURE_2D_ARRAY;
+    }
+
+    return undefined;
+}
+
+/**
+ * Active attributes and uniforms of a linked program. Array uniforms are listed by their base
+ * name (`uLights[0]` -> `uLights`); samplers are given consecutive texture units.
+ */
 export function GetProgramLocations(gl: WebGL2RenderingContext, program: WebGLProgram): ProgramLocations {
-    const attributes: KeyValue = {};
-    const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    const attributes: Record<string, AttributeInfo> = {};
+    const uniforms: Record<string, UniformInfo> = {};
+
+    const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES) as number;
 
     for (let i = 0; i < attributeCount; i++) {
         const info = gl.getActiveAttrib(program, i)!;
-        attributes[info.name] = gl.getAttribLocation(program, info.name);
+
+        if (info.name.startsWith('gl_')) continue; // built-ins like gl_VertexID
+
+        attributes[info.name] = { location: gl.getAttribLocation(program, info.name), type: info.type, size: info.size };
     }
 
-    const uniforms: KeyValue = {};
-    const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) as number;
+    let textureUnit = 0;
 
     for (let i = 0; i < uniformCount; i++) {
         const info = gl.getActiveUniform(program, i)!;
-        uniforms[info.name] = gl.getUniformLocation(program, info.name);
+        const location = gl.getUniformLocation(program, info.name);
+
+        if (!location) continue; // uniform block members are set through buffers, not locations
+
+        const name = info.name.endsWith('[0]') ? info.name.slice(0, -3) : info.name;
+        const uniform: UniformInfo = { location, type: info.type, size: info.size };
+
+        if (isSamplerType(gl, info.type)) {
+            uniform.textureUnit = textureUnit;
+            textureUnit += info.size;
+        }
+
+        uniforms[name] = uniform;
     }
 
-    return { attributes, uniforms } as ProgramLocations;
+    return { attributes, uniforms };
 }
 
+/** Links a program and collects its attribute and uniform info. */
 export function CreateProgramInfo(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string): ProgramInfo {
-    const program: WebGLProgram = CreateProgram(
-        gl, vertexShaderSource, fragmentShaderSource
-    );
+    const program = CreateProgram(gl, vertexShaderSource, fragmentShaderSource);
 
-    const locations: KeyValue = GetProgramLocations(gl, program);
+    return { program, ...GetProgramLocations(gl, program) };
+}
 
-    return { program, ...locations } as ProgramInfo;
+export function DeleteProgramInfo(gl: WebGL2RenderingContext, info: ProgramInfo): void {
+    gl.deleteProgram(info.program);
+}
+
+// ---- uniforms ----
+
+export type UniformValue =
+    | number
+    | boolean
+    | ArrayLike<number>               // vectors, matrices (column-major), arrays of them
+    | WebGLTexture | TextureInfo       // samplers
+    | (WebGLTexture | TextureInfo)[]; // sampler arrays
+
+const textureOf = (value: unknown): WebGLTexture | undefined => {
+    if (value && typeof value === 'object' && 'texture' in value) return (value as TextureInfo).texture;
+    if (typeof WebGLTexture !== 'undefined' && value instanceof WebGLTexture) return value;
+
+    return undefined;
+};
+
+/**
+ * Sets uniforms by name; the right `gl.uniform*` call comes from each uniform's declared type.
+ * Textures are bound to the sampler's texture unit. Names the program doesn't use (e.g. optimized
+ * away by the compiler) are ignored. Makes the program current.
+ */
+export function SetUniforms(gl: WebGL2RenderingContext, info: ProgramInfo, values: Record<string, UniformValue>): void {
+    gl.useProgram(info.program);
+
+    for (const name in values) {
+        const uniform = info.uniforms[name];
+
+        if (uniform) SetUniform(gl, uniform, values[name]);
+    }
+}
+
+function SetUniform(gl: WebGL2RenderingContext, uniform: UniformInfo, value: UniformValue): void {
+    const { location, type } = uniform;
+    const target = samplerTarget(gl, type);
+
+    if (target !== undefined) {
+        const textures = Array.isArray(value) && value.length > 0 && typeof value[0] !== 'number' ? value : [value];
+        const units: number[] = [];
+
+        textures.forEach((texture, i) => {
+            const unit = (uniform.textureUnit ?? 0) + i;
+
+            gl.activeTexture(gl.TEXTURE0 + unit);
+            gl.bindTexture(target, textureOf(texture) ?? null);
+            units.push(unit);
+        });
+
+        gl.uniform1iv(location, units);
+
+        return;
+    }
+
+    const data: ArrayLike<number> = typeof value === 'number' ? [value]
+        : typeof value === 'boolean' ? [value ? 1 : 0]
+        : value as ArrayLike<number>;
+
+    const f = data instanceof Float32Array ? data : new Float32Array(data);
+
+    switch (type) {
+        case gl.FLOAT: gl.uniform1fv(location, f); break;
+        case gl.FLOAT_VEC2: gl.uniform2fv(location, f); break;
+        case gl.FLOAT_VEC3: gl.uniform3fv(location, f); break;
+        case gl.FLOAT_VEC4: gl.uniform4fv(location, f); break;
+
+        case gl.INT: case gl.BOOL: gl.uniform1iv(location, Int32Array.from(data)); break;
+        case gl.INT_VEC2: case gl.BOOL_VEC2: gl.uniform2iv(location, Int32Array.from(data)); break;
+        case gl.INT_VEC3: case gl.BOOL_VEC3: gl.uniform3iv(location, Int32Array.from(data)); break;
+        case gl.INT_VEC4: case gl.BOOL_VEC4: gl.uniform4iv(location, Int32Array.from(data)); break;
+
+        case gl.UNSIGNED_INT: gl.uniform1uiv(location, Uint32Array.from(data)); break;
+        case gl.UNSIGNED_INT_VEC2: gl.uniform2uiv(location, Uint32Array.from(data)); break;
+        case gl.UNSIGNED_INT_VEC3: gl.uniform3uiv(location, Uint32Array.from(data)); break;
+        case gl.UNSIGNED_INT_VEC4: gl.uniform4uiv(location, Uint32Array.from(data)); break;
+
+        case gl.FLOAT_MAT2: gl.uniformMatrix2fv(location, false, f); break;
+        case gl.FLOAT_MAT3: gl.uniformMatrix3fv(location, false, f); break;
+        case gl.FLOAT_MAT4: gl.uniformMatrix4fv(location, false, f); break;
+        case gl.FLOAT_MAT2x3: gl.uniformMatrix2x3fv(location, false, f); break;
+        case gl.FLOAT_MAT2x4: gl.uniformMatrix2x4fv(location, false, f); break;
+        case gl.FLOAT_MAT3x2: gl.uniformMatrix3x2fv(location, false, f); break;
+        case gl.FLOAT_MAT3x4: gl.uniformMatrix3x4fv(location, false, f); break;
+        case gl.FLOAT_MAT4x2: gl.uniformMatrix4x2fv(location, false, f); break;
+        case gl.FLOAT_MAT4x3: gl.uniformMatrix4x3fv(location, false, f); break;
+
+        default: throw new Error(`SetUniforms: unsupported uniform type 0x${type.toString(16)}`);
+    }
+}
+
+// ---- buffers ----
+
+export interface BufferOptions {
+    target?: number, // default gl.ARRAY_BUFFER (gl.ELEMENT_ARRAY_BUFFER for indices)
+    usage?: number,  // default gl.STATIC_DRAW (gl.DYNAMIC_DRAW for data updated every frame)
+}
+
+/**
+ * Creates a buffer from data (a plain number array becomes a Float32Array) or with a byte size
+ * to fill later with UpdateBuffer.
+ */
+export function CreateBuffer(gl: WebGL2RenderingContext, data: AllowSharedBufferSource | number[] | number, options: BufferOptions = {}): WebGLBuffer {
+    const target = options.target ?? gl.ARRAY_BUFFER;
+    const usage = options.usage ?? gl.STATIC_DRAW;
+    const buffer = gl.createBuffer();
+
+    if (!buffer) throw new Error('CreateBuffer: could not create a buffer (context lost?)');
+
+    gl.bindBuffer(target, buffer);
+
+    if (typeof data === 'number') gl.bufferData(target, data, usage);
+    else gl.bufferData(target, Array.isArray(data) ? new Float32Array(data) : data, usage);
+
+    gl.bindBuffer(target, null);
+
+    return buffer;
+}
+
+/** Writes data into an existing buffer, starting at `byteOffset`. */
+export function UpdateBuffer(gl: WebGL2RenderingContext, buffer: WebGLBuffer, data: AllowSharedBufferSource | number[], byteOffset = 0, target?: number): void {
+    const t = target ?? gl.ARRAY_BUFFER;
+
+    gl.bindBuffer(t, buffer);
+    gl.bufferSubData(t, byteOffset, Array.isArray(data) ? new Float32Array(data) : data);
+    gl.bindBuffer(t, null);
+}
+
+// ---- vertex arrays ----
+
+export interface AttributeSource {
+    buffer: WebGLBuffer,
+    size: number,          // components per vertex (per column for matrices)
+    type?: number,         // default gl.FLOAT
+    normalized?: boolean,  // integer data read as 0..1 / -1..1 floats
+    stride?: number,       // bytes; 0 = tightly packed
+    offset?: number,       // bytes
+    divisor?: number,      // 1 = advance per instance (instancing); 0 = per vertex
+}
+
+export interface VertexArrayInfo {
+    vao: WebGLVertexArrayObject,
+    buffers: WebGLBuffer[],    // buffers used, for DeleteVertexArray
+    indexBuffer?: WebGLBuffer,
+    indexType?: number,        // gl.UNSIGNED_SHORT etc. when indexed
+    count?: number,            // default draw count (number of indices, when created from an index array)
+}
+
+const BYTES: Record<number, number> = { 0x1400: 1, 0x1401: 1, 0x1402: 2, 0x1403: 2, 0x1404: 4, 0x1405: 4, 0x1406: 4, 0x140B: 2 };
+
+function matrixColumns(gl: WebGL2RenderingContext, type: number): number {
+    switch (type) {
+        case gl.FLOAT_MAT2: case gl.FLOAT_MAT2x3: case gl.FLOAT_MAT2x4: return 2;
+        case gl.FLOAT_MAT3: case gl.FLOAT_MAT3x2: case gl.FLOAT_MAT3x4: return 3;
+        case gl.FLOAT_MAT4: case gl.FLOAT_MAT4x2: case gl.FLOAT_MAT4x3: return 4;
+    }
+
+    return 1;
+}
+
+function isIntegerAttribute(gl: WebGL2RenderingContext, type: number): boolean {
+    switch (type) {
+        case gl.INT: case gl.INT_VEC2: case gl.INT_VEC3: case gl.INT_VEC4:
+        case gl.UNSIGNED_INT: case gl.UNSIGNED_INT_VEC2: case gl.UNSIGNED_INT_VEC3: case gl.UNSIGNED_INT_VEC4:
+            return true;
+    }
+
+    return false;
+}
+
+/**
+ * Records how the program's attributes read from buffers (and the index buffer) into a vertex
+ * array object. Integer attributes (int / uint / ivec / uvec) use vertexAttribIPointer
+ * automatically; matrix attributes (e.g. per-instance mat4) are spread over their columns.
+ * Attributes the program doesn't use are skipped.
+ *
+ * @param indices an index array (Uint16Array / Uint32Array / Uint8Array), or an existing buffer and its type
+ */
+export function CreateVertexArray(
+    gl: WebGL2RenderingContext,
+    info: ProgramInfo,
+    attributes: Record<string, AttributeSource>,
+    indices?: Uint8Array | Uint16Array | Uint32Array | { buffer: WebGLBuffer, type: number, count?: number },
+): VertexArrayInfo {
+    const vao = gl.createVertexArray();
+
+    if (!vao) throw new Error('CreateVertexArray: could not create a vertex array (context lost?)');
+
+    const result: VertexArrayInfo = { vao, buffers: [] };
+
+    gl.bindVertexArray(vao);
+
+    for (const name in attributes) {
+        const attribute = info.attributes[name];
+
+        if (!attribute) continue;
+
+        const source = attributes[name];
+        const type = source.type ?? gl.FLOAT;
+        const columns = matrixColumns(gl, attribute.type);
+        const columnBytes = source.size * (BYTES[type] ?? 4);
+        const stride = source.stride ?? (columns > 1 ? columnBytes * columns : 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, source.buffer);
+        if (!result.buffers.includes(source.buffer)) result.buffers.push(source.buffer);
+
+        for (let column = 0; column < columns; column++) {
+            const location = attribute.location + column;
+            const offset = (source.offset ?? 0) + column * columnBytes;
+
+            gl.enableVertexAttribArray(location);
+
+            if (isIntegerAttribute(gl, attribute.type)) {
+                gl.vertexAttribIPointer(location, source.size, type, stride, offset);
+            } else {
+                gl.vertexAttribPointer(location, source.size, type, source.normalized ?? false, stride, offset);
+            }
+
+            if (source.divisor) gl.vertexAttribDivisor(location, source.divisor);
+        }
+    }
+
+    if (indices) {
+        if (ArrayBuffer.isView(indices)) {
+            result.indexBuffer = CreateBuffer(gl, indices, { target: gl.ELEMENT_ARRAY_BUFFER });
+            result.indexType = indices instanceof Uint32Array ? gl.UNSIGNED_INT : indices instanceof Uint8Array ? gl.UNSIGNED_BYTE : gl.UNSIGNED_SHORT;
+            result.count = indices.length;
+            result.buffers.push(result.indexBuffer);
+        } else {
+            result.indexBuffer = indices.buffer;
+            result.indexType = indices.type;
+            result.count = indices.count;
+        }
+
+        // the element buffer binding is part of the vertex array's state
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, result.indexBuffer);
+    }
+
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    return result;
+}
+
+/** Deletes the vertex array; with `buffers`, also the buffers it reads from. */
+export function DeleteVertexArray(gl: WebGL2RenderingContext, info: VertexArrayInfo, options: { buffers?: boolean } = {}): void {
+    gl.deleteVertexArray(info.vao);
+
+    if (options.buffers) {
+        for (const buffer of info.buffers) gl.deleteBuffer(buffer);
+    }
+}
+
+// ---- textures ----
+
+export interface TextureOptions {
+    filter?: 'nearest' | 'linear',          // default 'linear'
+    wrap?: 'clamp' | 'repeat' | 'mirror',   // default 'clamp'
+    mipmaps?: boolean,                      // default false
+    flipY?: boolean,                        // flip images vertically on upload (default false)
+    premultiplyAlpha?: boolean,             // default false
+    internalFormat?: number,                // data textures: default gl.RGBA8
+    format?: number,                        // data textures: default gl.RGBA
+    type?: number,                          // data textures: default gl.UNSIGNED_BYTE
+}
+
+export interface TextureData {
+    width: number,
+    height: number,
+    data?: ArrayBufferView | null, // null / undefined = allocate only (e.g. render targets)
+}
+
+export interface TextureInfo {
+    texture: WebGLTexture,
+    width: number,
+    height: number,
+    options: TextureOptions,
+}
+
+const sourceSize = (source: TexImageSource): [number, number] => {
+    const s = source as { naturalWidth?: number, naturalHeight?: number, videoWidth?: number, videoHeight?: number, width: number, height: number };
+
+    return [s.naturalWidth || s.videoWidth || s.width, s.naturalHeight || s.videoHeight || s.height];
+};
+
+function uploadTexture(gl: WebGL2RenderingContext, info: TextureInfo, source: TexImageSource | TextureData): void {
+    const o = info.options;
+
+    gl.bindTexture(gl.TEXTURE_2D, info.texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, o.flipY ?? false);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, o.premultiplyAlpha ?? false);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); // rows of any width
+
+    if (!isImageSource(source)) {
+        const data = source as TextureData;
+
+        info.width = data.width;
+        info.height = data.height;
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, o.internalFormat ?? gl.RGBA8, data.width, data.height, 0, o.format ?? gl.RGBA, o.type ?? gl.UNSIGNED_BYTE, data.data ?? null);
+    } else {
+        [info.width, info.height] = sourceSize(source as TexImageSource);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, o.internalFormat ?? gl.RGBA8, o.format ?? gl.RGBA, o.type ?? gl.UNSIGNED_BYTE, source as TexImageSource);
+    }
+
+    if (o.mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+// images, canvases, videos, bitmaps, ImageData: anything texImage2D takes directly
+function isImageSource(source: unknown): boolean {
+    for (const name of ['HTMLImageElement', 'HTMLCanvasElement', 'HTMLVideoElement', 'ImageBitmap', 'ImageData', 'OffscreenCanvas', 'VideoFrame']) {
+        const type = (globalThis as Record<string, unknown>)[name] as (abstract new (...args: never[]) => unknown) | undefined;
+
+        if (type && source instanceof type) return true;
+    }
+
+    return false;
+}
+
+/** Creates a 2D texture from an image / canvas / video / bitmap, or from raw data. */
+export function CreateTexture(gl: WebGL2RenderingContext, source: TexImageSource | TextureData, options: TextureOptions = {}): TextureInfo {
+    const texture = gl.createTexture();
+
+    if (!texture) throw new Error('CreateTexture: could not create a texture (context lost?)');
+
+    const info: TextureInfo = { texture, width: 0, height: 0, options: { ...options } };
+
+    const nearest = options.filter === 'nearest';
+    const wrap = options.wrap === 'repeat' ? gl.REPEAT : options.wrap === 'mirror' ? gl.MIRRORED_REPEAT : gl.CLAMP_TO_EDGE;
+    const minFilter = options.mipmaps
+        ? (nearest ? gl.NEAREST_MIPMAP_NEAREST : gl.LINEAR_MIPMAP_LINEAR)
+        : (nearest ? gl.NEAREST : gl.LINEAR);
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+
+    uploadTexture(gl, info, source);
+
+    return info;
+}
+
+/** Re-uploads a texture's contents (the size may change); regenerates mipmaps if it has them. */
+export function UpdateTexture(gl: WebGL2RenderingContext, info: TextureInfo, source: TexImageSource | TextureData): void {
+    uploadTexture(gl, info, source);
+}
+
+/** Loads an image from a URL into a texture. */
+export function LoadWebGlTexture(gl: WebGL2RenderingContext, url: string, options: TextureOptions = {}): Promise<TextureInfo> {
+    const image = new Image();
+
+    image.crossOrigin = 'anonymous';
+    image.src = url;
+
+    return image.decode().then(() => CreateTexture(gl, image, options));
+}
+
+export function DeleteTexture(gl: WebGL2RenderingContext, info: TextureInfo): void {
+    gl.deleteTexture(info.texture);
+}
+
+// ---- render targets ----
+
+export interface RenderTarget {
+    framebuffer: WebGLFramebuffer,
+    texture: TextureInfo,          // the color output; use it as a sampler uniform
+    depth?: WebGLRenderbuffer,
+    width: number,
+    height: number,
+}
+
+export interface RenderTargetOptions extends Omit<TextureOptions, 'mipmaps' | 'flipY' | 'premultiplyAlpha'> {
+    depth?: boolean, // depth (and stencil) attachment. Default true.
+}
+
+/** An offscreen framebuffer with a color texture (and depth), for render-to-texture and post-processing. */
+export function CreateRenderTarget(gl: WebGL2RenderingContext, width: number, height: number, options: RenderTargetOptions = {}): RenderTarget {
+    const texture = CreateTexture(gl, { width, height }, options);
+    const framebuffer = gl.createFramebuffer();
+
+    if (!framebuffer) throw new Error('CreateRenderTarget: could not create a framebuffer (context lost?)');
+
+    const target: RenderTarget = { framebuffer, texture, width, height };
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture.texture, 0);
+
+    if (options.depth ?? true) {
+        target.depth = gl.createRenderbuffer() ?? undefined;
+        gl.bindRenderbuffer(gl.RENDERBUFFER, target.depth ?? null);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, width, height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, target.depth ?? null);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    }
+
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+        DeleteRenderTarget(gl, target);
+        throw new Error(`CreateRenderTarget: framebuffer incomplete (0x${status.toString(16)}); is this format renderable?`);
+    }
+
+    return target;
+}
+
+export function ResizeRenderTarget(gl: WebGL2RenderingContext, target: RenderTarget, width: number, height: number): void {
+    if (target.width === width && target.height === height) return;
+
+    target.width = width;
+    target.height = height;
+
+    UpdateTexture(gl, target.texture, { width, height });
+
+    if (target.depth) {
+        gl.bindRenderbuffer(gl.RENDERBUFFER, target.depth);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, width, height);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    }
+}
+
+/** Draws into `target` (or the canvas, with null) and sets the viewport to match. */
+export function BindRenderTarget(gl: WebGL2RenderingContext, target: RenderTarget | null): void {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
+    gl.viewport(0, 0, target?.width ?? gl.drawingBufferWidth, target?.height ?? gl.drawingBufferHeight);
+}
+
+export function DeleteRenderTarget(gl: WebGL2RenderingContext, target: RenderTarget): void {
+    gl.deleteFramebuffer(target.framebuffer);
+    DeleteTexture(gl, target.texture);
+    if (target.depth) gl.deleteRenderbuffer(target.depth);
+}
+
+// ---- drawing ----
+
+export interface DrawOptions {
+    mode?: number,                         // default gl.TRIANGLES
+    count?: number,                        // vertices (or indices); default: the vertex array's count
+    offset?: number,                       // first vertex (or index)
+    instances?: number,                    // > 0: instanced draw
+    uniforms?: Record<string, UniformValue>,
+}
+
+/** Draws a vertex array with a program; indexed and instanced draws are picked automatically. */
+export function Draw(gl: WebGL2RenderingContext, info: ProgramInfo, vertexArray: VertexArrayInfo, options: DrawOptions = {}): void {
+    const mode = options.mode ?? gl.TRIANGLES;
+    const count = options.count ?? vertexArray.count;
+    const offset = options.offset ?? 0;
+    const instances = options.instances ?? 0;
+
+    if (count === undefined) throw new Error('Draw: no count given and the vertex array has none');
+
+    gl.useProgram(info.program);
+    if (options.uniforms) SetUniforms(gl, info, options.uniforms);
+
+    gl.bindVertexArray(vertexArray.vao);
+
+    if (vertexArray.indexBuffer !== undefined) {
+        const type = vertexArray.indexType ?? gl.UNSIGNED_SHORT;
+        const byteOffset = offset * (type === gl.UNSIGNED_INT ? 4 : type === gl.UNSIGNED_BYTE ? 1 : 2);
+
+        if (instances > 0) gl.drawElementsInstanced(mode, count, type, byteOffset, instances);
+        else gl.drawElements(mode, count, type, byteOffset);
+    } else if (instances > 0) {
+        gl.drawArraysInstanced(mode, offset, count, instances);
+    } else {
+        gl.drawArrays(mode, offset, count);
+    }
+
+    gl.bindVertexArray(null);
 }
