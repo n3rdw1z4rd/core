@@ -1,3 +1,4 @@
+import { assert, type TestSuite } from './assert';
 import { findPath } from '../astar';
 import { Clock } from '../clock';
 import { Color } from '../color';
@@ -18,25 +19,7 @@ import { Rng } from '../rng';
 import { SpatialPartition2d } from '../spatial-partition-2d';
 import { SpatialPartition3d } from '../spatial-partition-3d';
 
-// minimal assertions so the tests don't need @types/node (this is a browser library)
-const assert = {
-    ok(value: unknown, message = 'expected a truthy value'): void {
-        if (!value) throw new Error(message);
-    },
-    equal(actual: unknown, expected: unknown): void {
-        if (!Object.is(actual, expected)) throw new Error(`expected ${String(expected)}, got ${String(actual)}`);
-    },
-    deepEqual(actual: unknown, expected: unknown): void {
-        if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-    },
-    notDeepEqual(actual: unknown, expected: unknown): void {
-        if (JSON.stringify(actual) === JSON.stringify(expected)) throw new Error(`expected values to differ: ${JSON.stringify(actual)}`);
-    },
-};
-
-declare const process: { exitCode?: number, argv: string[] };
-
-const tests: Record<string, () => void> = {
+export const regressionTests: TestSuite = {
     'Rng.pick can return the last element'() {
         const r = new Rng(1);
         const seen = new Set<number>();
@@ -498,22 +481,3 @@ const tests: Record<string, () => void> = {
         }
     },
 };
-
-export function regressionTest() {
-    let failed = 0;
-
-    for (const [name, test] of Object.entries(tests)) {
-        try {
-            test();
-            console.log(`  ok   ${name}`);
-        } catch (error) {
-            failed++;
-            console.log(`  FAIL ${name}`);
-            console.log(error);
-        }
-    }
-
-    console.log(`${Object.keys(tests).length - failed} passed, ${failed} failed`);
-
-    if (failed) process.exitCode = 1;
-}
