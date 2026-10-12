@@ -31,26 +31,46 @@ const withTimeout = (promise: void | Promise<void>): Promise<void> => {
     return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
 };
 
-/** Runs every test in order; prints results and sets a failing exit code if any test fails. */
-export async function runTests(...suites: TestSuite[]): Promise<void> {
-    let passed = 0;
-    let failed = 0;
+export interface TestResult {
+    name: string,
+    ok: boolean,
+    error?: string,
+    ms: number,
+}
+
+export interface RunOptions {
+    onResult?: (result: TestResult) => void, // called after each test (e.g. to show results on a page)
+}
+
+/** Runs every test in order; prints results, and sets a failing exit code if any test fails. */
+export async function runTests(suites: TestSuite[], options: RunOptions = {}): Promise<TestResult[]> {
+    const results: TestResult[] = [];
 
     for (const suite of suites) {
         for (const [name, test] of Object.entries(suite)) {
+            const start = performance.now();
+            let result: TestResult;
+
             try {
                 await withTimeout(test());
-                passed++;
+                result = { name, ok: true, ms: performance.now() - start };
                 console.log(`  ok   ${name}`);
             } catch (error) {
-                failed++;
+                result = { name, ok: false, error: error instanceof Error ? error.stack ?? error.message : String(error), ms: performance.now() - start };
                 console.log(`  FAIL ${name}`);
                 console.log(error);
             }
+
+            results.push(result);
+            options.onResult?.(result);
         }
     }
 
-    console.log(`${passed} passed, ${failed} failed`);
+    const failed = results.filter(r => !r.ok).length;
+
+    console.log(`${results.length - failed} passed, ${failed} failed`);
 
     if (failed) process.exitCode = 1;
+
+    return results;
 }

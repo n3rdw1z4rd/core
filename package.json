@@ -41,7 +41,8 @@
         "dev": "tsup --watch",
         "test": "tsx src/test",
         "prepublishOnly": "npm test && npm run build",
-        "test:browser": "node scripts/test-browser.mjs"
+        "test:browser": "node scripts/test-browser.mjs",
+        "test:browser:headless": "node scripts/test-browser-headless.mjs"
     },
     "repository": {
         "type": "git",
