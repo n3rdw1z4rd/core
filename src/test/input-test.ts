@@ -206,6 +206,90 @@ export const inputTests: TestSuite = {
         assert.deepEqual(await mouseOnly, mouse('right'));
     },
 
+    async 'Input: gamepads (buttons, analog, sticks, per-device queries, connect / disconnect, capture)'() {
+        const { input, down } = setup();
+
+        const fakePad = (index: number) => ({
+            index, id: `Pad ${index}`, mapping: 'standard', connected: true,
+            buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+            axes: [0, 0, 0, 0],
+        });
+
+        const pads: (ReturnType<typeof fakePad> | null)[] = [fakePad(0), null, fakePad(2)];
+        const nav = globalThis.navigator as any;
+        const original = Object.getOwnPropertyDescriptor(nav, 'getGamepads');
+
+        Object.defineProperty(nav, 'getGamepads', { value: () => pads, configurable: true });
+
+        try {
+            const connected: number[] = [];
+            const disconnected: number[] = [];
+
+            input.onGamepadConnected.subscribe(p => connected.push(p.device));
+            input.onGamepadDisconnected.subscribe(p => disconnected.push(p.device));
+
+            input.actions.add('jump', [key('Space'), pad('A')]);
+            input.actions.add('accelerate', [pad('RT')]);
+            input.actions.add('left', [padAxis('leftX', -1)]).add('right', [padAxis('leftX', 1)]);
+            input.actions.add('up', [padAxis('leftY', -1)]).add('down', [padAxis('leftY', 1)]);
+
+            input.update();
+            assert.deepEqual(connected, [1, 3]); // device = gamepad index + 1
+            assert.deepEqual(input.gamepads.map(p => p.device), [1, 3]);
+
+            // player 2 (pad index 2 -> device 3) jumps
+            pads[2]!.buttons[0] = { pressed: true, value: 1 };
+            input.update();
+            assert.ok(input.isActionJustPressed('jump'));
+            assert.ok(input.isActionJustPressed('jump', { device: 3 }));
+            assert.ok(!input.isActionPressed('jump', { device: 1 }));
+            assert.ok(!input.isActionPressed('jump', { device: 0 }));
+            assert.equal(input.lastDevice, 'gamepad');
+
+            // analog trigger: strength rescaled past the deadzone (0.2)
+            pads[0]!.buttons[7] = { pressed: true, value: 0.6 };
+            input.update();
+            assert.ok(Math.abs(input.getActionStrength('accelerate') - 0.5) < 1e-9);
+            assert.equal(input.getActionRawStrength('accelerate', { device: 1 }), 0.6);
+
+            // stick: small drift ignored, full tilt diagonal clamped to length 1
+            pads[0]!.axes = [0.1, -0.05, 0, 0];
+            input.update();
+            assert.deepEqual(input.getVector('left', 'right', 'up', 'down'), { x: 0, y: 0 });
+
+            pads[0]!.axes = [1, -1, 0, 0];
+            input.update();
+            const v = input.getVector('left', 'right', 'up', 'down');
+            assert.ok(Math.abs(Math.hypot(v.x, v.y) - 1) < 1e-9 && v.x > 0 && v.y < 0);
+
+            // keyboard on device 0 still works alongside
+            down('Space');
+            input.update();
+            assert.ok(input.isActionPressed('jump', { device: 0 }));
+
+            // capture a stick direction
+            pads[0]!.axes = [0, 0, 0, 0];
+            input.update();
+            const captured = input.captureBinding();
+            pads[0]!.axes = [0, 0, -0.9, 0];
+            input.update();
+            assert.deepEqual(await captured, padAxis('rightX', -1));
+
+            // player 2 unplugs while holding A: released, and reported
+            const released: string[] = [];
+            input.onAction('jump', 'released', () => released.push('jump'), { device: 3 });
+
+            pads[2] = null;
+            input.update();
+            assert.deepEqual(disconnected, [3]);
+            assert.deepEqual(released, ['jump']);
+            assert.deepEqual(input.gamepads.map(p => p.device), [1]);
+        } finally {
+            if (original) Object.defineProperty(nav, 'getGamepads', original);
+            else delete nav.getGamepads;
+        }
+    },
+
     'ActionMap: bind / unbind / findBinding / JSON round trip; labels'() {
         const { input } = setup();
         const actions = input.actions;

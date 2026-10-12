@@ -1,6 +1,6 @@
 import { Observable } from '../observable';
 import { ActionMap } from './action-map';
-import { type Binding, type MouseButton, controlId } from './bindings';
+import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, controlId } from './bindings';
 
 /** 0 = keyboard, mouse, pen, touch and VR; 1, 2, ... = gamepads. */
 export type InputDevice = number;
@@ -18,6 +18,12 @@ export interface InputOptions {
 
 export interface DeviceQuery {
     device?: InputDevice,           // only this device; default: any
+}
+
+export interface GamepadInfo {
+    device: InputDevice,  // gamepad.index + 1
+    id: string,           // the browser's description of the controller
+    standard: boolean,    // uses the standard mapping (button names are reliable); others map by index
 }
 
 export interface PointerState {
@@ -82,6 +88,15 @@ export class Input {
     };
 
     readonly onDeviceChange = new Observable<InputDeviceType>();
+    readonly onGamepadConnected = new Observable<GamepadInfo>();
+    readonly onGamepadDisconnected = new Observable<GamepadInfo>();
+
+    private readonly _gamepads = new Map<InputDevice, Gamepad>();
+
+    /** Connected gamepads, as found by the last update(). */
+    get gamepads(): GamepadInfo[] {
+        return [...this._gamepads].map(([device, gamepad]) => ({ device, id: gamepad.id, standard: gamepad.mapping === 'standard' }));
+    }
 
     private _lastDevice: InputDeviceType = 'keyboard';
     private _keyLabels?: ReadonlyMap<string, string>;
@@ -125,11 +140,11 @@ export class Input {
         if (keyboard) {
             this._listen(keyboard, 'keydown', e => this._onKeyDown(e as KeyboardEvent));
             this._listen(keyboard, 'keyup', e => this._onKeyUp(e as KeyboardEvent));
-            this._listen(keyboard, 'blur', () => this.releaseAll());
+            this._listen(keyboard, 'blur', () => this.releaseAll(0));
         }
 
         if (typeof document !== 'undefined') {
-            this._listen(document, 'visibilitychange', () => { if (document.hidden) this.releaseAll(); });
+            this._listen(document, 'visibilitychange', () => { if (document.hidden) this.releaseAll(0); });
         }
 
         if (target) {
@@ -153,6 +168,8 @@ export class Input {
         this.pointer.wheelX = this._pending.wheelX;
         this.pointer.wheelY = this._pending.wheelY;
         this._pending.deltaX = this._pending.deltaY = this._pending.wheelX = this._pending.wheelY = 0;
+
+        this._pollGamepads();
 
         const devices = [...this._controls.keys()];
         const fired: { action: string, phase: ActionPhase, device: InputDevice }[] = [];
@@ -279,9 +296,14 @@ export class Input {
         return (this._controls.get(0)!.get(`mouse:${button}`)?.value ?? 0) > 0;
     }
 
-    /** Releases every held key and button (also happens automatically when the window loses focus). */
-    releaseAll(): void {
-        for (const controls of this._controls.values()) {
+    /**
+     * Releases every held key and button, on one device or all. Keyboard, mouse and touch (device 0)
+     * are released automatically when the window loses focus, since their release events get lost.
+     */
+    releaseAll(device?: InputDevice): void {
+        for (const [d, controls] of this._controls) {
+            if (device !== undefined && d !== device) continue;
+
             for (const state of controls.values()) {
                 state.value = 0;
                 state.suppressed = false;
@@ -468,6 +490,73 @@ export class Input {
 
         this._lastDevice = type;
         this.onDeviceChange.notify(type);
+    }
+
+    // ---- gamepads ----
+
+    /** Vibrates a gamepad (where supported). Magnitudes are 0..1. */
+    rumble(device: InputDevice, options: { strong?: number, weak?: number, duration?: number } = {}): void {
+        const actuator = (this._gamepads.get(device) as (Gamepad & { vibrationActuator?: { playEffect?: (type: string, params: object) => Promise<unknown> } }) | undefined)?.vibrationActuator;
+
+        actuator?.playEffect?.('dual-rumble', {
+            startDelay: 0,
+            duration: options.duration ?? 200,
+            strongMagnitude: options.strong ?? 1,
+            weakMagnitude: options.weak ?? options.strong ?? 1,
+        })?.catch(() => { });
+    }
+
+    // gamepads must be polled; there are no events for button or stick changes
+    private _pollGamepads(): void {
+        const navigator = globalThis.navigator as Navigator | undefined;
+        const pads = navigator?.getGamepads?.() ?? [];
+        const seen = new Set<InputDevice>();
+
+        for (const gamepad of pads) {
+            if (!gamepad || !gamepad.connected) continue;
+
+            const device = gamepad.index + 1;
+            const isNew = !this._gamepads.has(device);
+
+            seen.add(device);
+            this._gamepads.set(device, gamepad);
+
+            if (isNew) this.onGamepadConnected.notify({ device, id: gamepad.id, standard: gamepad.mapping === 'standard' });
+
+            let active = false;
+
+            for (let i = 0; i < GAMEPAD_BUTTONS.length && i < gamepad.buttons.length; i++) {
+                const button = gamepad.buttons[i];
+                // analog triggers report `pressed` past the browser's own threshold; trust `value`
+                // when there is one, and `pressed` only for buttons that report no value
+                const value = button.value > 0 ? button.value : button.pressed ? 1 : 0;
+
+                this._setControl(device, { type: 'pad', button: GAMEPAD_BUTTONS[i] }, value);
+                active ||= value >= 0.5;
+            }
+
+            for (let i = 0; i < GAMEPAD_AXES.length && i < gamepad.axes.length; i++) {
+                const value = gamepad.axes[i];
+
+                this._setControl(device, { type: 'padAxis', axis: GAMEPAD_AXES[i], direction: 1 }, Math.max(0, value));
+                this._setControl(device, { type: 'padAxis', axis: GAMEPAD_AXES[i], direction: -1 }, Math.max(0, -value));
+                active ||= Math.abs(value) >= 0.5;
+            }
+
+            if (active) this._setLastDevice('gamepad');
+        }
+
+        for (const [device, gamepad] of this._gamepads) {
+            if (seen.has(device)) continue;
+
+            // disconnected: release everything it held (released callbacks fire this frame)
+            for (const state of this._controls.get(device)?.values() ?? []) {
+                state.value = 0;
+            }
+
+            this._gamepads.delete(device);
+            this.onGamepadDisconnected.notify({ device, id: gamepad.id, standard: gamepad.mapping === 'standard' });
+        }
     }
 
     // ---- keyboard ----
