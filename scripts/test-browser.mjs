@@ -2,7 +2,8 @@
 //
 //   npm run test:browser
 //
-// Uses the Chromium Playwright would install, or set CHROMIUM_PATH to any Chrome / Chromium binary.
+// Browser: CHROMIUM_PATH if set, else Playwright's preinstalled Chromium if present, else the
+// installed Google Chrome (no download needed).
 
 import { build } from 'esbuild';
 import { chromium } from 'playwright-core';
@@ -29,7 +30,7 @@ const bundle = await build({
 });
 
 const browser = await chromium.launch({
-    executablePath,
+    ...(executablePath ? { executablePath } : { channel: 'chrome' }),
     // software WebGL, so this works without a GPU (CI, containers)
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
