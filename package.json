@@ -18,7 +18,7 @@
         },
         "./three": {
             "import": {
-                "types": "./dist/three.d.ts",
+                "types": "./dist/three/index.d.ts",
                 "default": "./dist/three/index.js"
             },
             "require": {
@@ -37,8 +37,8 @@
         "dist"
     ],
     "scripts": {
-        "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsup && cp -r ./src/css ./dist/",
-        "dev": "tsup --watch",
+        "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
+        "dev": "tsdown --watch",
         "test": "tsx src/test",
         "prepublishOnly": "npm test && npm run build",
         "test:browser": "node scripts/test-browser.mjs",
@@ -85,11 +85,12 @@
     },
     "devDependencies": {
         "@types/three": "^0.186.0",
+        "esbuild": "^0.27.2",
         "playwright-core": "^1.56.1",
         "three": "^0.186.1",
-        "tsup": "^8.5.1",
+        "tsdown": "^0.23.0",
         "tsx": "^4.23.15",
-        "typescript": "^6.0.3"
+        "typescript": "^7.0.2"
     },
     "allowScripts": {
         "fsevents@2.3.3": true,

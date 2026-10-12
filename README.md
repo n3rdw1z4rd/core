@@ -28,7 +28,7 @@ import { AsteroidMesh } from "@n3rdw1z4rd/core/three";
 const asteroid = new AsteroidMesh({ noise3d: createNoise3D(() => rng.nextFloat()) });
 ```
 
-This package ships ESM and CJS builds plus `.d.ts` types (built with `tsup`). The ESM build is tree-shakable: bundlers only include the modules you actually import.
+This package ships ESM and CJS builds plus `.d.ts` types (built with `tsdown`). The ESM build is tree-shakable: bundlers only include the modules you actually import.
 
 ### Browser vs. Node
 
@@ -96,7 +96,7 @@ import "@n3rdw1z4rd/core/css/main.css";
 ## Development
 
 ```
-npm run build          # tsup -> dist/: ESM (one file per module), CJS (index + three), .d.ts
+npm run build          # tsdown -> dist/: ESM (one file per module), CJS (index + three), .d.ts / .d.cts
 npm test               # regression tests (run in Node)
 npm test -- astar      # also draws the visual A* demo in the terminal
 npm run test:browser   # WebGL tests in your browser: serves a test page and opens it (refresh to re-run)
