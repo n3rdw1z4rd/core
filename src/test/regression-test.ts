@@ -2,7 +2,10 @@ import { findPath } from '../astar';
 import { Clock } from '../clock';
 import { Color } from '../color';
 import { ECS } from '../ecs';
-import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Scene, Texture, Vector3 } from 'three';
+import { BoxGeometry, type Material, Mesh, MeshBasicMaterial, Object3D, Scene, Texture, Vector3 } from 'three';
+import { Random } from '../random';
+import { buildVoxelGeometry } from '../three/voxel-geometry';
+import { VoxelMesh } from '../three/voxel-mesh';
 import { radians } from '../math';
 import { CameraRig } from '../three/camera-rig';
 import { CubeSphereGeometry } from '../three/cube-sphere-geometry';
@@ -328,6 +331,111 @@ const tests: Record<string, () => void> = {
 
         for (let i = 0; i < 120; i++) rig.update(1 / 60);
         assert.equal(rig.cameraDistance, 5);
+    },
+
+    'buildVoxelGeometry: culling, greedy merging, winding and coverage'() {
+        // a random 8x8x8 blob, two colors
+        const blob = new Map3D();
+        for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) for (let z = 0; z < 8; z++) {
+            if (Random.float(5, x, y, z) < 0.5) blob.set(x, y, z, Random.float(6, x, y, z) < 0.5 ? 0 : 1);
+        }
+
+        let visible = 0;
+        blob.forEach((x, y, z) => {
+            for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+                if (blob.get(x + dx, y + dy, z + dz) === blob.defaultValue) visible++;
+            }
+        });
+
+        for (const options of [{ greedy: false }, { greedy: true }, { greedy: true, ambientOcclusion: false }]) {
+            const g = buildVoxelGeometry(blob, options);
+            const pos = g.attributes.position.array;
+            const nrm = g.attributes.normal.array;
+            const idx = g.index!.array;
+            let area = 0;
+
+            for (let t = 0; t < idx.length; t += 3) {
+                const [a, b, c] = [idx[t], idx[t + 1], idx[t + 2]].map(i => new Vector3(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]));
+                const cross = new Vector3().subVectors(b, a).cross(new Vector3().subVectors(c, a));
+                const normal = new Vector3(nrm[3 * idx[t]], nrm[3 * idx[t] + 1], nrm[3 * idx[t] + 2]);
+
+                assert.ok(cross.dot(normal) > 0, 'triangle wound against its normal');
+                area += cross.length() / 2;
+            }
+
+            assert.ok(Math.abs(area - visible) < 1e-6, `area ${area} vs ${visible} visible faces`);
+
+            if (!options.greedy) assert.equal(idx.length / 6, visible);
+            else assert.ok(idx.length / 6 < visible);
+        }
+
+        // a solid 16^3 one-color cube merges to 6 quads (AO is uniform on a flat convex face)
+        const cube = new Map3D();
+        for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) for (let z = 0; z < 16; z++) cube.set(x, y, z, 0);
+        assert.equal(buildVoxelGeometry(cube).index!.count / 6, 6);
+    },
+
+    'buildVoxelGeometry: neighbor lookup, ambient occlusion, colors'() {
+        const one = new Map3D();
+        one.set(0, 0, 0, 0);
+
+        assert.equal(buildVoxelGeometry(one).index!.count / 6, 6);
+
+        // a neighbouring chunk's voxel at x = 1 hides the +x face
+        assert.equal(buildVoxelGeometry(one, { neighbor: (x, y, z) => (x === 1 && y === 0 && z === 0) ? 5 : -1 }).index!.count / 6, 5);
+        assert.equal(buildVoxelGeometry(one, { includeHiddenFaces: true, neighbor: () => 5 }).index!.count / 6, 6);
+
+        // floor tile with a wall voxel above-and-beside it: the floor's top face is darkened along that edge
+        const crease = new Map3D();
+        crease.set(0, 0, 0, 0);
+        crease.set(1, 1, 0, 0);
+
+        const lit = (g: ReturnType<typeof buildVoxelGeometry>) => {
+            const out: number[] = [];
+            const pos = g.attributes.position.array, nrm = g.attributes.normal.array, col = g.attributes.color.array;
+            for (let i = 0; i < pos.length / 3; i++) {
+                // top face (+y) of the floor voxel, at y = 1 and x in [0, 1]
+                if (nrm[3 * i + 1] === 1 && pos[3 * i + 1] === 1 && pos[3 * i] <= 1) out.push(col[3 * i]);
+            }
+            return out;
+        };
+
+        const shaded = lit(buildVoxelGeometry(crease, { palette: [0xffffff] }));
+        assert.equal(shaded.length, 4);
+        assert.ok(Math.min(...shaded) < Math.max(...shaded), 'expected darker corners next to the wall');
+        assert.ok(lit(buildVoxelGeometry(crease, { palette: [0xffffff], ambientOcclusion: false })).every(c => c === 1));
+
+        // palette, stable non-black fallback, explicit missing color
+        const colorOf = (map: Map3D, options = {}) => {
+            const c = buildVoxelGeometry(map, { ambientOcclusion: false, ...options }).attributes.color.array;
+            return [c[0], c[1], c[2]];
+        };
+
+        assert.deepEqual(colorOf(one, { palette: [0xff0000] }), [1, 0, 0]);
+        assert.deepEqual(colorOf(one), colorOf(one));
+        assert.ok(colorOf(one).some(c => c > 0));
+        assert.deepEqual(colorOf(one, { missingColor: 0x0000ff }), [0, 0, 1]);
+    },
+
+    'VoxelMesh: bounds, dirty tracking, rebuild'() {
+        const mesh = new VoxelMesh({ bounds: { width: 4, height: 4, depth: 4 }, palette: [0xffffff] });
+
+        assert.ok((mesh.material as Material).vertexColors);
+        assert.ok(!mesh.update());
+
+        mesh.set(0, 0, 0, 0);
+        mesh.set(9, 0, 0, 0); // outside the bounds: ignored
+        assert.equal(mesh.voxels.size, 1);
+        assert.ok(mesh.needsUpdate);
+        assert.ok(mesh.update());
+        assert.equal(mesh.geometry.index!.count / 6, 6);
+
+        mesh.set(0, 0, 0, 0); // same value: no change
+        assert.ok(!mesh.needsUpdate);
+
+        mesh.clearVoxels();
+        assert.ok(mesh.update());
+        assert.equal(mesh.geometry.index!.count, 0);
     },
 
     'Clock.tick: zero first delta, capped delta, elapsed time, fps'() {
