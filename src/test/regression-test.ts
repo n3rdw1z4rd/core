@@ -212,11 +212,64 @@ const tests: Record<string, () => void> = {
         }
     },
 
-    'Clock: first frame has zero delta time'() {
+    'Clock.tick: zero first delta, capped delta, elapsed time, fps'() {
         const clock = new Clock();
 
-        assert.equal(clock.update(5000), 0);
-        assert.equal(clock.update(5016), 0.016);
+        assert.equal(clock.tick(5000), 0);
+        assert.equal(clock.tick(5016), 0.016);
+        assert.equal(clock.deltaTime, 0.016);
+
+        assert.equal(clock.tick(35016), 0.1); // 30s stall (hidden tab) is capped
+        assert.ok(Math.abs(clock.elapsedTime - 0.116) < 1e-9);
+
+        clock.maxDeltaTime = Infinity;
+        assert.equal(clock.tick(36016), 1);
+
+        const fpsClock = new Clock();
+        for (let i = 0; i <= 60; i++) fpsClock.tick(i * 1000 / 60); // one second at 60fps
+        assert.equal(fpsClock.fps, 60);
+        for (let i = 61; i <= 120; i++) fpsClock.tick(i * 1000 / 60); // and another
+        assert.equal(fpsClock.fps, 60);
+    },
+
+    'Clock.start / stop: drives the callback from requestAnimationFrame'() {
+        const g = globalThis as any;
+        const raf = g.requestAnimationFrame;
+        const caf = g.cancelAnimationFrame;
+
+        let pending: ((time: number) => void) | undefined;
+        g.requestAnimationFrame = (cb: (time: number) => void) => { pending = cb; return 1; };
+        g.cancelAnimationFrame = () => { pending = undefined; };
+
+        const runFrame = (time: number) => { const cb = pending; pending = undefined; cb?.(time); };
+
+        try {
+            const clock = new Clock();
+            const calls: number[][] = [];
+
+            clock.start((dt, elapsed) => calls.push([dt, elapsed]));
+            assert.ok(clock.isRunning);
+
+            runFrame(1000);
+            runFrame(1020);
+            runFrame(1040);
+            assert.deepEqual(calls, [[0, 0], [0.02, 0.02], [0.02, 0.04]]);
+
+            clock.start((dt) => calls.push([dt, -1])); // while running: swaps the callback, no second loop
+            runFrame(1060);
+            assert.deepEqual(calls[3], [0.02, -1]);
+
+            clock.stop();
+            assert.ok(!clock.isRunning);
+            assert.equal(pending, undefined);
+
+            clock.start((dt, elapsed) => calls.push([dt, elapsed])); // restart resets timing
+            runFrame(9000);
+            assert.deepEqual(calls[4], [0, 0]);
+        } finally {
+            g.requestAnimationFrame = raf;
+            g.cancelAnimationFrame = caf;
+        }
     },
 };
 

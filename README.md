@@ -46,11 +46,19 @@ log(clamp(15, 0, 10));   // 10
 
 const clock = new Clock();
 
-clock.onFrame.subscribe((dt) => {
-    // dt is seconds since last frame
+clock.start((dt) => {
+    // dt is seconds since the last frame (capped at clock.maxDeltaTime, 0.1 by default)
+    // clock.fps and clock.elapsedTime are also available
 });
+```
 
-clock.start();
+When something else drives the loop (e.g. Three.js), advance the clock yourself:
+
+```ts
+renderer.setAnimationLoop((time) => {
+    const dt = clock.tick(time);
+    renderer.render(scene, camera);
+});
 ```
 
 Three.js helpers come from the `three` subpath:
