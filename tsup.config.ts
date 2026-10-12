@@ -8,6 +8,7 @@ export default defineConfig([
         entry: ["src/**/*.ts", "!src/test/**"],
         format: ["esm"],
         splitting: true,
+        dts: { entry: { index: "src/index.ts", three: "src/three/index.ts" } },
     },
     {
         // CJS (require) consumers don't tree-shake, so keep it to the two entry points
