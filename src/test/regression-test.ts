@@ -2,7 +2,9 @@ import { findPath } from '../astar';
 import { Clock } from '../clock';
 import { Color } from '../color';
 import { ECS } from '../ecs';
-import { Texture } from 'three';
+import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Scene, Texture, Vector3 } from 'three';
+import { radians } from '../math';
+import { CameraRig } from '../three/camera-rig';
 import { CubeSphereGeometry } from '../three/cube-sphere-geometry';
 import { TextureAtlas } from '../three/texture-atlas';
 import { MAP_2D_MAX_COORD, MAP_2D_MIN_COORD, Map2D } from '../map2d';
@@ -250,6 +252,82 @@ const tests: Record<string, () => void> = {
         } finally {
             console.warn = warn;
         }
+    },
+
+    'CameraRig: follows the target, orbits, zooms into first person'() {
+        const scene = new Scene();
+        const player = new Object3D();
+        const rig = new CameraRig({ target: player, distance: 5 });
+
+        scene.add(player, rig);
+        rig.zoomDamping = 0; // no easing, so each update lands exactly
+
+        const cameraWorld = () => { scene.updateMatrixWorld(true); return rig.camera.getWorldPosition(new Vector3()); };
+        const near = (a: Vector3, b: Vector3) => a.distanceTo(b) < 1e-6;
+
+        player.position.set(10, 0, -3);
+        rig.update(1 / 60);
+
+        // yaw 0, pitch 0: camera 5 units behind (+z) the eye position
+        assert.ok(near(cameraWorld(), new Vector3(10, 1.6, 2)));
+
+        rig.yaw = Math.PI / 2; // turned left: behind is now +x
+        rig.update(1 / 60);
+        assert.ok(near(cameraWorld(), new Vector3(15, 1.6, -3)));
+
+        rig.pitch = -10; // way past the limit
+        rig.update(1 / 60);
+        assert.ok(Math.abs(rig.pitch - radians(-80)) < 1e-9);
+
+        const modes: boolean[] = [];
+        rig.onModeChange = (fp) => modes.push(fp);
+
+        for (let i = 0; i < 50; i++) rig.dolly(-500);
+        rig.update(1 / 60);
+
+        assert.equal(rig.distance, 0);
+        assert.ok(rig.isFirstPerson);
+        assert.ok(!player.visible);
+        assert.ok(near(cameraWorld(), new Vector3(10, 1.6, -3))); // at the eyes
+        assert.ok(Math.abs(rig.pitch - radians(-80)) < 1e-9);  // still within the wider first-person limits
+
+        rig.orbit(0, -10000); // pointer moved up: look all the way up
+        assert.ok(Math.abs(rig.pitch - radians(89)) < 1e-9);
+
+        rig.dolly(100); // out of first person
+        rig.update(1 / 60);
+
+        assert.equal(rig.distance, 0.5);
+        assert.ok(!rig.isFirstPerson);
+        assert.ok(player.visible);
+        assert.ok(Math.abs(rig.pitch - radians(30)) < 1e-9); // back to third-person limits
+        assert.deepEqual(modes, [true, false]);
+    },
+
+    'CameraRig: pulls in in front of walls, eases back out'() {
+        const scene = new Scene();
+        const player = new Object3D();
+        const rig = new CameraRig({ target: player, distance: 5 });
+        const wall = new Mesh(new BoxGeometry(10, 10, 0.2), new MeshBasicMaterial());
+
+        wall.position.set(0, 0, 3); // between the eyes and the camera (which wants z = 5)
+        scene.add(player, rig, wall);
+        scene.updateMatrixWorld(true);
+
+        rig.collisionObjects = [wall];
+        rig.update(1 / 60);
+
+        // wall face at z = 2.9, minus 0.2 padding
+        assert.ok(Math.abs(rig.cameraDistance - 2.7) < 1e-6, `camera distance ${rig.cameraDistance}`);
+
+        scene.remove(wall);
+        rig.collisionObjects = [];
+        rig.update(1 / 60);
+
+        assert.ok(rig.cameraDistance > 2.7 && rig.cameraDistance < 5); // easing back out, not jumping
+
+        for (let i = 0; i < 120; i++) rig.update(1 / 60);
+        assert.equal(rig.cameraDistance, 5);
     },
 
     'Clock.tick: zero first delta, capped delta, elapsed time, fps'() {

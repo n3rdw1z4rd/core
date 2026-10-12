@@ -7,7 +7,5 @@ export * from './renderer';
 export * from './starfield';
 export * from './texture-atlas';
 export * from './texture-utils';
-export * from './threejs-camera-rig';
-export * from './threejs-player-controller';
 export * from './voxel-geometry';
 export * from './voxel-mesh';
