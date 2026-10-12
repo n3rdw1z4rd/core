@@ -1,7 +1,7 @@
 import { Map2D } from "../map2d";
 import { rng } from "../rng";
 import { log } from '../log';
-import { AStar } from "../astar";
+import { findPath } from "../astar";
 import { XY } from "../types";
 
 const DEFAULT_SEED = 42;
@@ -113,9 +113,9 @@ export function aStarTest(
     map.set(start.x, start.y, 3);
     map.set(end.x, end.y, 4);
 
-    const aStar = new AStar(map);
+    const cost = (x: number, y: number) => map.get(x, y) === 0 ? 1 : Infinity;
 
-    aStar.findPath(start, end).forEach((p: XY) => {
+    findPath(start, end, cost, { diagonal: true, adjacent: true }).forEach((p: XY) => {
         map.set(p.x, p.y, 2);
     });
 

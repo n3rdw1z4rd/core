@@ -1,4 +1,4 @@
-import { AStar, type AStarFindPathParams } from './astar';
+import { findPath } from './astar';
 import { Heap } from 'heap-js';
 import { Map2D } from './map2d';
 import { rng } from './rng';
@@ -22,7 +22,7 @@ export interface PathsParams {
     timeout?: number,
     extraPaths?: number,
     extraPathDensity?: number,
-    astarFindPathParams?: AStarFindPathParams,
+    walkableValues?: number[], // tile values corridors may be carved through, default [TILE_EMPTY]
 }
 
 export interface DoorsParams {
@@ -239,13 +239,16 @@ function _getShortestPathBetweenRects(rectA: Rectangle, rectB: Rectangle): Point
 }
 
 function _generatePaths(map: Map2D, rooms: Rectangle[], params: PathsParams = {}) {
-    const aStar = new AStar(map);
+    const walkable = params.walkableValues ?? [TILE_EMPTY];
+    const cost = (x: number, y: number) => walkable.includes(map.get(x, y)) ? 1 : Infinity;
 
     const paths: XY[][] = [];
 
     _generateMST(rooms, params).forEach((rects: RectPair) => {
         const { a, b } = _getShortestPathBetweenRects(rects.a, rects.b);
-        paths.push(aStar.findPath(a, b, params.astarFindPathParams));
+
+        // corridors end next to the target room's edge tile, which is floor (not walkable)
+        paths.push(findPath(a, b, cost, { adjacent: true, maxNodes: Infinity }));
     });
 
     return paths;

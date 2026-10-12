@@ -1,4 +1,4 @@
-import { AStar } from '../astar';
+import { findPath } from '../astar';
 import { Clock } from '../clock';
 import { Color } from '../color';
 import { ECS } from '../ecs';
@@ -86,29 +86,69 @@ const tests: Record<string, () => void> = {
         assert.equal(c.hexStr, '#000000ff');
     },
 
-    'AStar: finds a shortest path that ends next to the target'() {
+    'findPath: 4-way shortest path; adjacent stops next to a blocked goal'() {
         const map = new Map2D(0);
+        const cost = (x: number, y: number) => map.get(x, y) === 0 ? 1 : Infinity;
 
         // wall with a single gap at y = 5
         for (let y = -10; y <= 10; y++) if (y !== 5) map.set(5, y, 1);
 
-        const path = new AStar(map).findPath({ x: 0, y: 0 }, { x: 10, y: 0 });
+        const path = findPath({ x: 0, y: 0 }, { x: 10, y: 0 }, cost);
 
-        assert.ok(path.length > 0);
         assert.ok(path.every(p => map.get(p.x, p.y) === 0));
         assert.ok(path.some(p => p.x === 5 && p.y === 5));
+        assert.deepEqual(path[path.length - 1], { x: 10, y: 0 });
+        assert.equal(path.length, 20); // (0,0) -> (5,5) -> (10,0): 5+5 + 5+5 steps
 
-        const last = path[path.length - 1];
+        map.set(10, 0, 1); // goal is now blocked, e.g. occupied by the player
+
+        assert.deepEqual(findPath({ x: 0, y: 0 }, { x: 10, y: 0 }, cost), []);
+
+        const adjacent = findPath({ x: 0, y: 0 }, { x: 10, y: 0 }, cost, { adjacent: true });
+        const last = adjacent[adjacent.length - 1];
+        assert.equal(adjacent.length, 19);
         assert.equal(Math.abs(last.x - 10) + Math.abs(last.y), 1);
-        assert.equal(path.length, 19); // (0,0) -> (5,5) -> (9,0): 5+5 + 4+5 steps
     },
 
-    'AStar: returns [] when the target is unreachable'() {
+    'findPath: diagonal steps, no corner cutting by default, step costs'() {
+        const open = () => 1;
+
+        const straight = findPath({ x: 0, y: 0 }, { x: 5, y: 5 }, open, { diagonal: true });
+        assert.equal(straight.length, 5);
+        assert.ok(straight.every((p, i) => p.x === i + 1 && p.y === i + 1));
+
+        // single blocked tile at (1, 0): the diagonal (0,0) -> (1,1) would clip its corner
+        const wall = (x: number, y: number) => (x === 1 && y === 0) ? Infinity : 1;
+
+        assert.equal(findPath({ x: 0, y: 0 }, { x: 1, y: 1 }, wall, { diagonal: true }).length, 2);
+        assert.equal(findPath({ x: 0, y: 0 }, { x: 1, y: 1 }, wall, { diagonal: true, cutCorners: true }).length, 1);
+
+        // a band of expensive tiles at x = 2 (cost 10, 3 tall) is worth walking around
+        const swamp = (x: number, y: number) => (x === 2 && Math.abs(y) <= 1) ? 10 : 1;
+        const around = findPath({ x: 0, y: 0 }, { x: 4, y: 0 }, swamp);
+
+        assert.ok(around.every(p => swamp(p.x, p.y) === 1));
+    },
+
+    'findPath: unreachable goal, partial path, maxNodes, deterministic'() {
         const map = new Map2D(0);
+        const cost = (x: number, y: number) => map.get(x, y) === 0 ? 1 : Infinity;
 
-        for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) if (x || y) map.set(x, y, 1);
+        // the goal is boxed in
+        for (let x = 9; x <= 11; x++) for (let y = -1; y <= 1; y++) if (x !== 10 || y !== 0) map.set(x, y, 1);
 
-        assert.deepEqual(new AStar(map).findPath({ x: 0, y: 0 }, { x: 10, y: 10 }), []);
+        assert.deepEqual(findPath({ x: 0, y: 0 }, { x: 10, y: 0 }, cost, { maxNodes: 2000 }), []);
+
+        const partial = findPath({ x: 0, y: 0 }, { x: 10, y: 0 }, cost, { maxNodes: 2000, partial: true });
+        assert.deepEqual(partial[partial.length - 1], { x: 8, y: 0 }); // as close as it can get
+
+        // budget too small to arrive: still heads towards the goal
+        const budget = findPath({ x: 0, y: 0 }, { x: 100, y: 0 }, () => 1, { maxNodes: 10, partial: true });
+        assert.ok(budget.length > 0 && budget[budget.length - 1].x > 0);
+
+        const a = findPath({ x: 0, y: 0 }, { x: 7, y: 9 }, () => 1, { diagonal: true });
+        const b = findPath({ x: 0, y: 0 }, { x: 7, y: 9 }, () => 1, { diagonal: true });
+        assert.deepEqual(a, b);
     },
 
     'ECS: instances have independent entity ids'() {

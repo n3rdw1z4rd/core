@@ -32,7 +32,7 @@ This package ships ESM and CJS builds plus `.d.ts` types (built with `tsup`). Th
 
 ### Browser vs. Node
 
-The data and logic modules load and run anywhere, including Node (the tests run there): math, `Random`/`Rng`, `Vector`, `Rectangle`, `Map2D`/`Map3D`/`Tilemap`, `AStar`, the dungeon generator, `ECS`, the event helpers (`Emitter`, `Observable`, `Signal`, `EventQueue`, `Disposable`), `Color` and color palettes, the spatial partitions and the particle simulations.
+The data and logic modules load and run anywhere, including Node (the tests run there): math, `Random`/`Rng`, `Vector`, `Rectangle`, `Map2D`/`Map3D`/`Tilemap`, `findPath` (A*), the dungeon generator, `ECS`, the event helpers (`Emitter`, `Observable`, `Signal`, `EventQueue`, `Disposable`), `Color` and color palettes, the spatial partitions and the particle simulations.
 
 These need a browser when used (importing them is still safe anywhere): `CanvasRenderer`, `ParticleRenderer`, `WebGlRenderer` and the WebGL helpers, `Input`, `WorkerInterface`, `Clock.start()`, `Color.fromName()` and `GetUrlParams()`, plus anything in `@n3rdw1z4rd/core/three` that renders or loads textures.
 
