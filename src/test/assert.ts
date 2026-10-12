@@ -19,6 +19,18 @@ export const assert = {
     },
 };
 
+const TEST_TIMEOUT = 10_000; // ms; a test that never settles fails instead of stalling the run
+
+const withTimeout = (promise: void | Promise<void>): Promise<void> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`timed out after ${TEST_TIMEOUT} ms`)), TEST_TIMEOUT);
+    });
+
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+};
+
 /** Runs every test in order; prints results and sets a failing exit code if any test fails. */
 export async function runTests(...suites: TestSuite[]): Promise<void> {
     let passed = 0;
@@ -27,7 +39,7 @@ export async function runTests(...suites: TestSuite[]): Promise<void> {
     for (const suite of suites) {
         for (const [name, test] of Object.entries(suite)) {
             try {
-                await test();
+                await withTimeout(test());
                 passed++;
                 console.log(`  ok   ${name}`);
             } catch (error) {

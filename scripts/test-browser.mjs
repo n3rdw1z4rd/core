@@ -16,7 +16,8 @@ const bundle = await build({
         contents: `
             import { runTests } from './src/test/assert';
             import { webglTests } from './src/test/browser/webgl-tests';
-            window.__runTests = () => runTests(webglTests);
+            import { webglRendererTests } from './src/test/browser/webgl-renderer-tests';
+            window.__runTests = () => runTests(webglTests, webglRendererTests);
         `,
         resolveDir: process.cwd(),
         loader: 'ts',
