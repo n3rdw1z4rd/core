@@ -4,7 +4,7 @@ import { log } from '../log';
 import { findPath } from "../astar";
 import { XY } from "../types";
 
-const DEFAULT_SEED = performance.now();
+const DEFAULT_SEED = Date.now();
 const DEFAULT_WIDTH = 80;
 const DEFAULT_HEIGHT = 24;
 const DEFAULT_DENSITY = 0.2;
