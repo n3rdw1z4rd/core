@@ -5,21 +5,6 @@
  */
 export type Observer<T> = (value: T, ...args: any[]) => void;
 
-/* Example:
-class Texture {
-    readonly onLoaded = new Observable<Texture>();
-
-    load() {
-        // ...
-        this.onLoaded.notify(this, arg1, arg2, ...);
-    }
-}
-
-texture.onLoaded.subscribe(texture => {
-    console.log(texture);
-});
-*/
-
 /**
  * A set of observers notified with a value (plus optional extra arguments). Observers are
  * called in subscription order; subscribing the same function twice has no effect.
@@ -44,13 +29,13 @@ export class Observable<T> {
     }
 
     /**
-     * Subscribes for the next notification only. The observer gets the notified value plus the
-     * `args` given here; extra arguments passed to `notify()` are not forwarded.
+     * Subscribes for the next notification only; the observer gets the same arguments as with
+     * {@link Observable.subscribe}.
      *
      * @returns a function that removes the observer before it fires
      */
-    once(observer: Observer<T>, ...args: any[]): () => void {
-        const unsubscribe = this.subscribe(value => {
+    once(observer: Observer<T>): () => void {
+        const unsubscribe = this.subscribe((value, ...args) => {
             unsubscribe();
             observer(value, ...args);
         });

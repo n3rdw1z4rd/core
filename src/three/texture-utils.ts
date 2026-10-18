@@ -37,8 +37,8 @@ export function LoadTexture(url: string): Promise<TextureData> {
 
 /**
  * A clone of `texture` showing only the rectangle at (x, y) of size w x h, in pixels with y measured
- * from the image's top, via `offset` / `repeat`. Sets `magFilter` to `NearestFilter` and `wrapS` to
- * `RepeatWrapping`. The clone shares the source image, so no pixels are copied.
+ * from the image's top, via `offset` / `repeat`. Sets `magFilter` to `NearestFilter` and `wrapS` / `wrapT`
+ * to `RepeatWrapping`. The clone shares the source image, so no pixels are copied.
  *
  * @category Textures
  */
@@ -51,6 +51,7 @@ export function CreateSubTexture(
 
     subTexture.magFilter = NearestFilter;
     subTexture.wrapS = RepeatWrapping;
+    subTexture.wrapT = RepeatWrapping;
 
     w /= subTexture.width;
     h /= subTexture.height;

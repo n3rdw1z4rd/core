@@ -133,6 +133,7 @@ export class CubeSphereGeometry extends BufferGeometry {
 
         this.computeVertexNormals();
         this.computeBoundingSphere();
+        if (this.boundingBox) this.computeBoundingBox(); // only if one was computed before
 
         return this;
     }

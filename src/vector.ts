@@ -185,8 +185,8 @@ export class Vector {
     }
 
     /**
-     * Divides component-wise in place; arguments as for {@link Vector.plus}. A zero divisor is
-     * treated as 1, so that component is left unchanged.
+     * Divides component-wise in place; arguments as for {@link Vector.plus}. Plain division: a zero
+     * divisor gives `Infinity` (or `NaN` for 0 / 0), as with numbers.
      */
     dividedBy(x: number | Vector, y?: number): this {
         if (x instanceof Vector) {
@@ -196,8 +196,8 @@ export class Vector {
             y = x;
         }
 
-        this.x /= (x || 1);
-        this.y /= (y || 1);
+        this.x /= x;
+        this.y /= y;
 
         return this;
     }

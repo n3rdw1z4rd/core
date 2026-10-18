@@ -73,9 +73,8 @@ export class Color {
 
     /**
      * Creates a color from a hex string (as accepted by {@link Color.hexStr}) or from channel
-     * values. Numeric channels are truncated and clamped to 0-255, except that a value strictly
-     * between 0 and 1 is treated as a fraction of 255 (so `0.5` becomes 127, but `1` stays 1).
-     * An invalid string is logged and gives opaque white. Defaults to opaque white.
+     * values, each rounded and clamped to 0-255 like the channel setters. An invalid string is
+     * logged and gives opaque white. Defaults to opaque white.
      */
     constructor(r: string | number = 255, g: number = 255, b: number = 255, a: number = 255) {
         if (typeof r === 'string') {
@@ -87,18 +86,12 @@ export class Color {
                 log(`Color: invalid color string: ${r}. Should be a hexadecimal color string (i.e.: '#ffffff' or '#ffffffff'). Defaulting to opaque white.`);
                 r = g = b = a = 255;
             }
-        } else {
-            [r, g, b, a] = [r, g, b, a].map(n => Color._normalize(n));
         }
 
         this.r = r as number;
         this.g = g as number;
         this.b = b as number;
         this.a = a as number;
-    }
-
-    private static _normalize(value: number): number {
-        return clamp(0 | (value > 0.0 && value < 1.0 ? value * 255 : value), 0, 255);
     }
 
     private static _channel(value: number): number {
@@ -129,13 +122,15 @@ export class Color {
 
     /**
      * Creates a color from hue, saturation and value, each in [0, 1]
-     * (hues above 1 wrap around; negative hues give black).
+     * (hues outside [0, 1) wrap around).
      * @param a alpha, 0-255 (default 255)
      */
     public static fromHsv(h: number, s: number, v: number, a: number = 255): Color {
         let r: number = 0
         let g: number = 0
         let b: number = 0;
+
+        h = ((h % 1) + 1) % 1; // wrap any hue, including negative ones, into [0, 1)
 
         let i = Math.floor(h * 6);
         let f = h * 6 - i;

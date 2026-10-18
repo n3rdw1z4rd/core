@@ -176,10 +176,12 @@ export class GestureRecognizer {
         this._touches.delete(id);
     }
 
-    /** Forgets all fingers. Gestures already recognized are still reported by the next update. */
+    /** Forgets all fingers, gestures not yet reported, and the first tap of a pending double tap (e.g. on blur). */
     clear(): void {
         this._touches.clear();
         this._pair = undefined;
+        this._pending = [];
+        this._lastTap = undefined;
     }
 
     /** Returns what happened since the last update. `time` is the current time in ms. */

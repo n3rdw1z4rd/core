@@ -1,14 +1,3 @@
-/* Example:
-const subscriptions = new Disposable();
-
-subscriptions.add(player.health.subscribe(updateHealthBar));
-subscriptions.add(window.onResize.subscribe(layoutUi));
-subscriptions.add(texture.onLoaded.subscribe(uploadToGpu));
-
-// Later...
-subscriptions.dispose();
-*/
-
 /**
  * Collects cleanup functions (e.g. the unsubscribe functions returned by {@link Observable.subscribe}
  * and {@link Signal.subscribe}) and runs them all at once.

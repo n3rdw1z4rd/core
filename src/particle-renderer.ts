@@ -31,18 +31,21 @@ export class ParticleRenderer {
 
     /**
      * @param canvas the visible canvas; defaults to a new canvas element, not attached to the page
-     * @throws a string (not an `Error`) if a 2D context can't be created
+     * @throws an `Error` if a 2D context can't be created
      */
     constructor(canvas?: HTMLCanvasElement) {
         this._screenCanvas = canvas ?? document.createElement('canvas');
         this._bufferCanvas = new OffscreenCanvas(this._screenCanvas.width, this._screenCanvas.height);
 
-        this.screenContext = this._screenCanvas.getContext('2d')!;
-        this.bufferContext = this._bufferCanvas.getContext('2d')!;
+        const screenContext = this._screenCanvas.getContext('2d');
+        const bufferContext = this._bufferCanvas.getContext('2d');
 
-        if (!this.screenContext || !this.bufferContext) {
-            throw 'Failed to create CanvasRenderingContext2D';
+        if (!screenContext || !bufferContext) {
+            throw new Error('ParticleRenderer: failed to create CanvasRenderingContext2D');
         }
+
+        this.screenContext = screenContext;
+        this.bufferContext = bufferContext;
     }
 
     /** Moves the canvas into `target` and, with `autoResize` (default true), resizes it to fit. */

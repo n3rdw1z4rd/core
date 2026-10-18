@@ -1,23 +1,3 @@
-/* Example:
-interface CollisionEvent {
-    a: Entity;
-    b: Entity;
-}
-
-const collisions = new EventQueue<CollisionEvent>();
-
-// Physics system
-collisions.emit({
-    a,
-    b
-});
-
-// Gameplay system
-for (const collision of collisions.drain()) {
-
-}
-*/
-
 /**
  * A buffered queue of events: producers `emit()` events, and a consumer reads them later (e.g.
  * once per frame) with `drain()`, or with `consume()` followed by `clear()`.
@@ -40,12 +20,9 @@ export class EventQueue<T> {
         this.events.push(event);
     }
 
-    /**
-     * Returns the queued events without removing them. This is the live internal array, not a
-     * copy: it changes with later `emit()` / `clear()` / `drain()` calls.
-     */
-    consume(): readonly T[] {
-        return this.events;
+    /** Returns a copy of the queued events, oldest first, without removing them. */
+    consume(): T[] {
+        return this.events.slice();
     }
 
     /** Removes all queued events. */

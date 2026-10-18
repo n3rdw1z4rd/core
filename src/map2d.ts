@@ -145,8 +145,9 @@ export class Map2D {
     }
 
     /**
-     * Like {@link Map2D.forEach}, limited to stored cells with `x1 <= x < x2` and `y1 <= y < y2`
-     * (upper bounds exclusive). Scans every stored cell, so it costs O(size), not O(area).
+     * Like {@link Map2D.forEach}, limited to stored cells with `x1 <= x <= x2` and `y1 <= y <= y2`
+     * (both corners inclusive, as in {@link Map3D.setArea}). Scans every stored cell, so it costs
+     * O(size), not O(area).
      */
     forEachInArea(
         x1: number, y1: number,
@@ -154,7 +155,7 @@ export class Map2D {
         callback: (x: number, y: number, n: number) => void,
     ) {
         this.forEach((x: number, y: number, n: number) => {
-            if (x >= x1 && x < x2 && y >= y1 && y < y2) {
+            if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
                 callback(x, y, n);
             }
         });

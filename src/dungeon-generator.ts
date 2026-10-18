@@ -48,13 +48,11 @@ export interface RoomsParams {
  * @category Pathfinding & Procedural
  */
 export interface PathsParams {
-    /** milliseconds allowed for building the room spanning tree, default 10000 */
-    timeout?: number,
     /** number of shortest unused room connections considered as extra (loop) corridors, default 0 */
     extraPaths?: number,
     /** chance (0-1) that each considered extra connection is added, default 0.1 */
     extraPathDensity?: number,
-    /** tile values corridors may be carved through, default [TILE_EMPTY] */
+    /** tile values corridors may be carved through, default: the map's default value (empty space) */
     walkableValues?: number[],
 }
 
@@ -64,14 +62,8 @@ export interface PathsParams {
  * @category Pathfinding & Procedural
  */
 export interface DoorsParams {
-    /** currently unused */
-    plotDoors?: boolean,
     /** chance (0-1) that a door is placed at each eligible corridor end, default 0.5 */
     chanceExists?: number,
-    /** currently unused */
-    chanceOpen?: number,
-    /** currently unused */
-    chanceLocked?: number,
 }
 
 /**
@@ -114,7 +106,6 @@ const DEFAULT_ROOM_MAX_SIZE = 9;
 const DEFAULT_ROOM_PADDING = 1;
 const DEFAULT_ROOM_MAX_ITERATIONS = 1000;
 
-const DEFAULT_PATH_TIMEOUT = 10000;
 const DEFAULT_PATH_EXTRA_PATHS = 0;
 const DEFAULT_PATH_EXTRA_PATH_DENSITY = 0.1;
 
@@ -172,7 +163,8 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
 
         const room = new Rectangle(x, y, width, height);
 
-        if (!rooms.some((existing: Rectangle) => room.intersects(existing, padding))) {
+        // padding on both rooms: they stay at least 2 * padding apart
+        if (!rooms.some((existing: Rectangle) => room.intersects(existing, padding * 2))) {
             rooms.push(room);
             iterations = 0;
         } else {
@@ -184,11 +176,8 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
 }
 
 function _generateMST(rooms: Rectangle[], params: PathsParams = {}): RectPair[] {
-    const timeout = params.timeout ?? DEFAULT_PATH_TIMEOUT;
     const extraPathLevels = params.extraPaths ?? DEFAULT_PATH_EXTRA_PATHS;
     const extraPathDensity = params.extraPathDensity ?? DEFAULT_PATH_EXTRA_PATH_DENSITY;
-
-    const startTime = Date.now();
 
     const mst: RectPair[] = [];
     const extraPaths: RectPair[] = [];
@@ -215,7 +204,7 @@ function _generateMST(rooms: Rectangle[], params: PathsParams = {}): RectPair[] 
         });
     }
 
-    while (visited.size < rooms.length && Date.now() - startTime < timeout) {
+    while (visited.size < rooms.length) {
         let edge = heap.pop();
 
         while (edge && visited.has(edge.to)) {
@@ -304,7 +293,7 @@ function _getShortestPathBetweenRects(rectA: Rectangle, rectB: Rectangle): Point
 }
 
 function _generatePaths(map: Map2D, rooms: Rectangle[], params: PathsParams = {}) {
-    const walkable = params.walkableValues ?? [TILE_EMPTY];
+    const walkable = params.walkableValues ?? [map.defaultValue];
     const cost = (x: number, y: number) => walkable.includes(map.get(x, y)) ? 1 : Infinity;
 
     const paths: XY[][] = [];

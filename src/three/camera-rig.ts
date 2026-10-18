@@ -206,6 +206,8 @@ export class CameraRig extends Group {
 
         this._initialized = true;
 
+        // minDistance / maxDistance / firstPersonThreshold may have changed since the last zoom
+        this._targetDistance = this._clampDistance(this._targetDistance);
         this._distance = damp(this._distance, this._targetDistance, this.zoomDamping, deltaTime);
         if (Math.abs(this._distance - this._targetDistance) < 1e-4) this._distance = this._targetDistance;
 

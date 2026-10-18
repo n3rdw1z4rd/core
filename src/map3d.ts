@@ -106,15 +106,15 @@ export class Map3D {
         this._data.clear();
     }
 
-    /** Value of the cell containing (x, y, z) (coordinates are floored), or `defaultValue` if it isn't stored. */
-    get(
-        x: number,
-        y: number,
-        z: number = 0,
-    ): number {
+    /**
+     * Value of the cell containing (x, y, z) (coordinates are floored).
+     *
+     * @param defaultValue returned when the cell isn't stored; defaults to the map's `defaultValue`
+     */
+    get(x: number, y: number, z: number, defaultValue: number = this.defaultValue): number {
         [x, y, z] = this._floor(x, y, z);
 
-        return this._data.get(this._key(x, y, z)) ?? this.defaultValue;
+        return this._data.get(this._key(x, y, z)) ?? defaultValue;
     }
 
     /** Sets the cell containing (x, y, z) to `n`; leave out `n` (or pass `defaultValue`) to remove it. */

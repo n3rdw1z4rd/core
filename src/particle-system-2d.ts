@@ -68,6 +68,8 @@ export class ParticleSystem2d {
     public readonly particleCount = 2000;
     /** the seed the starting state was generated from */
     public readonly seed: number;
+    /** seconds; larger `dt` values passed to `update()` are capped to this so a stall can't blow the simulation up */
+    public maxDeltaTime = 0.1;
 
     private _particleSize = 2;
     private _frictionHalfLife = 0.04;
@@ -205,9 +207,11 @@ export class ParticleSystem2d {
     /**
      * Advances the simulation by `dt` seconds and draws every particle into the renderer's buffer
      * with {@link ParticleRenderer.setPixel}. Does not call {@link ParticleRenderer.render}.
-     * `dt` is not capped, so pass a clamped delta time (e.g. from {@link Clock}).
+     * `dt` is capped to {@link ParticleSystem2d.maxDeltaTime}.
      */
     public update(renderer: ParticleRenderer, dt: number) {
+        dt = Math.min(dt, this.maxDeltaTime);
+
         this._updateVelocities(dt);
         this._updatePositions(dt, renderer);
     }

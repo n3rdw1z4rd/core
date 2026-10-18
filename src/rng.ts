@@ -60,7 +60,9 @@ export class Rng {
     }
 
     /** A uniformly chosen element of `array`; `undefined` if the array is empty. */
-    pick<T>(array: readonly T[]): T {
+    pick<T>(array: readonly [T, ...T[]]): T;
+    pick<T>(array: readonly T[]): T | undefined;
+    pick<T>(array: readonly T[]): T | undefined {
         return array[this.range(0, array.length)];
     }
 

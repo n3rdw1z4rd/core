@@ -29,36 +29,30 @@ export class Rectangle {
     }
 
     /**
-     * For a {@link Vector}: true if the point is inside or on the edge, with the rectangle grown by
-     * `padding` on every side. For a {@link Rectangle}: true if `target` lies entirely inside, with
-     * this rectangle shrunk by `padding` on every side.
+     * True if `target` (a point, or a whole rectangle) is inside or on the edge, with this rectangle
+     * grown by `padding` on every side (negative shrinks).
      */
     contains(target: Vector | Rectangle, padding: number = 0): boolean {
-        return (target instanceof Vector)
-            ? (
-                target.x >= this.x - padding &&
-                target.x <= this.x + this.width + padding &&
-                target.y >= this.y - padding &&
-                target.y <= this.y + this.height + padding
-            )
-            : (
-                target.x >= this.x + padding &&
-                target.y >= this.y + padding &&
-                target.x + target.width <= this.x + this.width - padding &&
-                target.y + target.height <= this.y + this.height - padding
-            );
+        const [width, height] = (target instanceof Vector) ? [0, 0] : [target.width, target.height];
+
+        return (
+            target.x >= this.x - padding &&
+            target.y >= this.y - padding &&
+            target.x + width <= this.x + this.width + padding &&
+            target.y + height <= this.y + this.height + padding
+        );
     }
 
     /**
-     * True if the rectangles overlap or touch. `padding` is added around both rectangles, so they
-     * also count as intersecting when up to `2 * padding` apart.
+     * True if the rectangles overlap or touch, or are at most `padding` apart (negative requires
+     * that much overlap).
      */
     intersects(other: Rectangle, padding: number = 0): boolean {
         return !(
-            other.x - padding > this.x + this.width + padding ||
-            other.x + other.width + padding < this.x - padding ||
-            other.y - padding > this.y + this.height + padding ||
-            other.y + other.height + padding < this.y - padding
+            other.x > this.x + this.width + padding ||
+            other.x + other.width < this.x - padding ||
+            other.y > this.y + this.height + padding ||
+            other.y + other.height < this.y - padding
         );
     }
 
@@ -100,11 +94,8 @@ export class Rectangle {
         );
     }
 
-    /** True if `vec` is inside or on the edge, with the rectangle grown by `padding`; same as {@link Rectangle.contains} with a vector. */
+    /** Same as {@link Rectangle.contains} with a point. */
     vectorInside(vec: Vector, padding: number = 0): boolean {
-        return (
-            vec.x >= this.x - padding && vec.x <= this.x + this.width + padding &&
-            vec.y >= this.y - padding && vec.y <= this.y + this.height + padding
-        );
+        return this.contains(vec, padding);
     }
 }

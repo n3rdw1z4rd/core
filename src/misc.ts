@@ -18,23 +18,13 @@ export function isPositiveString(target: string): boolean {
 }
 
 /**
- * Maps `min / max` onto an 11-step red -> yellow -> green gradient and returns its `'#rrggbb'`
- * color; ratios at or below 0 are red, ratios at or above 1 are green. Despite its name, `min` is
- * the value being rated. With a single argument the ratio is `min / 1`, and `max` below 1 is
- * raised to 1.
+ * Maps `value / max` onto an 11-step red -> yellow -> green gradient and returns its `'#rrggbb'`
+ * color; ratios at or below 0 (or a `max` at or below 0) are red, ratios at or above 1 are green.
+ * `max` defaults to 1, so a single argument is rated as a 0-1 fraction.
  * @category Utilities
  */
-export const getRedYellowGreenGradientHex = (min: number, max?: number): string => {
-    if (max === undefined) {
-        max = min;
-        min = 0;
-    }
-
-    if (max < 1) {
-        max = 1;
-    }
-
-    const percent = (min / max);
+export const getRedYellowGreenGradientHex = (value: number, max: number = 1): string => {
+    const percent = max > 0 ? value / max : 0;
     const index = clamp(Math.floor(percent * 10), 0, 10);
 
     return ([

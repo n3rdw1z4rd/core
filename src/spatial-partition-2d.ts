@@ -58,28 +58,21 @@ export class SpatialPartition2d {
 
     /**
      * The 3 x 3 block of cells around cell (`x`, `y`), including that cell, wrapping at the edges.
-     * Takes cell indices, not positions; with fewer than 3 cells per axis some cells appear more
-     * than once.
+     * Takes cell indices, not positions. Each cell appears once, so with fewer than 3 cells per
+     * axis the block has fewer than 9 cells.
      */
     getCellNeighbors(x: number, y: number) {
-        const neighbors = [];
+        const neighbors = new Set<SpatialPartitionEntity2d[]>(); // insertion-ordered, de-duplicated
 
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
-                let nx = x + dx;
-                let ny = y + dy;
+                const nx = mod(x + dx, this.cells[0].length);
+                const ny = mod(y + dy, this.cells.length);
 
-                // Wrap around if out of bounds
-                if (nx < 0) nx = this.cells[0].length - 1;
-                else if (nx >= this.cells[0].length) nx = 0;
-
-                if (ny < 0) ny = this.cells.length - 1;
-                else if (ny >= this.cells.length) ny = 0;
-
-                neighbors.push(this.cells[ny][nx]);
+                neighbors.add(this.cells[ny][nx]);
             }
         }
 
-        return neighbors;
+        return [...neighbors];
     }
 }

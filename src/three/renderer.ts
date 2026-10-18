@@ -24,8 +24,8 @@ export class Renderer extends WebGLRenderer {
     get width(): number { return this.getSize(this._size).width; }
     /** CSS pixels */
     get height(): number { return this.getSize(this._size).height; }
-    /** width / height */
-    get aspectRatio(): number { return this.width / this.height; }
+    /** width / height (1 while the height is 0) */
+    get aspectRatio(): number { return this.height > 0 ? this.width / this.height : 1; }
 
     constructor(parameters?: WebGLRendererParameters) {
         super(parameters);
@@ -35,15 +35,16 @@ export class Renderer extends WebGLRenderer {
 
     /**
      * Sets the size in CSS pixels, if it differs from the current one. A missing `width` / `height`
-     * defaults to the parent element's client size (or the current size when there is no parent).
+     * defaults to the parent element's client size (or the current size when there is no parent, or
+     * the parent has no size yet, e.g. before layout or while hidden).
      *
      * @returns whether the size changed
      */
     resize(width?: number, height?: number): boolean {
         let resized = false;
 
-        width = width ?? this.domElement.parentElement?.clientWidth ?? this.width;
-        height = height ?? this.domElement.parentElement?.clientHeight ?? this.height;
+        width = width ?? (this.domElement.parentElement?.clientWidth || this.width);
+        height = height ?? (this.domElement.parentElement?.clientHeight || this.height);
 
         if (this.width !== width || this.height !== height) {
             this.setSize(width, height);

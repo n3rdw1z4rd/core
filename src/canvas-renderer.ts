@@ -58,9 +58,9 @@ export const DEFAULT_TEXTBASELINE = 'alphabetic';
 export interface DrawParams {
     /** fill and stroke color, default {@link DEFAULT_COLOR} */
     color?: CanvasColor,
-    /** shapes: fill as well as stroke the outline, default false */
+    /** shapes: fill instead of stroking the outline, default false */
     filled?: boolean,
-    /** pixels: line width for shapes and lines (default 1), side length for drawPixel (default {@link DEFAULT_PIXEL_SIZE}), font size for drawText (default {@link DEFAULT_FONT_SIZE}) */
+    /** pixels: line width for outlines and lines (default 1), side length for drawPixel (default {@link DEFAULT_PIXEL_SIZE}), font size for drawText (default {@link DEFAULT_FONT_SIZE}) */
     size?: number,
     /** shapes and lines: dash pattern (see `setLineDash`), reset after drawing; default solid */
     lineDash?: number[],
@@ -124,6 +124,11 @@ export class CanvasRenderer {
         this.context = (canvas ?? document.createElement('canvas'))
             .getContext('2d')!;
 
+        this._applyDefaults();
+    }
+
+    // canvas resizes reset the context state, so this runs again after each one
+    private _applyDefaults(): void {
         this.context.font = DEFAULT_FONT;
         this.context.textAlign = DEFAULT_TEXTALIGN;
         this.context.textBaseline = DEFAULT_TEXTBASELINE;
@@ -131,18 +136,20 @@ export class CanvasRenderer {
 
     /**
      * Sets the canvas size in pixels; a missing dimension defaults to the parent element's client
-     * size (or the current size without a parent). Resizing clears the canvas and resets the
-     * context state (font, alignment, ...). Returns whether the size changed.
+     * size (or the current size without a parent, or while the parent has no size). Resizing clears
+     * the canvas and resets the context state; the renderer's default font and alignment are
+     * applied again. Returns whether the size changed.
      */
     resize(width?: number, height?: number): boolean {
         let resized = false;
 
-        width = width ?? this.canvas.parentElement?.clientWidth ?? this.width;
-        height = height ?? this.canvas.parentElement?.clientHeight ?? this.height;
+        width = width ?? (this.canvas.parentElement?.clientWidth || this.width);
+        height = height ?? (this.canvas.parentElement?.clientHeight || this.height);
 
         if (this.canvas.width != width || this.canvas.height != height) {
             this.canvas.width = width;
             this.canvas.height = height;
+            this._applyDefaults();
             resized = true;
         }
 
@@ -168,16 +175,16 @@ export class CanvasRenderer {
 
         if (params.filled) {
             this.context.fill();
+        } else {
+            this.context.stroke();
         }
-
-        this.context.stroke();
 
         if (params.lineDash) {
             this.context.setLineDash([]);
         }
     }
 
-    /** Draws a `width` x `height` rectangle centered on (`x`, `y`); the outline is always stroked, and filled too with `filled`. */
+    /** Draws a `width` x `height` rectangle centered on (`x`, `y`): its outline, or filled with `filled`. */
     drawRect(x: number, y: number, width: number, height: number, params: DrawParams = {}) {
         x -= (width / 2);
         y -= (height / 2);
@@ -192,9 +199,9 @@ export class CanvasRenderer {
 
         if (params.filled) {
             this.context.fillRect(x, y, width, height);
+        } else {
+            this.context.strokeRect(x, y, width, height);
         }
-
-        this.context.strokeRect(x, y, width, height);
 
         if (params.lineDash) {
             this.context.setLineDash([]);
@@ -203,7 +210,7 @@ export class CanvasRenderer {
 
     /** Draws a filled square of side `params.size` (default {@link DEFAULT_PIXEL_SIZE}) centered on (`x`, `y`). */
     drawPixel(x: number, y: number, params: DrawParams = {}) {
-        const size = Math.abs(params.size || DEFAULT_PIXEL_SIZE);
+        const size = Math.abs(params.size ?? DEFAULT_PIXEL_SIZE);
 
         this.drawRect(x, y, size, size, {
             ...params,

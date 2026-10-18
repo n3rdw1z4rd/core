@@ -62,26 +62,26 @@ export class SpatialPartition3d {
 
     /**
      * The 3 x 3 x 3 block of cells around cell (`cx`, `cy`, `cz`), including that cell, wrapping at
-     * the edges. Takes cell indices, not positions; with fewer than 3 cells per axis some cells
-     * appear more than once.
+     * the edges. Takes cell indices, not positions. Each cell appears once, so with fewer than 3
+     * cells per axis the block has fewer than 27 cells.
      */
     getCellNeighbors(cx: number, cy: number, cz: number) {
-        const neighbors = [];
+        const neighbors = new Set<SpatialPartitionEntity3d[]>(); // insertion-ordered, de-duplicated
         const gridSize = this.cells.length;
 
         for (let dz = -1; dz <= 1; dz++) {
             for (let dy = -1; dy <= 1; dy++) {
                 for (let dx = -1; dx <= 1; dx++) {
-                    let nx = (cx + dx + gridSize) % gridSize;
-                    let ny = (cy + dy + gridSize) % gridSize;
-                    let nz = (cz + dz + gridSize) % gridSize;
+                    const nx = mod(cx + dx, gridSize);
+                    const ny = mod(cy + dy, gridSize);
+                    const nz = mod(cz + dz, gridSize);
 
-                    neighbors.push(this.cells[nz][ny][nx]);
+                    neighbors.add(this.cells[nz][ny][nx]);
                 }
             }
         }
 
-        return neighbors;
+        return [...neighbors];
     }
 
     /** Puts `entity` in the cell its current position falls in. */

@@ -477,7 +477,7 @@ export interface VertexArrayInfo {
     indexBuffer?: WebGLBuffer,
     /** gl.UNSIGNED_SHORT etc. when indexed */
     indexType?: number,
-    /** default draw count: the number of indices when created from an index array (or the given `count`); unset otherwise */
+    /** default draw count: the number of indices (or the given `count`), else the vertices in the shortest per-vertex buffer */
     count?: number,
 }
 
@@ -524,6 +524,7 @@ export function CreateVertexArray(
     if (!vao) throw new Error('CreateVertexArray: could not create a vertex array (context lost?)');
 
     const result: VertexArrayInfo = { vao, buffers: [] };
+    let vertexCount = Infinity;
 
     gl.bindVertexArray(vao);
 
@@ -540,6 +541,15 @@ export function CreateVertexArray(
 
         gl.bindBuffer(gl.ARRAY_BUFFER, source.buffer);
         if (!result.buffers.includes(source.buffer)) result.buffers.push(source.buffer);
+
+        // vertices this buffer holds: the last one only needs its own bytes, not a whole stride
+        if (!source.divisor) {
+            const bytes = gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE) as number;
+            const vertexBytes = columnBytes * columns;
+            const available = bytes - (source.offset ?? 0) - vertexBytes;
+
+            vertexCount = Math.min(vertexCount, available < 0 ? 0 : Math.floor(available / (stride || vertexBytes)) + 1);
+        }
 
         for (let column = 0; column < columns; column++) {
             const location = attribute.location + column;
@@ -567,10 +577,13 @@ export function CreateVertexArray(
             result.indexBuffer = indices.buffer;
             result.indexType = indices.type;
             result.count = indices.count;
+            if (!result.buffers.includes(indices.buffer)) result.buffers.push(indices.buffer);
         }
 
         // the element buffer binding is part of the vertex array's state
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, result.indexBuffer);
+    } else if (vertexCount < Infinity) {
+        result.count = vertexCount;
     }
 
     gl.bindVertexArray(null);
@@ -795,6 +808,7 @@ export function CreateRenderTarget(gl: WebGL2RenderingContext, width: number, he
     if (!framebuffer) throw new Error('CreateRenderTarget: could not create a framebuffer (context lost?)');
 
     const target: RenderTarget = { framebuffer, texture, width, height };
+    const previous = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture.texture, 0);
@@ -809,7 +823,7 @@ export function CreateRenderTarget(gl: WebGL2RenderingContext, width: number, he
 
     const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, previous); // leave whatever target was bound in place
 
     if (status !== gl.FRAMEBUFFER_COMPLETE) {
         DeleteRenderTarget(gl, target);
@@ -870,7 +884,7 @@ export function DeleteRenderTarget(gl: WebGL2RenderingContext, target: RenderTar
 export interface DrawOptions {
     /** default gl.TRIANGLES */
     mode?: number,
-    /** vertices (or indices); default: the vertex array's count (required for non-indexed vertex arrays, which have none) */
+    /** vertices (or indices); default: the vertex array's count */
     count?: number,
     /** first vertex (or index) */
     offset?: number,

@@ -66,6 +66,8 @@ export class ParticleSystem3d extends Group {
     public readonly particleCount = 1000;
     /** the seed the starting state came from */
     public readonly seed: number;
+    /** seconds; larger `dt` values passed to `update()` are capped to this so a stall can't blow the simulation up */
+    public maxDeltaTime = 0.1;
 
     private _geometry: BufferGeometry;
     private _particles: Particle[] = [];
@@ -260,9 +262,11 @@ export class ParticleSystem3d extends Group {
 
     /**
      * Advances the simulation by `dt` seconds and refreshes the points, sorted back to front as
-     * seen from `camera`.
+     * seen from `camera`. `dt` is capped to {@link ParticleSystem3d.maxDeltaTime}.
      */
     public update(camera: PerspectiveCamera, dt: number) {
+        dt = Math.min(dt, this.maxDeltaTime);
+
         this._updateVelocities(dt);
         this._updatePositions(dt);
         this._sortParticles(camera);

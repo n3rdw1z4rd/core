@@ -33,12 +33,7 @@ export class Random {
         this._seed = value | 0;
     }
 
-    /** Same as {@link Random.uint}: an unsigned 32-bit hash of `values` (see {@link hash32mix}). */
-    static hash(...values: number[]): number {
-        return hash32mix(...values);
-    }
-
-    /** Unsigned 32-bit integer in [0, 2³²) derived from `values`. */
+    /** Unsigned 32-bit integer in [0, 2³²) derived from `values` (a {@link hash32mix} hash). */
     static uint(...values: number[]): number {
         return hash32mix(...values);
     }

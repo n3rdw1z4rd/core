@@ -161,6 +161,51 @@ void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }`);
         noErrors(gl);
     },
 
+    'vertex arrays: non-indexed count from the buffers; given index buffers are tracked'() {
+        const gl = setup();
+        const info = CreateProgramInfo(gl, QUAD_VS, `#version 300 es
+precision highp float;
+out vec4 color;
+void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }`);
+
+        // 3 vertices, tightly packed
+        const packed = CreateBuffer(gl, [-1, -1, 0, -1, -1, 1]);
+        const vao = CreateVertexArray(gl, info, { aPosition: { buffer: packed, size: 2 } });
+        assert.equal(vao.count, 3);
+
+        Draw(gl, info, vao); // no count needed
+        assertPixel(gl, 2, 2, [0, 255, 0, 255]);
+
+        // 3 vertices interleaved with an unused float, read at an offset: 4 + 3 + 3 + 2 floats
+        const interleaved = CreateBuffer(gl, [9, -1, -1, 9, 0, -1, 9, -1, 1]);
+        const offsetVao = CreateVertexArray(gl, info, { aPosition: { buffer: interleaved, size: 2, stride: 12, offset: 4 } });
+        assert.equal(offsetVao.count, 3);
+
+        const indexBuffer = CreateBuffer(gl, new Uint16Array([0, 1, 2]), { target: gl.ELEMENT_ARRAY_BUFFER });
+        const indexed = CreateVertexArray(gl, info, { aPosition: { buffer: packed, size: 2 } }, { buffer: indexBuffer, type: gl.UNSIGNED_SHORT, count: 3 });
+        assert.ok(indexed.buffers.includes(indexBuffer));
+
+        DeleteVertexArray(gl, vao);
+        DeleteVertexArray(gl, offsetVao, { buffers: true });
+        DeleteVertexArray(gl, indexed, { buffers: true });
+        assert.ok(!gl.isBuffer(indexBuffer));
+        noErrors(gl);
+    },
+
+    'render targets: creating one keeps the bound target'() {
+        const gl = setup();
+        const first = CreateRenderTarget(gl, 8, 8);
+
+        BindRenderTarget(gl, first);
+        const second = CreateRenderTarget(gl, 8, 8);
+        assert.equal(gl.getParameter(gl.FRAMEBUFFER_BINDING), first.framebuffer);
+
+        BindRenderTarget(gl, null);
+        DeleteRenderTarget(gl, first);
+        DeleteRenderTarget(gl, second);
+        noErrors(gl);
+    },
+
     'draw: instancing with a per-instance offset and an integer attribute'() {
         const gl = setup();
         const info = CreateProgramInfo(gl, `#version 300 es

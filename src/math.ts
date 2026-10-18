@@ -98,11 +98,11 @@ export const lerp = (start: number, end: number, t: number): number =>
 
 /**
  * The inverse of {@link lerp}: returns the `t` at which `value` lies between `start` and `end`
- * (0 at `start`, 1 at `end`, unclamped). Divides by zero when `start === end`.
+ * (0 at `start`, 1 at `end`, unclamped). Returns 0 when `start === end`.
  * @category Math & Random
  */
 export const inverseLerp = (start: number, end: number, value: number): number =>
-    (value - start) / (end - start);
+    end === start ? 0 : (value - start) / (end - start);
 
 // export const map = (
 //     value: number,
@@ -117,10 +117,12 @@ export const inverseLerp = (start: number, end: number, value: number): number =
 
 /**
  * Hermite smoothstep, as in GLSL: 0 at or below `edge0`, 1 at or above `edge1`, with a smooth
- * S-curve (3t² - 2t³) in between.
+ * S-curve (3t² - 2t³) in between. With `edge0 === edge1` it is a step: 0 below the edge, 1 at or above.
  * @category Math & Random
  */
 export const smoothstep = (edge0: number, edge1: number, value: number): number => {
+    if (edge1 === edge0) return value < edge0 ? 0 : 1;
+
     const t = saturate((value - edge0) / (edge1 - edge0));
     return t * t * (3 - 2 * t);
 };
@@ -141,11 +143,12 @@ export const mod = (value: number, divisor: number): number =>
 
 /**
  * Wraps `value` into the half-open range [`minValue`, `maxValue`), e.g. `wrap(370, 0, 360)` is 10.
+ * An empty range (`minValue === maxValue`) returns `minValue`.
  * @category Math & Random
  */
 export const wrap = (value: number, minValue: number, maxValue: number): number => {
     const range = maxValue - minValue;
-    return minValue + mod(value - minValue, range);
+    return range === 0 ? minValue : minValue + mod(value - minValue, range);
 };
 
 /**
@@ -217,8 +220,8 @@ export const manhattanDistance = (
     Math.abs(x2 - x1) + Math.abs(y2 - y1);
 
 /**
- * True when `a` and `b` differ by at most `epsilon` (an absolute tolerance, default
- * {@link EPSILON}, which is very strict for values far from 1).
+ * True when `a` and `b` differ by at most `epsilon` (default {@link EPSILON}), scaled by the larger
+ * magnitude once that exceeds 1: absolute near zero, relative for large values.
  * @category Math & Random
  */
 export const nearlyEqual = (
@@ -226,7 +229,7 @@ export const nearlyEqual = (
     b: number,
     epsilon = EPSILON
 ): boolean =>
-    Math.abs(a - b) <= epsilon;
+    Math.abs(a - b) <= epsilon * Math.max(1, Math.abs(a), Math.abs(b));
 
 /**
  * Rounds `value` to `digits` decimal places (default 0); negative `digits` round to tens,
