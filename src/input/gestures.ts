@@ -2,32 +2,47 @@ import type { Gesture } from './bindings';
 
 export interface TouchPoint {
     id: number,
-    x: number, y: number,           // current position, pixels relative to the input target
+    /** current position, pixels relative to the input target */
+    x: number, y: number,
     startX: number, startY: number,
-    startTime: number,              // ms
+    /** ms */
+    startTime: number,
 }
 
 export interface GestureThresholds {
-    tapMaxDuration: number,       // ms
-    tapMaxMovement: number,       // px; also how far a long press may drift
-    doubleTapMaxDelay: number,    // ms between the two taps
-    doubleTapMaxDistance: number, // px between the two taps
-    longPressDuration: number,    // ms
-    swipeMinDistance: number,     // px
-    swipeMaxDuration: number,     // ms
-    pinchMinChange: number,       // relative scale change per frame that counts as pinching (0.005 = 0.5%)
+    /** ms */
+    tapMaxDuration: number,
+    /** px; also how far a long press may drift */
+    tapMaxMovement: number,
+    /** ms between the two taps */
+    doubleTapMaxDelay: number,
+    /** px between the two taps */
+    doubleTapMaxDistance: number,
+    /** ms */
+    longPressDuration: number,
+    /** px */
+    swipeMinDistance: number,
+    /** ms */
+    swipeMaxDuration: number,
+    /** relative scale change per frame that counts as pinching (0.005 = 0.5%) */
+    pinchMinChange: number,
 }
 
 export interface GestureFrame {
-    gestures: Gesture[],          // recognized since the last update
-    pinch: number,                // two-finger scale change this frame (1 = none, > 1 = fingers apart)
-    pan: { x: number, y: number },// two-finger movement this frame, px
-    rotate: number,               // two-finger rotation this frame, radians (clockwise on screen)
+    /** recognized since the last update */
+    gestures: Gesture[],
+    /** two-finger scale change this frame (1 = none, > 1 = fingers apart) */
+    pinch: number,
+    /** two-finger movement this frame, px */
+    pan: { x: number, y: number },
+    /** two-finger rotation this frame, radians (clockwise on screen) */
+    rotate: number,
 }
 
 interface Tracked extends TouchPoint {
     maxMovement: number,
-    multi: boolean,               // another finger was down at some point: not a tap / swipe / long press
+    /** another finger was down at some point: not a tap / swipe / long press */
+    multi: boolean,
     longPressed: boolean,
 }
 

@@ -7,7 +7,8 @@ export interface AsteroidOptions {
     detail?: number;
     noiseScale?: number;
     displacement?: number;
-    secondaryNoise?: NoiseFunction3D; // optional extra detail layer, sampled at twice the frequency and half the weight
+    /** optional extra detail layer, sampled at twice the frequency and half the weight */
+    secondaryNoise?: NoiseFunction3D;
     color?: number;
 }
 

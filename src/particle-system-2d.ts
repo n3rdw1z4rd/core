@@ -5,7 +5,7 @@ import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partitio
 import { Random } from './random';
 import { ParticleRenderer } from './particle-renderer';
 
-// attraction matrix in [-1, 1); seeded from `seed` so it can be reproduced
+/** attraction matrix in [-1, 1); seeded from `seed` so it can be reproduced */
 export function randomMatrix(size: number, seed: number = 0): number[][] {
     const rows: number[][] = [];
 
@@ -52,7 +52,7 @@ export class ParticleSystem2d {
 
     private _spatialPartition: SpatialPartition2d;
 
-    // the same seed always produces the same starting state (positions, colors, attraction matrix)
+    /** the same seed always produces the same starting state (positions, colors, attraction matrix) */
     constructor(seed: number = rng.nextUint()) {
         this.seed = seed;
         this._attractionMatrix = randomMatrix(colors.length, seed);

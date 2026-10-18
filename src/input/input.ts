@@ -11,20 +11,28 @@ export type InputDeviceType = 'keyboard' | 'mouse' | 'pen' | 'touch' | 'gamepad'
 export type ActionPhase = 'pressed' | 'released';
 
 export interface InputOptions {
-    keyboardTarget?: EventTarget,   // where key events are read; default: window
-    defaults?: boolean,             // add the ui_* actions. Default true.
-    preventDefault?: boolean,       // stop bound keys / the wheel from scrolling the page. Default true.
-    preventContextMenu?: boolean,   // no right-click menu on the target. Default true.
+    /** where key events are read; default: window */
+    keyboardTarget?: EventTarget,
+    /** add the ui_* actions. Default true. */
+    defaults?: boolean,
+    /** stop bound keys / the wheel from scrolling the page. Default true. */
+    preventDefault?: boolean,
+    /** no right-click menu on the target. Default true. */
+    preventContextMenu?: boolean,
 }
 
 export interface DeviceQuery {
-    device?: InputDevice,           // only this device; default: any
+    /** only this device; default: any */
+    device?: InputDevice,
 }
 
 export interface GamepadInfo {
-    device: InputDevice,  // gamepad.index + 1
-    id: string,           // the browser's description of the controller
-    standard: boolean,    // uses the standard mapping (button names are reliable); others map by index
+    /** gamepad.index + 1 */
+    device: InputDevice,
+    /** the browser's description of the controller */
+    id: string,
+    /** uses the standard mapping (button names are reliable); others map by index */
+    standard: boolean,
 }
 
 /** The parts of a WebXR XRSession that Input reads (structural, so no WebXR typings are required). */
@@ -37,23 +45,34 @@ export interface XRSessionLike extends EventTarget {
 
 export interface PointerState {
     type: 'mouse' | 'pen',
-    x: number, y: number,           // pixels, relative to the target's top-left
-    ndcX: number, ndcY: number,     // -1..1, y up (for raycasting)
-    deltaX: number, deltaY: number, // movement during the last frame (works under pointer lock)
-    wheelX: number, wheelY: number, // wheel movement during the last frame, in pixels
-    pressure: number,               // pen: 0..1
-    tiltX: number, tiltY: number,   // pen: degrees
+    /** pixels, relative to the target's top-left */
+    x: number, y: number,
+    /** -1..1, y up (for raycasting) */
+    ndcX: number, ndcY: number,
+    /** movement during the last frame (works under pointer lock) */
+    deltaX: number, deltaY: number,
+    /** wheel movement during the last frame, in pixels */
+    wheelX: number, wheelY: number,
+    /** pen: 0..1 */
+    pressure: number,
+    /** pen: degrees */
+    tiltX: number, tiltY: number,
 }
 
 export interface CaptureOptions {
-    cancelKey?: string | null,      // KeyboardEvent.code that cancels (resolves null). Default 'Escape'.
-    types?: Binding['type'][],      // only accept these kinds of input
+    /** KeyboardEvent.code that cancels (resolves null). Default 'Escape'. */
+    cancelKey?: string | null,
+    /** only accept these kinds of input */
+    types?: Binding['type'][],
 }
 
 interface ControlState {
-    value: number,       // 0..1
-    pressed: boolean,    // went down since the last update (so a press + release between frames still counts)
-    suppressed: boolean, // used to answer captureBinding(); ignored until released
+    /** 0..1 */
+    value: number,
+    /** went down since the last update (so a press + release between frames still counts) */
+    pressed: boolean,
+    /** used to answer captureBinding(); ignored until released */
+    suppressed: boolean,
 }
 
 interface ActionState {

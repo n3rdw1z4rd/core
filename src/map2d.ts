@@ -4,7 +4,7 @@ export const DEFAULT_MAP_2D_VALUE = -1;
 const BASE_2D = 0x200000;
 const OFFSET_2D = 0x100000;
 
-// inclusive per-axis coordinate range; anything outside wraps around and collides with other coordinates
+/** inclusive per-axis coordinate range; anything outside wraps around and collides with other coordinates */
 export const MAP_2D_MIN_COORD = -OFFSET_2D;
 export const MAP_2D_MAX_COORD = BASE_2D - OFFSET_2D - 1;
 

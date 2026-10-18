@@ -1,10 +1,12 @@
 // WebGL2 wrappers: thin, functional helpers over the raw API. They can be used on their own, and
 // WebGlRenderer builds on them. Nothing here touches WebGL at import time, so importing is safe anywhere.
 
-// literal GLenum values so importing this module doesn't require WebGL2RenderingContext to exist
+/** literal GLenum values so importing this module doesn't require WebGL2RenderingContext to exist */
 export enum ShaderType {
-    VERTEX = 0x8B31, // gl.VERTEX_SHADER
-    FRAGMENT = 0x8B30, // gl.FRAGMENT_SHADER
+    /** gl.VERTEX_SHADER */
+    VERTEX = 0x8B31,
+    /** gl.FRAGMENT_SHADER */
+    FRAGMENT = 0x8B30,
 }
 
 // ---- context ----
@@ -147,15 +149,19 @@ export function CreateProgram(
 
 export interface AttributeInfo {
     location: number,
-    type: number,   // GL type of the attribute (gl.FLOAT_VEC3, gl.FLOAT_MAT4, ...)
+    /** GL type of the attribute (gl.FLOAT_VEC3, gl.FLOAT_MAT4, ...) */
+    type: number,
     size: number,
 }
 
 export interface UniformInfo {
     location: WebGLUniformLocation,
-    type: number,         // GL type (gl.FLOAT_VEC3, gl.SAMPLER_2D, ...)
-    size: number,         // array length (1 for non-arrays)
-    textureUnit?: number, // samplers: first texture unit assigned to this uniform
+    /** GL type (gl.FLOAT_VEC3, gl.SAMPLER_2D, ...) */
+    type: number,
+    /** array length (1 for non-arrays) */
+    size: number,
+    /** samplers: first texture unit assigned to this uniform */
+    textureUnit?: number,
 }
 
 export type ProgramLocations = {
@@ -328,8 +334,10 @@ function SetUniform(gl: WebGL2RenderingContext, uniform: UniformInfo, value: Uni
 // ---- buffers ----
 
 export interface BufferOptions {
-    target?: number, // default gl.ARRAY_BUFFER (gl.ELEMENT_ARRAY_BUFFER for indices)
-    usage?: number,  // default gl.STATIC_DRAW (gl.DYNAMIC_DRAW for data updated every frame)
+    /** default gl.ARRAY_BUFFER (gl.ELEMENT_ARRAY_BUFFER for indices) */
+    target?: number,
+    /** default gl.STATIC_DRAW (gl.DYNAMIC_DRAW for data updated every frame) */
+    usage?: number,
 }
 
 /**
@@ -366,20 +374,29 @@ export function UpdateBuffer(gl: WebGL2RenderingContext, buffer: WebGLBuffer, da
 
 export interface AttributeSource {
     buffer: WebGLBuffer,
-    size: number,          // components per vertex (per column for matrices)
-    type?: number,         // default gl.FLOAT
-    normalized?: boolean,  // integer data read as 0..1 / -1..1 floats
-    stride?: number,       // bytes; 0 = tightly packed
-    offset?: number,       // bytes
-    divisor?: number,      // 1 = advance per instance (instancing); 0 = per vertex
+    /** components per vertex (per column for matrices) */
+    size: number,
+    /** default gl.FLOAT */
+    type?: number,
+    /** integer data read as 0..1 / -1..1 floats */
+    normalized?: boolean,
+    /** bytes; 0 = tightly packed */
+    stride?: number,
+    /** bytes */
+    offset?: number,
+    /** 1 = advance per instance (instancing); 0 = per vertex */
+    divisor?: number,
 }
 
 export interface VertexArrayInfo {
     vao: WebGLVertexArrayObject,
-    buffers: WebGLBuffer[],    // buffers used, for DeleteVertexArray
+    /** buffers used, for DeleteVertexArray */
+    buffers: WebGLBuffer[],
     indexBuffer?: WebGLBuffer,
-    indexType?: number,        // gl.UNSIGNED_SHORT etc. when indexed
-    count?: number,            // default draw count (number of indices, when created from an index array)
+    /** gl.UNSIGNED_SHORT etc. when indexed */
+    indexType?: number,
+    /** default draw count (number of indices, when created from an index array) */
+    count?: number,
 }
 
 const BYTES: Record<number, number> = { 0x1400: 1, 0x1401: 1, 0x1402: 2, 0x1403: 2, 0x1404: 4, 0x1405: 4, 0x1406: 4, 0x140B: 2 };
@@ -491,20 +508,29 @@ export function DeleteVertexArray(gl: WebGL2RenderingContext, info: VertexArrayI
 // ---- textures ----
 
 export interface TextureOptions {
-    filter?: 'nearest' | 'linear',          // default 'linear'
-    wrap?: 'clamp' | 'repeat' | 'mirror',   // default 'clamp'
-    mipmaps?: boolean,                      // default false
-    flipY?: boolean,                        // flip images vertically on upload (default false)
-    premultiplyAlpha?: boolean,             // default false
-    internalFormat?: number,                // data textures: default gl.RGBA8
-    format?: number,                        // data textures: default gl.RGBA
-    type?: number,                          // data textures: default gl.UNSIGNED_BYTE
+    /** default 'linear' */
+    filter?: 'nearest' | 'linear',
+    /** default 'clamp' */
+    wrap?: 'clamp' | 'repeat' | 'mirror',
+    /** default false */
+    mipmaps?: boolean,
+    /** flip images vertically on upload (default false) */
+    flipY?: boolean,
+    /** default false */
+    premultiplyAlpha?: boolean,
+    /** data textures: default gl.RGBA8 */
+    internalFormat?: number,
+    /** data textures: default gl.RGBA */
+    format?: number,
+    /** data textures: default gl.UNSIGNED_BYTE */
+    type?: number,
 }
 
 export interface TextureData {
     width: number,
     height: number,
-    data?: ArrayBufferView | null, // null / undefined = allocate only (e.g. render targets)
+    /** null / undefined = allocate only (e.g. render targets) */
+    data?: ArrayBufferView | null,
 }
 
 export interface TextureInfo {
@@ -605,14 +631,16 @@ export function DeleteTexture(gl: WebGL2RenderingContext, info: TextureInfo): vo
 
 export interface RenderTarget {
     framebuffer: WebGLFramebuffer,
-    texture: TextureInfo,          // the color output; use it as a sampler uniform
+    /** the color output; use it as a sampler uniform */
+    texture: TextureInfo,
     depth?: WebGLRenderbuffer,
     width: number,
     height: number,
 }
 
 export interface RenderTargetOptions extends Omit<TextureOptions, 'mipmaps' | 'flipY' | 'premultiplyAlpha'> {
-    depth?: boolean, // depth (and stencil) attachment. Default true.
+    /** depth (and stencil) attachment. Default true. */
+    depth?: boolean,
 }
 
 /** An offscreen framebuffer with a color texture (and depth), for render-to-texture and post-processing. */
@@ -677,10 +705,14 @@ export function DeleteRenderTarget(gl: WebGL2RenderingContext, target: RenderTar
 // ---- drawing ----
 
 export interface DrawOptions {
-    mode?: number,                         // default gl.TRIANGLES
-    count?: number,                        // vertices (or indices); default: the vertex array's count
-    offset?: number,                       // first vertex (or index)
-    instances?: number,                    // > 0: instanced draw
+    /** default gl.TRIANGLES */
+    mode?: number,
+    /** vertices (or indices); default: the vertex array's count */
+    count?: number,
+    /** first vertex (or index) */
+    offset?: number,
+    /** > 0: instanced draw */
+    instances?: number,
     uniforms?: Record<string, UniformValue>,
 }
 

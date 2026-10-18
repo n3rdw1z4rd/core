@@ -22,7 +22,8 @@ export interface PathsParams {
     timeout?: number,
     extraPaths?: number,
     extraPathDensity?: number,
-    walkableValues?: number[], // tile values corridors may be carved through, default [TILE_EMPTY]
+    /** tile values corridors may be carved through, default [TILE_EMPTY] */
+    walkableValues?: number[],
 }
 
 export interface DoorsParams {

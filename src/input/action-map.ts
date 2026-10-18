@@ -4,7 +4,8 @@ export const DEFAULT_DEADZONE = 0.2;
 
 export interface Action {
     readonly name: string,
-    deadzone: number,             // raw values at or below this don't count (sticks, triggers)
+    /** raw values at or below this don't count (sticks, triggers) */
+    deadzone: number,
     readonly bindings: Binding[],
 }
 

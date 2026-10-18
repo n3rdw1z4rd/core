@@ -156,8 +156,10 @@ export class CubeSphereGeometry extends BufferGeometry {
         return total / maxValue;
     }
 
-    // maps a point on the [-1, 1] cube onto the unit sphere with even spacing
-    // (https://mathproofs.blogspot.com/2005/07/mapping-cube-to-sphere.html)
+    /**
+     * maps a point on the [-1, 1] cube onto the unit sphere with even spacing
+     * (https://mathproofs.blogspot.com/2005/07/mapping-cube-to-sphere.html)
+     */
     static spherify(x: number, y: number, z: number): [number, number, number] {
         const x2 = x * x;
         const y2 = y * y;

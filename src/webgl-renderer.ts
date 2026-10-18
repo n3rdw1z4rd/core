@@ -5,10 +5,14 @@ import {
 } from './webgl';
 
 export interface RendererParams {
-    canvas?: HTMLCanvasElement,           // default: a new canvas
-    parent?: HTMLElement,                 // append the canvas here (and size it to the parent)
-    attributes?: WebGLContextAttributes,  // antialias, alpha, preserveDrawingBuffer, ...
-    pixelRatio?: number,                  // default: window.devicePixelRatio
+    /** default: a new canvas */
+    canvas?: HTMLCanvasElement,
+    /** append the canvas here (and size it to the parent) */
+    parent?: HTMLElement,
+    /** antialias, alpha, preserveDrawingBuffer, ... */
+    attributes?: WebGLContextAttributes,
+    /** default: window.devicePixelRatio */
+    pixelRatio?: number,
 }
 
 /**

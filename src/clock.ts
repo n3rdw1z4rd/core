@@ -14,8 +14,10 @@ export type ClockCallback = (deltaTime: number, elapsedTime: number) => void;
  *     renderer.setAnimationLoop((time) => { const dt = clock.tick(time); ... });
  */
 export class Clock {
-    // seconds; caps the delta time after a stall or a hidden tab (browsers pause the frame loop
-    // in background tabs, so the first frame back would otherwise cover the whole absence)
+    /**
+     * seconds; caps the delta time after a stall or a hidden tab (browsers pause the frame loop
+     * in background tabs, so the first frame back would otherwise cover the whole absence)
+     */
     maxDeltaTime: number = 0.1;
 
     private _callback?: ClockCallback;
@@ -32,8 +34,10 @@ export class Clock {
 
     get deltaTime(): number { return this._deltaTime; }
 
-    // seconds since start() (or the first tick), summed from the capped delta times,
-    // so it stays in step with the simulation rather than wall-clock time
+    /**
+     * seconds since start() (or the first tick), summed from the capped delta times,
+     * so it stays in step with the simulation rather than wall-clock time
+     */
     get elapsedTime(): number { return this._elapsedTime; }
 
     get fps(): number { return this._fps; }

@@ -59,7 +59,7 @@ export class ParticleSystem3d extends Group {
 
     private _spatialPartition: SpatialPartition3d;
 
-    // the same seed always produces the same starting state (positions, colors, attraction matrix)
+    /** the same seed always produces the same starting state (positions, colors, attraction matrix) */
     constructor(seed: number = rng.nextUint()) {
         super();
 

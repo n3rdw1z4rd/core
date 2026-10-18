@@ -3,15 +3,21 @@ import { Map3D } from '../map3d';
 import { type BuildVoxelGeometryOptions, VoxelGeometry } from './voxel-geometry';
 
 export interface VoxelBounds {
-    width: number,  // x
-    height: number, // y
-    depth: number,  // z
+    /** x */
+    width: number,
+    /** y */
+    height: number,
+    /** z */
+    depth: number,
 }
 
 export interface VoxelMeshOptions extends Omit<BuildVoxelGeometryOptions, 'target'> {
-    material?: Material | Material[], // vertexColors is turned on; default: MeshLambertMaterial
-    bounds?: VoxelBounds,             // voxels may only be set inside [0, width) x [0, height) x [0, depth)
-    voxels?: Map3D,                   // existing voxel data to show
+    /** vertexColors is turned on; default: MeshLambertMaterial */
+    material?: Material | Material[],
+    /** voxels may only be set inside [0, width) x [0, height) x [0, depth) */
+    bounds?: VoxelBounds,
+    /** existing voxel data to show */
+    voxels?: Map3D,
 }
 
 /**
@@ -25,7 +31,7 @@ export class VoxelMesh extends Mesh<VoxelGeometry, Material | Material[]> {
 
     get voxels(): Map3D { return this.geometry.voxels; }
 
-    // geometry is out of date with the voxels
+    /** geometry is out of date with the voxels */
     get needsUpdate(): boolean { return this._dirty; }
 
     constructor(options: VoxelMeshOptions = {}) {
@@ -59,7 +65,7 @@ export class VoxelMesh extends Mesh<VoxelGeometry, Material | Material[]> {
         this._dirty = true;
     }
 
-    // (not `clear()`: that's Object3D's "remove all children")
+    /** (not `clear()`: that's Object3D's "remove all children") */
     clearVoxels(): void {
         if (this.voxels.size === 0) return;
 

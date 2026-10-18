@@ -4,22 +4,32 @@ import { Random } from '../random';
 import type { ColorPalette } from '../color-palette';
 
 export interface BuildVoxelGeometryOptions {
-    palette?: ColorPalette,           // voxel value -> 0xRRGGBB (sRGB)
-    missingColor?: number,            // color for values the palette doesn't cover; default: a stable color hashed from the value
-    neighbor?: (x: number, y: number, z: number) => number, // voxel lookup where this map has none (e.g. neighbouring chunks)
-    includeHiddenFaces?: boolean,     // also emit faces between two solid voxels. Default false.
-    greedy?: boolean,                 // merge same-looking faces into larger quads. Default true.
-    ambientOcclusion?: boolean,       // darken vertices in corners and creases. Default true.
-    aoStrength?: number,              // 0..1: how dark the most occluded corner gets. Default 0.5.
-    target?: BufferGeometry,          // rebuild into this geometry instead of creating one
+    /** voxel value -> 0xRRGGBB (sRGB) */
+    palette?: ColorPalette,
+    /** color for values the palette doesn't cover; default: a stable color hashed from the value */
+    missingColor?: number,
+    /** voxel lookup where this map has none (e.g. neighbouring chunks) */
+    neighbor?: (x: number, y: number, z: number) => number,
+    /** also emit faces between two solid voxels. Default false. */
+    includeHiddenFaces?: boolean,
+    /** merge same-looking faces into larger quads. Default true. */
+    greedy?: boolean,
+    /** darken vertices in corners and creases. Default true. */
+    ambientOcclusion?: boolean,
+    /** 0..1: how dark the most occluded corner gets. Default 0.5. */
+    aoStrength?: number,
+    /** rebuild into this geometry instead of creating one */
+    target?: BufferGeometry,
 }
 
 interface Face {
     u: number,
     v: number,
     color: number,
-    ao: number[],  // per corner (0,0) (1,0) (1,1) (0,1) in (u, v): 0 = most occluded, 3 = open
-    sig: number,   // faces with the same signature may be merged: color and the four AO values
+    /** per corner (0,0) (1,0) (1,1) (0,1) in (u, v): 0 = most occluded, 3 = open */
+    ao: number[],
+    /** faces with the same signature may be merged: color and the four AO values */
+    sig: number,
 }
 
 // numeric (u, v) key within one slice; about ±33 million per axis

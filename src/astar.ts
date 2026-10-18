@@ -9,11 +9,16 @@ import type { XY } from './types';
 export type StepCost = (x: number, y: number) => number;
 
 export interface PathOptions {
-    diagonal?: boolean,   // 8-way movement; a diagonal step costs SQRT2 * the tile's cost. Default false.
-    cutCorners?: boolean, // allow a diagonal step past a blocked orthogonal neighbour. Default false.
-    adjacent?: boolean,   // stop on a tile next to the goal (the goal itself may be blocked). Default false.
-    maxNodes?: number,    // give up after expanding this many tiles. Default 10,000.
-    partial?: boolean,    // if the goal isn't reached, return the path to the closest tile found. Default false.
+    /** 8-way movement; a diagonal step costs SQRT2 * the tile's cost. Default false. */
+    diagonal?: boolean,
+    /** allow a diagonal step past a blocked orthogonal neighbour. Default false. */
+    cutCorners?: boolean,
+    /** stop on a tile next to the goal (the goal itself may be blocked). Default false. */
+    adjacent?: boolean,
+    /** give up after expanding this many tiles. Default 10,000. */
+    maxNodes?: number,
+    /** if the goal isn't reached, return the path to the closest tile found. Default false. */
+    partial?: boolean,
 }
 
 const DEFAULT_MAX_NODES = 10_000;
@@ -32,10 +37,14 @@ const key = (x: number, y: number): number => (x + KEY_OFFSET) * KEY_BASE + (y +
 interface Node {
     x: number,
     y: number,
-    g: number,     // cost from start
-    h: number,     // heuristic to goal
-    f: number,     // g + h
-    seq: number,   // insertion order, for deterministic tie-breaking
+    /** cost from start */
+    g: number,
+    /** heuristic to goal */
+    h: number,
+    /** g + h */
+    f: number,
+    /** insertion order, for deterministic tie-breaking */
+    seq: number,
     parent?: Node,
 }
 

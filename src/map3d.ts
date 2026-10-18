@@ -6,7 +6,7 @@ export const DEFAULT_MAP_3D_VALUE = -1;
 const BASE_3D = 0x20000;
 const OFFSET_3D = 0x10000;
 
-// inclusive per-axis coordinate range; anything outside wraps around and collides with other coordinates
+/** inclusive per-axis coordinate range; anything outside wraps around and collides with other coordinates */
 export const MAP_3D_MIN_COORD = -OFFSET_3D;
 export const MAP_3D_MAX_COORD = BASE_3D - OFFSET_3D - 1;
 

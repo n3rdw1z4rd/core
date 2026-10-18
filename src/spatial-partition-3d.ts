@@ -28,7 +28,7 @@ export class SpatialPartition3d {
         }
     }
 
-    // positions are expected in [0, 1); anything outside wraps around, matching getCellNeighbors
+    /** positions are expected in [0, 1); anything outside wraps around, matching getCellNeighbors */
     getCell(x: number, y: number, z: number) {
         const gridSize = this.cells.length;
 

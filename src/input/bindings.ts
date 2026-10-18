@@ -10,7 +10,7 @@ export interface KeyModifiers {
 export type MouseButton = 'left' | 'middle' | 'right' | 'back' | 'forward';
 export type WheelDirection = 'up' | 'down' | 'left' | 'right';
 
-// W3C "standard" gamepad mapping (Xbox names; on PlayStation A = Cross, B = Circle, X = Square, Y = Triangle)
+/** W3C "standard" gamepad mapping (Xbox names; on PlayStation A = Cross, B = Circle, X = Square, Y = Triangle) */
 export const GAMEPAD_BUTTONS = [
     'A', 'B', 'X', 'Y',
     'LB', 'RB', 'LT', 'RT',
@@ -36,7 +36,7 @@ export type Gesture = typeof GESTURES[number];
 
 export type XRHand = 'left' | 'right';
 
-// WebXR "xr-standard" mapping; A/X and B/Y are the primary/secondary face buttons of each hand
+/** WebXR "xr-standard" mapping; A/X and B/Y are the primary/secondary face buttons of each hand */
 export const XR_BUTTONS = ['trigger', 'squeeze', 'touchpad', 'thumbstick', 'primary', 'secondary'] as const;
 
 export type XRButton = typeof XR_BUTTONS[number];

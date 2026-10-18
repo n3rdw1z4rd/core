@@ -12,7 +12,8 @@ export interface CameraRigParams {
 }
 
 export interface PitchLimits {
-    min: number, // radians; negative looks down
+    /** radians; negative looks down */
+    min: number,
     max: number,
 }
 
@@ -34,33 +35,48 @@ const damp = (current: number, target: number, damping: number, deltaTime: numbe
  */
 export class CameraRig extends Group {
     readonly camera: PerspectiveCamera;
-    readonly gimbal = new Group(); // pitch
+    /** pitch */
+    readonly gimbal = new Group();
 
-    target?: Object3D;                       // followed by position, not parented
-    targetOffset = new Vector3(0, 1.6, 0);   // pivot (eye height) above the target's origin, world space
+    /** followed by position, not parented */
+    target?: Object3D;
+    /** pivot (eye height) above the target's origin, world space */
+    targetOffset = new Vector3(0, 1.6, 0);
 
-    yaw = 0;   // radians, around world up
-    pitch = 0; // radians, negative looks down
+    /** radians, around world up */
+    yaw = 0;
+    /** radians, negative looks down */
+    pitch = 0;
 
-    minDistance = 0;               // > 0 disables first person
+    /** > 0 disables first person */
+    minDistance = 0;
     maxDistance = 20;
-    firstPersonThreshold = 0.5;    // zooming in below this goes all the way to first person
+    /** zooming in below this goes all the way to first person */
+    firstPersonThreshold = 0.5;
 
     pitchLimits: PitchLimits = { min: radians(-80), max: radians(30) };
     firstPersonPitchLimits: PitchLimits = { min: radians(-89), max: radians(89) };
 
-    shoulderOffset = 0;            // sideways camera shift in third person (over-the-shoulder)
-    shoulderFadeDistance = 2;      // the shift fades out as distance goes from this to 0
+    /** sideways camera shift in third person (over-the-shoulder) */
+    shoulderOffset = 0;
+    /** the shift fades out as distance goes from this to 0 */
+    shoulderFadeDistance = 2;
 
     hideTargetInFirstPerson = true;
 
-    collisionObjects: Object3D[] = []; // the camera pulls in rather than passing through these
-    collisionPadding = 0.2;            // distance kept between the camera and a surface
+    /** the camera pulls in rather than passing through these */
+    collisionObjects: Object3D[] = [];
+    /** distance kept between the camera and a surface */
+    collisionPadding = 0.2;
 
-    orbitSensitivity = 0.005;  // radians per pixel
-    zoomSensitivity = 0.001;   // per wheel delta unit (multiplicative zoom)
-    zoomDamping = 12;          // higher = snappier; 0 = instant
-    followDamping = 0;         // 0 = locked to the target
+    /** radians per pixel */
+    orbitSensitivity = 0.005;
+    /** per wheel delta unit (multiplicative zoom) */
+    zoomSensitivity = 0.001;
+    /** higher = snappier; 0 = instant */
+    zoomDamping = 12;
+    /** 0 = locked to the target */
+    followDamping = 0;
 
     onModeChange?: (firstPerson: boolean) => void;
 

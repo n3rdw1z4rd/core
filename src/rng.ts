@@ -22,8 +22,10 @@ export class Rng {
         return this.random.uint();
     }
 
-    // random integer in [min, max); range(max) is [0, max). Non-integer bounds are rounded up,
-    // so the result is always an integer inside the requested range.
+    /**
+     * random integer in [min, max); range(max) is [0, max). Non-integer bounds are rounded up,
+     * so the result is always an integer inside the requested range.
+     */
     range(min: number, max?: number): number {
         if (typeof max !== 'number') {
             max = min;

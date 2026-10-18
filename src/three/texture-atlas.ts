@@ -4,11 +4,16 @@ import { LoadTexture, type TextureData } from './texture-utils';
 export type UV = [number, number];
 
 export interface AtlasParams {
-    tileWidth?: number,   // pixels, default 16
-    tileHeight?: number,  // pixels, default tileWidth
-    offsetX?: number,     // pixels from the left edge before the first column, default 0
-    offsetY?: number,     // pixels from the top edge before the first row, default 0
-    spacing?: number,     // pixels between neighbouring tiles, default 0
+    /** pixels, default 16 */
+    tileWidth?: number,
+    /** pixels, default tileWidth */
+    tileHeight?: number,
+    /** pixels from the left edge before the first column, default 0 */
+    offsetX?: number,
+    /** pixels from the top edge before the first row, default 0 */
+    offsetY?: number,
+    /** pixels between neighbouring tiles, default 0 */
+    spacing?: number,
 }
 
 /**
@@ -21,7 +26,8 @@ export interface AtlasParams {
 export class TextureAtlas {
     readonly texture: Texture;
 
-    readonly width: number;   // texture size in pixels
+    /** texture size in pixels */
+    readonly width: number;
     readonly height: number;
 
     readonly tileWidth: number;
@@ -30,7 +36,8 @@ export class TextureAtlas {
     readonly offsetY: number;
     readonly spacing: number;
 
-    readonly columns: number; // tiles per row
+    /** tiles per row */
+    readonly columns: number;
     readonly rows: number;
 
     get tileCount(): number { return this.columns * this.rows; }
@@ -71,7 +78,7 @@ export class TextureAtlas {
         return [x / this.width, 1 - y / this.height];
     }
 
-    // a Lambert material using this atlas, set up for pixel-art tiles with transparency
+    /** a Lambert material using this atlas, set up for pixel-art tiles with transparency */
     createMaterial(params: MeshLambertMaterialParameters = {}): MeshLambertMaterial {
         return new MeshLambertMaterial({
             map: this.texture,
