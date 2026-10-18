@@ -1,4 +1,5 @@
 import { clamp, TAU, PI } from "./math";
+import { XY } from "./types";
 
 /**
  * Anything a 2D context accepts as a fill or stroke style: a CSS color string, a gradient or a pattern.
@@ -112,10 +113,15 @@ export class CanvasRenderer {
 
     /** the canvas being drawn on */
     get canvas(): HTMLCanvasElement { return this.context.canvas; }
+
     /** canvas width in pixels */
     get width(): number { return this.canvas.width; }
+
     /** canvas height in pixels */
     get height(): number { return this.canvas.height; }
+
+    /** canvas center in pixels */
+    get center(): XY { return { x: Math.floor(this.width / 2), y: Math.floor(this.height / 2) } }
 
     /**
      * @param canvas defaults to a new canvas element, not attached to the page (append {@link CanvasRenderer.canvas} yourself)
