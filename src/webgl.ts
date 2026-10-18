@@ -1,7 +1,11 @@
 // WebGL2 wrappers: thin, functional helpers over the raw API. They can be used on their own, and
 // WebGlRenderer builds on them. Nothing here touches WebGL at import time, so importing is safe anywhere.
 
-/** literal GLenum values so importing this module doesn't require WebGL2RenderingContext to exist */
+/**
+ * Literal GLenum values, so importing this module doesn't require `WebGL2RenderingContext` to exist.
+ *
+ * @category WebGL
+ */
 export enum ShaderType {
     /** gl.VERTEX_SHADER */
     VERTEX = 0x8B31,
@@ -15,6 +19,8 @@ export enum ShaderType {
  * Creates a WebGL2 context. Throws (instead of returning null) when WebGL2 isn't available.
  *
  * @param canvas defaults to a new canvas element
+ *
+ * @category WebGL
  */
 export function CreateWebGlContext(
     canvas?: HTMLCanvasElement | OffscreenCanvas,
@@ -34,6 +40,8 @@ export function CreateWebGlContext(
  * Sizes the drawing buffer to `width` x `height` CSS pixels times the pixel ratio (sharp on
  * high-DPI screens) and sets the viewport. Without a size, uses the canvas's parent (or its own)
  * size on the page. Returns whether the size changed.
+ *
+ * @category WebGL
  */
 export function ResizeWebGlContext(
     gl: WebGL2RenderingContext,
@@ -82,7 +90,11 @@ function describeShaderError(log: string, source: string): string {
     return [log.trim(), '', ...excerpt].join('\n').trimEnd();
 }
 
-/** Compiles a shader; throws an Error quoting the failing source lines. */
+/**
+ * Compiles a shader; throws an Error quoting the failing source lines.
+ *
+ * @category WebGL
+ */
 export function CompileShader(gl: WebGL2RenderingContext, type: ShaderType, source: string): WebGLShader {
     const shader = gl.createShader(type);
 
@@ -106,6 +118,8 @@ export function CompileShader(gl: WebGL2RenderingContext, type: ShaderType, sour
 /**
  * Links a program from shader sources (or compiled shaders). Shaders compiled here are deleted
  * after linking; ones passed in are left to the caller.
+ *
+ * @category WebGL
  */
 export function CreateProgram(
     gl: WebGL2RenderingContext,
@@ -147,14 +161,27 @@ export function CreateProgram(
     return program;
 }
 
+/**
+ * An active vertex attribute of a linked program, from {@link GetProgramLocations}.
+ *
+ * @category WebGL
+ */
 export interface AttributeInfo {
+    /** attribute location (the first one, for matrices) */
     location: number,
     /** GL type of the attribute (gl.FLOAT_VEC3, gl.FLOAT_MAT4, ...) */
     type: number,
+    /** array length (1 for non-arrays) */
     size: number,
 }
 
+/**
+ * An active uniform of a linked program, from {@link GetProgramLocations}.
+ *
+ * @category WebGL
+ */
 export interface UniformInfo {
+    /** location to pass to `gl.uniform*` */
     location: WebGLUniformLocation,
     /** GL type (gl.FLOAT_VEC3, gl.SAMPLER_2D, ...) */
     type: number,
@@ -164,11 +191,23 @@ export interface UniformInfo {
     textureUnit?: number,
 }
 
+/**
+ * A program's active attributes and uniforms, by name.
+ *
+ * @category WebGL
+ */
 export type ProgramLocations = {
+    /** by attribute name; built-ins (`gl_*`) are left out */
     attributes: Record<string, AttributeInfo>,
+    /** by uniform name (arrays by their base name); uniform block members are left out */
     uniforms: Record<string, UniformInfo>,
 };
 
+/**
+ * A linked program (`program`) with its attribute and uniform info, from {@link CreateProgramInfo}.
+ *
+ * @category WebGL
+ */
 export type ProgramInfo = ProgramLocations & { program: WebGLProgram };
 
 function isSamplerType(gl: WebGL2RenderingContext, type: number): boolean {
@@ -194,6 +233,8 @@ function samplerTarget(gl: WebGL2RenderingContext, type: number): number | undef
 /**
  * Active attributes and uniforms of a linked program. Array uniforms are listed by their base
  * name (`uLights[0]` -> `uLights`); samplers are given consecutive texture units.
+ *
+ * @category WebGL
  */
 export function GetProgramLocations(gl: WebGL2RenderingContext, program: WebGLProgram): ProgramLocations {
     const attributes: Record<string, AttributeInfo> = {};
@@ -232,19 +273,34 @@ export function GetProgramLocations(gl: WebGL2RenderingContext, program: WebGLPr
     return { attributes, uniforms };
 }
 
-/** Links a program and collects its attribute and uniform info. */
+/**
+ * Links a program and collects its attribute and uniform info.
+ *
+ * @category WebGL
+ */
 export function CreateProgramInfo(gl: WebGL2RenderingContext, vertexShaderSource: string, fragmentShaderSource: string): ProgramInfo {
     const program = CreateProgram(gl, vertexShaderSource, fragmentShaderSource);
 
     return { program, ...GetProgramLocations(gl, program) };
 }
 
+/**
+ * Deletes the program.
+ *
+ * @category WebGL
+ */
 export function DeleteProgramInfo(gl: WebGL2RenderingContext, info: ProgramInfo): void {
     gl.deleteProgram(info.program);
 }
 
 // ---- uniforms ----
 
+/**
+ * A value for {@link SetUniforms}: a number or boolean for scalars, a numeric array for vectors,
+ * matrices (column-major) and arrays of them, or a texture (or array of textures) for samplers.
+ *
+ * @category WebGL
+ */
 export type UniformValue =
     | number
     | boolean
@@ -263,6 +319,8 @@ const textureOf = (value: unknown): WebGLTexture | undefined => {
  * Sets uniforms by name; the right `gl.uniform*` call comes from each uniform's declared type.
  * Textures are bound to the sampler's texture unit. Names the program doesn't use (e.g. optimized
  * away by the compiler) are ignored. Makes the program current.
+ *
+ * @category WebGL
  */
 export function SetUniforms(gl: WebGL2RenderingContext, info: ProgramInfo, values: Record<string, UniformValue>): void {
     gl.useProgram(info.program);
@@ -333,6 +391,11 @@ function SetUniform(gl: WebGL2RenderingContext, uniform: UniformInfo, value: Uni
 
 // ---- buffers ----
 
+/**
+ * Options for {@link CreateBuffer}.
+ *
+ * @category WebGL
+ */
 export interface BufferOptions {
     /** default gl.ARRAY_BUFFER (gl.ELEMENT_ARRAY_BUFFER for indices) */
     target?: number,
@@ -343,6 +406,8 @@ export interface BufferOptions {
 /**
  * Creates a buffer from data (a plain number array becomes a Float32Array) or with a byte size
  * to fill later with UpdateBuffer.
+ *
+ * @category WebGL
  */
 export function CreateBuffer(gl: WebGL2RenderingContext, data: AllowSharedBufferSource | number[] | number, options: BufferOptions = {}): WebGLBuffer {
     const target = options.target ?? gl.ARRAY_BUFFER;
@@ -361,7 +426,11 @@ export function CreateBuffer(gl: WebGL2RenderingContext, data: AllowSharedBuffer
     return buffer;
 }
 
-/** Writes data into an existing buffer, starting at `byteOffset`. */
+/**
+ * Writes data into an existing buffer, starting at `byteOffset`.
+ *
+ * @category WebGL
+ */
 export function UpdateBuffer(gl: WebGL2RenderingContext, buffer: WebGLBuffer, data: AllowSharedBufferSource | number[], byteOffset = 0, target?: number): void {
     const t = target ?? gl.ARRAY_BUFFER;
 
@@ -372,7 +441,13 @@ export function UpdateBuffer(gl: WebGL2RenderingContext, buffer: WebGLBuffer, da
 
 // ---- vertex arrays ----
 
+/**
+ * Where and how a vertex attribute reads its data, for {@link CreateVertexArray}.
+ *
+ * @category WebGL
+ */
 export interface AttributeSource {
+    /** the buffer holding the data */
     buffer: WebGLBuffer,
     /** components per vertex (per column for matrices) */
     size: number,
@@ -388,14 +463,21 @@ export interface AttributeSource {
     divisor?: number,
 }
 
+/**
+ * A vertex array object and the buffers it reads from, from {@link CreateVertexArray}.
+ *
+ * @category WebGL
+ */
 export interface VertexArrayInfo {
+    /** the vertex array object */
     vao: WebGLVertexArrayObject,
-    /** buffers used, for DeleteVertexArray */
+    /** buffers used, for DeleteVertexArray (an index buffer passed in as a buffer is not included) */
     buffers: WebGLBuffer[],
+    /** the element buffer, when indexed */
     indexBuffer?: WebGLBuffer,
     /** gl.UNSIGNED_SHORT etc. when indexed */
     indexType?: number,
-    /** default draw count (number of indices, when created from an index array) */
+    /** default draw count: the number of indices when created from an index array (or the given `count`); unset otherwise */
     count?: number,
 }
 
@@ -428,6 +510,8 @@ function isIntegerAttribute(gl: WebGL2RenderingContext, type: number): boolean {
  * Attributes the program doesn't use are skipped.
  *
  * @param indices an index array (Uint16Array / Uint32Array / Uint8Array), or an existing buffer and its type
+ *
+ * @category WebGL
  */
 export function CreateVertexArray(
     gl: WebGL2RenderingContext,
@@ -496,7 +580,11 @@ export function CreateVertexArray(
     return result;
 }
 
-/** Deletes the vertex array; with `buffers`, also the buffers it reads from. */
+/**
+ * Deletes the vertex array; with `buffers`, also the buffers it reads from.
+ *
+ * @category WebGL
+ */
 export function DeleteVertexArray(gl: WebGL2RenderingContext, info: VertexArrayInfo, options: { buffers?: boolean } = {}): void {
     gl.deleteVertexArray(info.vao);
 
@@ -507,6 +595,11 @@ export function DeleteVertexArray(gl: WebGL2RenderingContext, info: VertexArrayI
 
 // ---- textures ----
 
+/**
+ * Options for {@link CreateTexture} and {@link LoadWebGlTexture}.
+ *
+ * @category WebGL
+ */
 export interface TextureOptions {
     /** default 'linear' */
     filter?: 'nearest' | 'linear',
@@ -526,17 +619,33 @@ export interface TextureOptions {
     type?: number,
 }
 
+/**
+ * Raw texture contents (or just a size) for {@link CreateTexture} and {@link UpdateTexture}.
+ *
+ * @category WebGL
+ */
 export interface TextureData {
+    /** pixels */
     width: number,
+    /** pixels */
     height: number,
     /** null / undefined = allocate only (e.g. render targets) */
     data?: ArrayBufferView | null,
 }
 
+/**
+ * A 2D texture with its size, from {@link CreateTexture}. Can be passed directly as a sampler uniform.
+ *
+ * @category WebGL
+ */
 export interface TextureInfo {
+    /** the texture object */
     texture: WebGLTexture,
+    /** pixels, as of the last upload */
     width: number,
+    /** pixels, as of the last upload */
     height: number,
+    /** a copy of the options it was created with, reused by {@link UpdateTexture} */
     options: TextureOptions,
 }
 
@@ -583,7 +692,11 @@ function isImageSource(source: unknown): boolean {
     return false;
 }
 
-/** Creates a 2D texture from an image / canvas / video / bitmap, or from raw data. */
+/**
+ * Creates a 2D texture from an image / canvas / video / bitmap, or from raw data.
+ *
+ * @category WebGL
+ */
 export function CreateTexture(gl: WebGL2RenderingContext, source: TexImageSource | TextureData, options: TextureOptions = {}): TextureInfo {
     const texture = gl.createTexture();
 
@@ -608,12 +721,20 @@ export function CreateTexture(gl: WebGL2RenderingContext, source: TexImageSource
     return info;
 }
 
-/** Re-uploads a texture's contents (the size may change); regenerates mipmaps if it has them. */
+/**
+ * Re-uploads a texture's contents (the size may change); regenerates mipmaps if it has them.
+ *
+ * @category WebGL
+ */
 export function UpdateTexture(gl: WebGL2RenderingContext, info: TextureInfo, source: TexImageSource | TextureData): void {
     uploadTexture(gl, info, source);
 }
 
-/** Loads an image from a URL into a texture. */
+/**
+ * Loads an image from a URL into a texture.
+ *
+ * @category WebGL
+ */
 export function LoadWebGlTexture(gl: WebGL2RenderingContext, url: string, options: TextureOptions = {}): Promise<TextureInfo> {
     const image = new Image();
 
@@ -623,27 +744,50 @@ export function LoadWebGlTexture(gl: WebGL2RenderingContext, url: string, option
     return image.decode().then(() => CreateTexture(gl, image, options));
 }
 
+/**
+ * Deletes the texture.
+ *
+ * @category WebGL
+ */
 export function DeleteTexture(gl: WebGL2RenderingContext, info: TextureInfo): void {
     gl.deleteTexture(info.texture);
 }
 
 // ---- render targets ----
 
+/**
+ * An offscreen framebuffer with a color texture, from {@link CreateRenderTarget}.
+ *
+ * @category WebGL
+ */
 export interface RenderTarget {
+    /** the framebuffer object */
     framebuffer: WebGLFramebuffer,
     /** the color output; use it as a sampler uniform */
     texture: TextureInfo,
+    /** the DEPTH24_STENCIL8 renderbuffer, unless created with `depth: false` */
     depth?: WebGLRenderbuffer,
+    /** pixels */
     width: number,
+    /** pixels */
     height: number,
 }
 
+/**
+ * Options for {@link CreateRenderTarget}: the color texture's options, plus `depth`.
+ *
+ * @category WebGL
+ */
 export interface RenderTargetOptions extends Omit<TextureOptions, 'mipmaps' | 'flipY' | 'premultiplyAlpha'> {
     /** depth (and stencil) attachment. Default true. */
     depth?: boolean,
 }
 
-/** An offscreen framebuffer with a color texture (and depth), for render-to-texture and post-processing. */
+/**
+ * An offscreen framebuffer with a color texture (and depth), for render-to-texture and post-processing.
+ *
+ * @category WebGL
+ */
 export function CreateRenderTarget(gl: WebGL2RenderingContext, width: number, height: number, options: RenderTargetOptions = {}): RenderTarget {
     const texture = CreateTexture(gl, { width, height }, options);
     const framebuffer = gl.createFramebuffer();
@@ -675,6 +819,11 @@ export function CreateRenderTarget(gl: WebGL2RenderingContext, width: number, he
     return target;
 }
 
+/**
+ * Reallocates the target's color texture (and depth buffer) at a new size, discarding their contents. Does nothing if the size is unchanged.
+ *
+ * @category WebGL
+ */
 export function ResizeRenderTarget(gl: WebGL2RenderingContext, target: RenderTarget, width: number, height: number): void {
     if (target.width === width && target.height === height) return;
 
@@ -690,12 +839,21 @@ export function ResizeRenderTarget(gl: WebGL2RenderingContext, target: RenderTar
     }
 }
 
-/** Draws into `target` (or the canvas, with null) and sets the viewport to match. */
+/**
+ * Draws into `target` (or the canvas, with null) and sets the viewport to match.
+ *
+ * @category WebGL
+ */
 export function BindRenderTarget(gl: WebGL2RenderingContext, target: RenderTarget | null): void {
     gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
     gl.viewport(0, 0, target?.width ?? gl.drawingBufferWidth, target?.height ?? gl.drawingBufferHeight);
 }
 
+/**
+ * Deletes the framebuffer, its color texture and its depth buffer.
+ *
+ * @category WebGL
+ */
 export function DeleteRenderTarget(gl: WebGL2RenderingContext, target: RenderTarget): void {
     gl.deleteFramebuffer(target.framebuffer);
     DeleteTexture(gl, target.texture);
@@ -704,19 +862,29 @@ export function DeleteRenderTarget(gl: WebGL2RenderingContext, target: RenderTar
 
 // ---- drawing ----
 
+/**
+ * Options for {@link Draw}.
+ *
+ * @category WebGL
+ */
 export interface DrawOptions {
     /** default gl.TRIANGLES */
     mode?: number,
-    /** vertices (or indices); default: the vertex array's count */
+    /** vertices (or indices); default: the vertex array's count (required for non-indexed vertex arrays, which have none) */
     count?: number,
     /** first vertex (or index) */
     offset?: number,
     /** > 0: instanced draw */
     instances?: number,
+    /** set with {@link SetUniforms} before drawing */
     uniforms?: Record<string, UniformValue>,
 }
 
-/** Draws a vertex array with a program; indexed and instanced draws are picked automatically. */
+/**
+ * Draws a vertex array with a program; indexed and instanced draws are picked automatically.
+ *
+ * @category WebGL
+ */
 export function Draw(gl: WebGL2RenderingContext, info: ProgramInfo, vertexArray: VertexArrayInfo, options: DrawOptions = {}): void {
     const mode = options.mode ?? gl.TRIANGLES;
     const count = options.count ?? vertexArray.count;

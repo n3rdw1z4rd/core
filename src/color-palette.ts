@@ -1,4 +1,12 @@
+/**
+ * Color as `[r, g, b]`, each 0-255.
+ * @category Color
+ */
 export type RGB = readonly [number, number, number];
+/**
+ * Flat list of colors, each packed as a `0xRRGGBB` integer, as returned by {@link buildColorPalette}.
+ * @category Color
+ */
 export type ColorPalette = readonly number[];
 
 const DEFAULT_COLORS: readonly RGB[] = [
@@ -45,13 +53,16 @@ function colorRamp(rgb: RGB, steps: number): number[] {
 }
 
 /**
- * Builds a flat color palette: a grayscale ramp (black -> white) followed
- * by a light -> dark ramp for each supplied color.
+ * Builds a flat color palette of packed `0xRRGGBB` integers: a grayscale ramp (black -> white)
+ * followed by a light -> dark ramp for each supplied color. Length is
+ * `grayscaleSteps + colors.length * colorSteps`.
  *
- * @param grayscaleSteps number of grayscale entries, black -> white
- * @param colorSteps number of steps per color, full color -> black
- * @param colors base RGB colors to ramp; defaults to a set of common colors
- *               (white is always included via the grayscale ramp)
+ * @param grayscaleSteps number of grayscale entries, black -> white (a single step is black)
+ * @param colorSteps number of steps per color, from the full color down to 28% of it (never black)
+ * @param colors base RGB colors to ramp; defaults to 14 common colors (red, orange, yellow,
+ *               green, cyan, blue, purple, magenta, pink, brown, tan, olive, teal, maroon).
+ *               White is always included via the grayscale ramp.
+ * @category Color
  */
 export function buildColorPalette(
     grayscaleSteps: number = 8,

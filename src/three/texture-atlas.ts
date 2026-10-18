@@ -1,8 +1,18 @@
 import { MeshLambertMaterial, type MeshLambertMaterialParameters, NearestFilter, type Texture } from 'three';
 import { LoadTexture, type TextureData } from './texture-utils';
 
+/**
+ * Texture coordinate `[u, v]`, each 0..1, with v = 1 at the image's top (three.js convention).
+ *
+ * @category Textures
+ */
 export type UV = [number, number];
 
+/**
+ * Tile layout of a {@link TextureAtlas}.
+ *
+ * @category Textures
+ */
 export interface AtlasParams {
     /** pixels, default 16 */
     tileWidth?: number,
@@ -21,25 +31,42 @@ export interface AtlasParams {
  * right, top to bottom, starting at 0.
  *
  * Not a material: use `atlas.texture` as the `map` of any material, or `createMaterial()`
- * for the common Lambert setup.
+ * for the common Lambert setup. The texture's `magFilter` is set to `NearestFilter`.
+ *
+ * ```ts
+ * const atlas = await TextureAtlas.load('tiles.png', { tileWidth: 16 });
+ * const material = atlas.createMaterial();
+ * const [u, v] = atlas.getUV(5, 0, 0); // bottom-left of tile 5
+ * ```
+ *
+ * @category Textures
  */
 export class TextureAtlas {
+    /** the whole sheet */
     readonly texture: Texture;
 
     /** texture size in pixels */
     readonly width: number;
+    /** texture size in pixels */
     readonly height: number;
 
+    /** pixels */
     readonly tileWidth: number;
+    /** pixels */
     readonly tileHeight: number;
+    /** pixels from the left edge before the first column */
     readonly offsetX: number;
+    /** pixels from the top edge before the first row */
     readonly offsetY: number;
+    /** pixels between neighbouring tiles */
     readonly spacing: number;
 
     /** tiles per row */
     readonly columns: number;
+    /** tiles per column (only whole tiles count) */
     readonly rows: number;
 
+    /** `columns * rows` */
     get tileCount(): number { return this.columns * this.rows; }
 
     constructor(textureData: TextureData, params: AtlasParams = {}) {
@@ -60,6 +87,7 @@ export class TextureAtlas {
         this.rows = Math.floor((this.height - this.offsetY + this.spacing) / (this.tileHeight + this.spacing));
     }
 
+    /** Loads the image at `url` (see {@link LoadTexture}) and builds an atlas from it. */
     static load(url: string, params?: AtlasParams): Promise<TextureAtlas> {
         return LoadTexture(url).then((textureData: TextureData) => new TextureAtlas(textureData, params));
     }

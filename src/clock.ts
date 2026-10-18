@@ -1,5 +1,16 @@
+/**
+ * Milliseconds in one second.
+ *
+ * @category Events & Timing
+ */
 export const ONE_SECOND = 1000;
 
+/**
+ * Called by {@link Clock.start} every animation frame with the capped delta time and the elapsed
+ * time, both in seconds.
+ *
+ * @category Events & Timing
+ */
 export type ClockCallback = (deltaTime: number, elapsedTime: number) => void;
 
 /**
@@ -12,6 +23,8 @@ export type ClockCallback = (deltaTime: number, elapsedTime: number) => void;
  * or advance it from a loop something else drives (three.js, WebXR):
  *
  *     renderer.setAnimationLoop((time) => { const dt = clock.tick(time); ... });
+ *
+ * @category Events & Timing
  */
 export class Clock {
     /**
@@ -32,6 +45,7 @@ export class Clock {
     private _fpsFrames: number = 0;
     private _fpsTime: number = 0;
 
+    /** seconds since the previous tick, capped at `maxDeltaTime`; 0 on the first tick */
     get deltaTime(): number { return this._deltaTime; }
 
     /**
@@ -40,7 +54,9 @@ export class Clock {
      */
     get elapsedTime(): number { return this._elapsedTime; }
 
+    /** frames per second, rounded; recomputed about once a second, 0 until the first second has passed */
     get fps(): number { return this._fps; }
+    /** whether {@link Clock.start} is driving the loop (manual {@link Clock.tick} calls don't count) */
     get isRunning(): boolean { return this._isRunning; }
 
     /**
@@ -97,6 +113,7 @@ export class Clock {
         this._rafId = requestAnimationFrame(frame);
     }
 
+    /** Stops the loop started by {@link Clock.start}. Timing state is kept until the next `start()`. */
     stop(): void {
         this._isRunning = false;
         cancelAnimationFrame(this._rafId);

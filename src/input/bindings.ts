@@ -1,16 +1,41 @@
 // Bindings are plain JSON-serializable objects, so action maps (and players' rebinds) can be saved.
 
+/**
+ * Modifier keys that must also be held for a key {@link Binding} to count (left or right side).
+ * Modifiers left out are not checked, so a binding without `ctrl` still fires while Ctrl is held.
+ *
+ * @category Input
+ */
 export interface KeyModifiers {
+    /** require Shift */
     shift?: boolean,
+    /** require Ctrl */
     ctrl?: boolean,
+    /** require Alt */
     alt?: boolean,
+    /** require Meta (Windows / Command key) */
     meta?: boolean,
 }
 
+/**
+ * A mouse or pen button, as numbered by `PointerEvent.button` (0 to 4).
+ *
+ * @category Input
+ */
 export type MouseButton = 'left' | 'middle' | 'right' | 'back' | 'forward';
+/**
+ * A mouse wheel direction.
+ *
+ * @category Input
+ */
 export type WheelDirection = 'up' | 'down' | 'left' | 'right';
 
-/** W3C "standard" gamepad mapping (Xbox names; on PlayStation A = Cross, B = Circle, X = Square, Y = Triangle) */
+/**
+ * W3C "standard" gamepad mapping, in button-index order (Xbox names; on PlayStation A = Cross,
+ * B = Circle, X = Square, Y = Triangle).
+ *
+ * @category Input
+ */
 export const GAMEPAD_BUTTONS = [
     'A', 'B', 'X', 'Y',
     'LB', 'RB', 'LT', 'RT',
@@ -20,31 +45,91 @@ export const GAMEPAD_BUTTONS = [
     'Home',
 ] as const;
 
+/**
+ * A gamepad button name from {@link GAMEPAD_BUTTONS}.
+ *
+ * @category Input
+ */
 export type GamepadButton = typeof GAMEPAD_BUTTONS[number];
 
+/**
+ * Standard-mapping gamepad stick axes, in axis-index order; Y is positive downwards.
+ *
+ * @category Input
+ */
 export const GAMEPAD_AXES = ['leftX', 'leftY', 'rightX', 'rightY'] as const; // Y is positive downwards
 
+/**
+ * A gamepad axis name from {@link GAMEPAD_AXES}.
+ *
+ * @category Input
+ */
 export type GamepadAxis = typeof GAMEPAD_AXES[number];
 
+/**
+ * The touch gestures recognized by {@link GestureRecognizer}.
+ *
+ * @category Input
+ */
 export const GESTURES = [
     'tap', 'doubleTap', 'longPress',
     'swipeLeft', 'swipeRight', 'swipeUp', 'swipeDown',
     'pinchIn', 'pinchOut',
 ] as const;
 
+/**
+ * A gesture name from {@link GESTURES}.
+ *
+ * @category Input
+ */
 export type Gesture = typeof GESTURES[number];
 
+/**
+ * Which hand a VR controller is held in.
+ *
+ * @category Input
+ */
 export type XRHand = 'left' | 'right';
 
-/** WebXR "xr-standard" mapping; A/X and B/Y are the primary/secondary face buttons of each hand */
+/**
+ * WebXR "xr-standard" controller buttons, in button-index order; A/X and B/Y are the
+ * primary/secondary face buttons of each hand.
+ *
+ * @category Input
+ */
 export const XR_BUTTONS = ['trigger', 'squeeze', 'touchpad', 'thumbstick', 'primary', 'secondary'] as const;
 
+/**
+ * A VR controller button name from {@link XR_BUTTONS}.
+ *
+ * @category Input
+ */
 export type XRButton = typeof XR_BUTTONS[number];
 
+/**
+ * WebXR "xr-standard" controller axes (touchpad, thumbstick), in axis-index order; Y is positive downwards.
+ *
+ * @category Input
+ */
 export const XR_AXES = ['padX', 'padY', 'thumbX', 'thumbY'] as const; // Y is positive downwards
 
+/**
+ * A VR controller axis name from {@link XR_AXES}.
+ *
+ * @category Input
+ */
 export type XRAxis = typeof XR_AXES[number];
 
+/**
+ * One physical input that can trigger an action: a plain, JSON-serializable object, usually made
+ * with {@link key}, {@link mouse}, {@link wheel}, {@link pad}, {@link padAxis}, {@link gesture},
+ * {@link xr} or {@link xrAxis}.
+ *
+ * `type` selects the kind of control; the other fields name it. For `padAxis` and `xrAxis`,
+ * `direction` picks the half of the axis: 1 = positive, -1 = negative (Y axes are positive downwards).
+ * Key `modifiers` must also be held, see {@link KeyModifiers}.
+ * @category Input
+ */
 export type Binding =
     | { type: 'key', code: string, modifiers?: KeyModifiers }
     | { type: 'mouse', button: MouseButton }
@@ -55,32 +140,69 @@ export type Binding =
     | { type: 'xr', hand: XRHand, button: XRButton }
     | { type: 'xrAxis', hand: XRHand, axis: XRAxis, direction: 1 | -1 };
 
-/** A physical key, by `KeyboardEvent.code` (layout independent: 'KeyW' is W on QWERTY, Z on AZERTY). */
+/**
+ * A physical key, by `KeyboardEvent.code` (layout independent: 'KeyW' is W on QWERTY, Z on AZERTY).
+ *
+ * @category Input
+ */
 export const key = (code: string, modifiers?: KeyModifiers): Binding =>
     modifiers ? { type: 'key', code, modifiers } : { type: 'key', code };
 
-/** A mouse (or pen) button. */
+/**
+ * A mouse (or pen) button.
+ *
+ * @category Input
+ */
 export const mouse = (button: MouseButton): Binding => ({ type: 'mouse', button });
 
-/** A wheel direction: one press per wheel step. */
+/**
+ * A wheel direction: pressed for one frame whenever the wheel moves that way.
+ *
+ * @category Input
+ */
 export const wheel = (direction: WheelDirection): Binding => ({ type: 'wheel', direction });
 
-/** A gamepad button (standard mapping). */
+/**
+ * A gamepad button (standard mapping).
+ *
+ * @category Input
+ */
 export const pad = (button: GamepadButton): Binding => ({ type: 'pad', button });
 
-/** One direction of a gamepad stick axis, e.g. padAxis('leftX', -1) for "left stick left". */
+/**
+ * One direction of a gamepad stick axis, e.g. padAxis('leftX', -1) for "left stick left".
+ *
+ * @category Input
+ */
 export const padAxis = (axis: GamepadAxis, direction: 1 | -1): Binding => ({ type: 'padAxis', axis, direction });
 
-/** A touch gesture. */
+/**
+ * A touch gesture.
+ *
+ * @category Input
+ */
 export const gesture = (name: Gesture): Binding => ({ type: 'gesture', gesture: name });
 
-/** A VR controller button. */
+/**
+ * A VR controller button.
+ *
+ * @category Input
+ */
 export const xr = (hand: XRHand, button: XRButton): Binding => ({ type: 'xr', hand, button });
 
-/** One direction of a VR controller axis. */
+/**
+ * One direction of a VR controller axis.
+ *
+ * @category Input
+ */
 export const xrAxis = (hand: XRHand, axis: XRAxis, direction: 1 | -1): Binding => ({ type: 'xrAxis', hand, axis, direction });
 
-/** Identifies the physical control behind a binding (modifiers aside). */
+/**
+ * Identifies the physical control behind a binding (modifiers aside), e.g. `'key:KeyW'` or
+ * `'padAxis:leftX:-1'`.
+ *
+ * @category Input
+ */
 export function controlId(binding: Binding): string {
     switch (binding.type) {
         case 'key': return `key:${binding.code}`;
@@ -94,6 +216,12 @@ export function controlId(binding: Binding): string {
     }
 }
 
+/**
+ * Whether two bindings refer to the same control; key bindings must also require the same modifiers
+ * (a missing modifier counts as `false`).
+ *
+ * @category Input
+ */
 export function bindingsEqual(a: Binding, b: Binding): boolean {
     if (controlId(a) !== controlId(b)) return false;
     if (a.type !== 'key' || b.type !== 'key') return true;
@@ -122,7 +250,9 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
  * A readable name for a binding, e.g. for "Press Space to jump" prompts. Pass `keyLabels` (from
- * `Input.loadKeyboardLayout()`) to name keys as printed on the player's keyboard.
+ * {@link Input.loadKeyboardLayout}) to name keys as printed on the player's keyboard.
+ *
+ * @category Input
  */
 export function bindingLabel(binding: Binding, keyLabels?: ReadonlyMap<string, string>): string {
     switch (binding.type) {

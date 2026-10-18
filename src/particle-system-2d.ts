@@ -5,7 +5,12 @@ import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partitio
 import { Random } from './random';
 import { ParticleRenderer } from './particle-renderer';
 
-/** attraction matrix in [-1, 1); seeded from `seed` so it can be reproduced */
+/**
+ * A `size` x `size` attraction matrix with values in [-1, 1). Deterministic: the same `size` and
+ * `seed` always give the same matrix.
+ *
+ * @category Particles
+ */
 export function randomMatrix(size: number, seed: number = 0): number[][] {
     const rows: number[][] = [];
 
@@ -38,8 +43,30 @@ const colors: Color[] = [
     Color.MAGENTA,
 ];
 
+/**
+ * A "particle life" simulation: 2000 particles of 5 colors attract or repel each other according
+ * to a seeded {@link randomMatrix} and are drawn with a {@link ParticleRenderer}. The world is the
+ * unit square [0, 1) and wraps at the edges (forces act across them too).
+ *
+ * ```ts
+ * const renderer = new ParticleRenderer();
+ * const particles = new ParticleSystem2d(42);
+ * const clock = new Clock();
+ *
+ * renderer.appendTo(document.body);
+ *
+ * clock.start((dt) => {
+ *     particles.update(renderer, dt);
+ *     renderer.render();
+ * });
+ * ```
+ *
+ * @category Particles
+ */
 export class ParticleSystem2d {
+    /** number of particles (fixed) */
     public readonly particleCount = 2000;
+    /** the seed the starting state was generated from */
     public readonly seed: number;
 
     private _particleSize = 2;
@@ -52,7 +79,11 @@ export class ParticleSystem2d {
 
     private _spatialPartition: SpatialPartition2d;
 
-    /** the same seed always produces the same starting state (positions, colors, attraction matrix) */
+    /**
+     * The same seed always produces the same starting state (positions, colors, attraction matrix).
+     *
+     * @param seed defaults to a random seed from the shared `rng`, so each instance differs
+     */
     constructor(seed: number = rng.nextUint()) {
         this.seed = seed;
         this._attractionMatrix = randomMatrix(colors.length, seed);
@@ -171,6 +202,11 @@ export class ParticleSystem2d {
         }
     };
 
+    /**
+     * Advances the simulation by `dt` seconds and draws every particle into the renderer's buffer
+     * with {@link ParticleRenderer.setPixel}. Does not call {@link ParticleRenderer.render}.
+     * `dt` is not capped, so pass a clamped delta time (e.g. from {@link Clock}).
+     */
     public update(renderer: ParticleRenderer, dt: number) {
         this._updateVelocities(dt);
         this._updatePositions(dt, renderer);

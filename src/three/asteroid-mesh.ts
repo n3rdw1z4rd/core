@@ -1,17 +1,41 @@
 import { IcosahedronGeometry, Mesh, MeshStandardMaterial } from 'three';
 import type { NoiseFunction3D } from '../types';
 
+/**
+ * Options for the {@link AsteroidMesh} constructor.
+ *
+ * @category Geometry & Meshes
+ */
 export interface AsteroidOptions {
+    /** shapes the surface; expected to return roughly -1..1 */
     noise3d: NoiseFunction3D;
+    /** base radius before displacement, default 1 */
     radius?: number;
+    /** IcosahedronGeometry subdivision level, default 1 */
     detail?: number;
+    /** noise frequency: vertex positions are multiplied by this before sampling, default 1 */
     noiseScale?: number;
+    /** each vertex moves by `noise * displacement` times its distance from the center, default 0.1 */
     displacement?: number;
     /** optional extra detail layer, sampled at twice the frequency and half the weight */
     secondaryNoise?: NoiseFunction3D;
+    /** 0xRRGGBB, default 0x888888 */
     color?: number;
 }
 
+/**
+ * Lumpy rock: an icosphere whose vertices are pushed in and out by 3D noise, with a
+ * `MeshStandardMaterial`. The geometry is non-indexed, so normals are per face (a faceted look).
+ * Deterministic for a deterministic noise function.
+ *
+ * ```ts
+ * import { createNoise3D } from 'simplex-noise';
+ *
+ * const rock = new AsteroidMesh({ noise3d: createNoise3D(() => rng.nextFloat()), radius: 2, detail: 3, displacement: 0.25 });
+ * ```
+ *
+ * @category Geometry & Meshes
+ */
 export class AsteroidMesh extends Mesh {
     constructor(options: AsteroidOptions) {
         const radius = options.radius ?? 1;

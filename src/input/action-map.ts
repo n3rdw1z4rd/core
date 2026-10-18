@@ -1,26 +1,61 @@
 import { type Binding, bindingsEqual, key, pad, padAxis } from './bindings';
 
+/**
+ * Deadzone given to new actions when none is specified.
+ *
+ * @category Input
+ */
 export const DEFAULT_DEADZONE = 0.2;
 
+/**
+ * A named action in an {@link ActionMap}.
+ *
+ * @category Input
+ */
 export interface Action {
+    /** the action's name */
     readonly name: string,
     /** raw values at or below this don't count (sticks, triggers) */
     deadzone: number,
+    /** inputs that trigger the action; the strongest one wins */
     readonly bindings: Binding[],
 }
 
+/**
+ * The serialized form of an {@link ActionMap} (from {@link ActionMap.toJSON}), keyed by action name.
+ *
+ * Each entry holds the action's `deadzone` and `bindings` (see {@link Action}).
+ *
+ * @category Input
+ */
 export type ActionMapJSON = Record<string, { deadzone: number, bindings: Binding[] }>;
 
-/** Named actions and the inputs bound to them, like Godot's InputMap. */
+/**
+ * Named actions and the inputs bound to them, like Godot's InputMap. Every {@link Input} has one as
+ * {@link Input.actions}; the methods that change it return `this` for chaining.
+ *
+ * ```ts
+ * input.actions
+ *     .add('jump', [key('Space'), pad('A')])
+ *     .bind('jump', gesture('tap'));
+ *
+ * localStorage.setItem('bindings', JSON.stringify(input.actions));
+ * ```
+ *
+ * @category Input
+ */
 export class ActionMap {
     private readonly _actions = new Map<string, Action>();
 
+    /** action names, in the order they were added */
     get names(): string[] { return [...this._actions.keys()]; }
 
+    /** Whether an action with this name exists. */
     has(name: string): boolean {
         return this._actions.has(name);
     }
 
+    /** The action with this name, or `undefined`. */
     get(name: string): Action | undefined {
         return this._actions.get(name);
     }
@@ -38,6 +73,7 @@ export class ActionMap {
         return this;
     }
 
+    /** Removes an action, if it exists. */
     remove(name: string): this {
         this._actions.delete(name);
         return this;
@@ -56,6 +92,7 @@ export class ActionMap {
         return this;
     }
 
+    /** Removes a binding (compared with {@link bindingsEqual}) from an action, if present. */
     unbind(name: string, binding: Binding): this {
         const action = this._actions.get(name);
 
@@ -72,11 +109,13 @@ export class ActionMap {
         return this.names.filter(name => this._actions.get(name)!.bindings.some(b => bindingsEqual(b, binding)));
     }
 
+    /** Removes all actions. */
     clear(): this {
         this._actions.clear();
         return this;
     }
 
+    /** A JSON-serializable copy of all actions, for saving rebinds; see {@link ActionMap.load}. */
     toJSON(): ActionMapJSON {
         const json: ActionMapJSON = {};
 
@@ -98,7 +137,10 @@ export class ActionMap {
         return this;
     }
 
-    /** Godot-style `ui_*` actions for menus and dialogs. */
+    /**
+     * Godot-style `ui_*` actions for menus and dialogs (`ui_accept`, `ui_cancel`, `ui_left`, `ui_right`,
+     * `ui_up`, `ui_down`, `ui_page_up`, `ui_page_down`), with a 0.5 deadzone; replaces existing ones.
+     */
     addDefaults(): this {
         const ui = { deadzone: 0.5 };
 

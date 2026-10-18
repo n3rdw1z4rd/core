@@ -4,6 +4,11 @@ import {
     type RenderTarget, ResizeWebGlContext, type VertexArrayInfo,
 } from './webgl';
 
+/**
+ * Options for the {@link WebGlRenderer} constructor.
+ *
+ * @category WebGL
+ */
 export interface RendererParams {
     /** default: a new canvas */
     canvas?: HTMLCanvasElement,
@@ -20,10 +25,27 @@ export interface RendererParams {
  * drawing, and context-loss notifications. Everything else is the webgl.ts wrappers on `gl`.
  * There is no render loop and no resource tracking: run your own loop (e.g. with Clock) and
  * delete what you create.
+ *
+ * ```ts
+ * const renderer = new WebGlRenderer({ parent: document.body });
+ * const program = renderer.createProgram(vertexSource, fragmentSource);
+ * const quad = CreateVertexArray(renderer.gl, program, {
+ *     aPosition: { buffer: CreateBuffer(renderer.gl, [-1, -1, 1, -1, -1, 1, 1, 1]), size: 2 },
+ * });
+ *
+ * new Clock().start((dt, time) => {
+ *     renderer.clear();
+ *     renderer.draw(program, quad, { mode: renderer.gl.TRIANGLE_STRIP, count: 4, uniforms: { uTime: time } });
+ * });
+ * ```
+ *
+ * @category WebGL
  */
 export class WebGlRenderer {
+    /** the WebGL2 context; use it with the {@link CreateBuffer}, {@link CreateTexture}, ... helpers */
     readonly gl: WebGL2RenderingContext;
 
+    /** drawing buffer pixels per CSS pixel; applied on the next `resize()` */
     pixelRatio: number;
 
     /**
@@ -31,21 +53,27 @@ export class WebGlRenderer {
      * texture is gone. Stop drawing until onContextRestored, then recreate your resources.
      */
     readonly onContextLost = new Observable<void>();
+    /** The GPU context is back after {@link WebGlRenderer.onContextLost}: recreate programs, buffers and textures. */
     readonly onContextRestored = new Observable<void>();
 
     private _width = 0;   // CSS pixels
     private _height = 0;
     private readonly _listeners: [string, EventListener][] = [];
 
+    /** the canvas the context draws on */
     get canvas(): HTMLCanvasElement { return this.gl.canvas as HTMLCanvasElement; }
 
     /** Size in CSS pixels (the drawing buffer is this times `pixelRatio`). */
     get width(): number { return this._width; }
+    /** Height in CSS pixels. */
     get height(): number { return this._height; }
+    /** `width / height`, or 1 while the height is 0 */
     get aspectRatio(): number { return this._height > 0 ? this._width / this._height : 1; }
 
+    /** whether the GPU context is currently lost (`draw()` does nothing meanwhile) */
     get isContextLost(): boolean { return this.gl.isContextLost(); }
 
+    /** Creates the context (throws without WebGL2), enables depth testing, and appends to `params.parent` if given. */
     constructor(params: RendererParams = {}) {
         this.gl = CreateWebGlContext(params.canvas, params.attributes);
         this.pixelRatio = params.pixelRatio ?? globalThis.devicePixelRatio ?? 1;
@@ -102,7 +130,10 @@ export class WebGlRenderer {
         return ResizeWebGlContext(this.gl, width, height, this.pixelRatio) || changed;
     }
 
-    /** Clears the bound target (color, plus depth and stencil). */
+    /**
+     * Clears the bound target to `color` (RGBA in 0..1, alpha default 1) and, with `depth`
+     * (default true), also the depth and stencil buffers.
+     */
     clear(color: ArrayLike<number> = [0, 0, 0, 1], depth = true): void {
         const gl = this.gl;
 
@@ -115,10 +146,12 @@ export class WebGlRenderer {
         BindRenderTarget(this.gl, target);
     }
 
+    /** Compiles and links a program and collects its attributes and uniforms ({@link CreateProgramInfo}). Throws on errors. */
     createProgram(vertexShaderSource: string, fragmentShaderSource: string): ProgramInfo {
         return CreateProgramInfo(this.gl, vertexShaderSource, fragmentShaderSource);
     }
 
+    /** Draws with {@link Draw}; skipped while the context is lost. */
     draw(info: ProgramInfo, vertexArray: VertexArrayInfo, options?: DrawOptions): void {
         if (this.isContextLost) return;
 

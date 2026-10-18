@@ -1,19 +1,37 @@
 import { Group, type Object3D, PerspectiveCamera, Raycaster, Vector3 } from 'three';
 import { clamp, lerp, radians, saturate } from '../math';
 
+/**
+ * Options for the {@link CameraRig} constructor.
+ *
+ * @category Camera
+ */
 export interface CameraRigParams {
+    /** camera to use; default: a new PerspectiveCamera built from `fov`, `aspect`, `near`, `far` */
     camera?: PerspectiveCamera,
+    /** degrees, vertical; default 70 (ignored when `camera` is given) */
     fov?: number,
+    /** default 2 (ignored when `camera` is given) */
     aspect?: number,
+    /** default 0.1 (ignored when `camera` is given) */
     near?: number,
+    /** default 1000 (ignored when `camera` is given) */
     far?: number,
+    /** object to follow; see {@link CameraRig.target} */
     target?: Object3D,
+    /** starting zoom distance, default 5; clamped like {@link CameraRig.distance} */
     distance?: number,
 }
 
+/**
+ * Pitch range for a {@link CameraRig}.
+ *
+ * @category Camera
+ */
 export interface PitchLimits {
     /** radians; negative looks down */
     min: number,
+    /** radians; positive looks up */
     max: number,
 }
 
@@ -32,8 +50,23 @@ const damp = (current: number, target: number, damping: number, deltaTime: numbe
  *
  * Add the rig to the scene (not to the target), feed it input with `orbit()` / `dolly()`, and call
  * `update(deltaTime)` once per frame.
+ *
+ * ```ts
+ * const rig = new CameraRig({ target: player, distance: 6 });
+ * scene.add(rig);
+ *
+ * addEventListener('mousemove', (e) => rig.orbit(e.movementX, e.movementY));
+ * addEventListener('wheel', (e) => rig.dolly(e.deltaY));
+ *
+ * // each frame
+ * rig.update(deltaTime);
+ * renderer.render(scene, rig.camera);
+ * ```
+ *
+ * @category Camera
  */
 export class CameraRig extends Group {
+    /** the camera to render with; a child of `gimbal` */
     readonly camera: PerspectiveCamera;
     /** pitch */
     readonly gimbal = new Group();
@@ -50,11 +83,14 @@ export class CameraRig extends Group {
 
     /** > 0 disables first person */
     minDistance = 0;
+    /** furthest zoom distance */
     maxDistance = 20;
     /** zooming in below this goes all the way to first person */
     firstPersonThreshold = 0.5;
 
+    /** pitch range in third person; default -80° to 30° */
     pitchLimits: PitchLimits = { min: radians(-80), max: radians(30) };
+    /** pitch range in first person; the range blends between the two while zooming */
     firstPersonPitchLimits: PitchLimits = { min: radians(-89), max: radians(89) };
 
     /** sideways camera shift in third person (over-the-shoulder) */
@@ -62,6 +98,7 @@ export class CameraRig extends Group {
     /** the shift fades out as distance goes from this to 0 */
     shoulderFadeDistance = 2;
 
+    /** set `target.visible = false` while in first person */
     hideTargetInFirstPerson = true;
 
     /** the camera pulls in rather than passing through these */
@@ -78,6 +115,7 @@ export class CameraRig extends Group {
     /** 0 = locked to the target */
     followDamping = 0;
 
+    /** called from `update()` when the camera switches between first and third person */
     onModeChange?: (firstPerson: boolean) => void;
 
     private _targetDistance: number;   // where the zoom is heading
@@ -94,6 +132,10 @@ export class CameraRig extends Group {
 
     /** Zoom distance the rig is easing towards; 0 = first person. */
     get distance(): number { return this._targetDistance; }
+    /**
+     * Jumps to a zoom distance without easing, clamped to [`minDistance`, `maxDistance`]; below
+     * `firstPersonThreshold` becomes 0 (first person) unless `minDistance > 0`.
+     */
     set distance(value: number) {
         this._targetDistance = this._distance = this._cameraDistance = this._clampDistance(value);
     }
@@ -101,6 +143,7 @@ export class CameraRig extends Group {
     /** Current distance of the camera from the pivot, after smoothing and collision. */
     get cameraDistance(): number { return this._cameraDistance; }
 
+    /** whether the camera is currently closer than `firstPersonThreshold` (as of the last `update()`) */
     get isFirstPerson(): boolean { return this._firstPerson; }
 
     constructor(params: CameraRigParams = {}) {
@@ -140,6 +183,12 @@ export class CameraRig extends Group {
         this._targetDistance = this._clampDistance(this._targetDistance);
     }
 
+    /**
+     * Follows the target, eases zoom, applies yaw / pitch and collision, and positions the camera.
+     * Call once per frame.
+     *
+     * @param deltaTime seconds since the last update
+     */
     update(deltaTime: number): void {
         // pivot: the target's eye position, or the rig's own position when there is no target
         if (this.target) {

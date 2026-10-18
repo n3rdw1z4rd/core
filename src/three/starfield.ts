@@ -1,6 +1,16 @@
 import { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, PointLight, Points, PointsMaterial, SphereGeometry, Vector3 } from 'three';
 import { rng } from '../rng';
 
+/**
+ * Points spread uniformly over a sphere's surface, for a distant star backdrop (point size 5 with
+ * size attenuation, 0.9 opacity). Positions come from the shared {@link rng}, so they differ every
+ * run.
+ *
+ * @param radius sphere radius in world units
+ * @param count number of stars
+ * @param color 0xRRGGBB
+ * @category Geometry & Meshes
+ */
 export function CreateStarfield(
     radius = 1000,
     count = 5000,
@@ -34,6 +44,13 @@ export function CreateStarfield(
     return stars;
 }
 
+/**
+ * A sun: a bright unlit sphere (radius 50, color 0xffddaa) plus a white `PointLight` (intensity
+ * 10, no distance falloff) at the same spot.
+ *
+ * @param position where to put both, in the group's space; default the origin
+ * @category Geometry & Meshes
+ */
 export function CreateSystemStar(position?: Vector3): Group {
     const star = new Group();
 

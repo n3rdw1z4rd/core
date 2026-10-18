@@ -3,6 +3,11 @@ import { Map3D } from '../map3d';
 import { Random } from '../random';
 import type { ColorPalette } from '../color-palette';
 
+/**
+ * Options for {@link buildVoxelGeometry} and {@link VoxelGeometry}.
+ *
+ * @category Voxels
+ */
 export interface BuildVoxelGeometryOptions {
     /** voxel value -> 0xRRGGBB (sRGB) */
     palette?: ColorPalette,
@@ -48,7 +53,20 @@ const planeKey = (d: number, side: number, slice: number): number => (slice + 0x
  * and their voxels count for ambient occlusion.
  *
  * The geometry has position, normal and color attributes and an index; use a material with
- * `vertexColors: true`.
+ * `vertexColors: true`. The output is deterministic: the same voxels and options always produce
+ * the same buffers.
+ *
+ * ```ts
+ * const voxels = new Map3D();
+ * voxels.setArea(0, 0, 0, 7, 0, 7, 0); // 8x1x8 slab of palette index 0
+ * voxels.set(3, 1, 3, 1);
+ *
+ * const geometry = buildVoxelGeometry(voxels, { palette: [0x55aa33, 0x8b5a2b] });
+ * scene.add(new Mesh(geometry, new MeshLambertMaterial({ vertexColors: true })));
+ * ```
+ *
+ * @returns `options.target` if given, otherwise a new geometry
+ * @category Voxels
  */
 export function buildVoxelGeometry(voxels: Map3D, options: BuildVoxelGeometryOptions = {}): BufferGeometry {
     const palette = options.palette ?? [];
@@ -241,13 +259,22 @@ function cornerOcclusion(
     return [occlusion(-1, -1), occlusion(1, -1), occlusion(1, 1), occlusion(-1, 1)];
 }
 
-/** Geometry that owns its voxels; call `update()` after changing them. */
+/**
+ * Geometry that owns its voxels; call `update()` after changing them. See
+ * {@link buildVoxelGeometry} for how voxels are meshed, and {@link VoxelMesh} for an editable mesh
+ * that tracks changes for you.
+ *
+ * @category Voxels
+ */
 export class VoxelGeometry extends BufferGeometry {
     type = 'VoxelGeometry';
 
+    /** voxel data (palette indices); the map's default value is empty */
     voxels: Map3D;
+    /** meshing options used by every `update()` */
     options: Omit<BuildVoxelGeometryOptions, 'target'>;
 
+    /** Builds the geometry right away. */
     constructor(voxels: Map3D = new Map3D(), options: Omit<BuildVoxelGeometryOptions, 'target'> = {}) {
         super();
 
@@ -257,6 +284,7 @@ export class VoxelGeometry extends BufferGeometry {
         this.update();
     }
 
+    /** Rebuilds the geometry from `voxels` and `options`. */
     update(): this {
         buildVoxelGeometry(this.voxels, { ...this.options, target: this });
 

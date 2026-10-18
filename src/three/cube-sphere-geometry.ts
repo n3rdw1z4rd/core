@@ -21,10 +21,18 @@ const FACES: readonly { n: readonly number[], u: readonly number[], v: readonly 
  *
  * The geometry has positions, normals and an index; it has no UVs, since one set of UVs can't
  * wrap a sphere without seams (use triplanar mapping or vertex colors for surfaces).
+ *
+ * ```ts
+ * const planet = new CubeSphereGeometry(10, 64)                  // radius 5
+ *     .applyFractalBrownianMotion(noise3d, 5, 0.5, 0.3, 0.4);   // up to ±0.4 height
+ * ```
+ *
+ * @category Geometry & Meshes
  */
 export class CubeSphereGeometry extends BufferGeometry {
     readonly type: string = 'CubeSphereGeometry';
 
+    /** `size / 2`: the undisplaced radius */
     readonly radius: number;
 
     // unit direction of every vertex; displacement always starts from these, so it doesn't accumulate

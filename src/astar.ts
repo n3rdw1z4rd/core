@@ -5,9 +5,16 @@ import type { XY } from './types';
 /**
  * Cost of stepping onto tile (x, y). Return `Infinity` for blocked tiles. Costs should be >= 1
  * (the heuristic assumes it); use larger values for slower terrain or occupied tiles.
+ *
+ * @category Pathfinding & Procedural
  */
 export type StepCost = (x: number, y: number) => number;
 
+/**
+ * Options for {@link findPath}.
+ *
+ * @category Pathfinding & Procedural
+ */
 export interface PathOptions {
     /** 8-way movement; a diagonal step costs SQRT2 * the tile's cost. Default false. */
     diagonal?: boolean,
@@ -54,6 +61,15 @@ interface Node {
  * The returned path excludes `start` and ends on the goal (or, with `adjacent`, on a tile next to
  * it). Returns [] if `start` already satisfies the goal, or if no path is found (unless `partial`).
  * The same inputs always produce the same path.
+ *
+ * ```ts
+ * const walls = new Set(['2,0', '2,1', '2,2']);
+ * const cost: StepCost = (x, y) => walls.has(`${x},${y}`) ? Infinity : 1;
+ *
+ * const path = findPath({ x: 0, y: 1 }, { x: 4, y: 1 }, cost, { diagonal: true });
+ * ```
+ *
+ * @category Pathfinding & Procedural
  */
 export function findPath(start: XY, goal: XY, cost: StepCost, options: PathOptions = {}): XY[] {
     const diagonal = options.diagonal ?? false;

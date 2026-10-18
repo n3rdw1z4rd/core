@@ -41,8 +41,30 @@ const Colors = [
     [1, 0, 1, 1], // magenta,
 ];
 
+/**
+ * "Particle life" simulation in 3D: 1000 colored points in five species that attract or repel each
+ * other according to a random species-by-species matrix, forming moving clusters. Particles live in
+ * a wrapping unit cube; the group is offset by -0.5 so the cube is centred on its origin (scale it
+ * to resize).
+ *
+ * Neighbours are found with a {@link SpatialPartition3d}. Points are drawn at a fixed 4 pixels and
+ * sorted back to front each update.
+ *
+ * ```ts
+ * const life = new ParticleSystem3d(42);
+ * life.scale.setScalar(10);
+ * scene.add(life);
+ *
+ * // each frame
+ * life.update(camera, deltaTime);
+ * ```
+ *
+ * @category Particles
+ */
 export class ParticleSystem3d extends Group {
+    /** number of particles; fixed */
     public readonly particleCount = 1000;
+    /** the seed the starting state came from */
     public readonly seed: number;
 
     private _geometry: BufferGeometry;
@@ -236,6 +258,10 @@ export class ParticleSystem3d extends Group {
         this._geometry.attributes.color.needsUpdate = true;
     }
 
+    /**
+     * Advances the simulation by `dt` seconds and refreshes the points, sorted back to front as
+     * seen from `camera`.
+     */
     public update(camera: PerspectiveCamera, dt: number) {
         this._updateVelocities(dt);
         this._updatePositions(dt);

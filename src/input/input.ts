@@ -3,13 +3,32 @@ import { ActionMap } from './action-map';
 import { type GestureFrame, GestureRecognizer, type TouchPoint } from './gestures';
 import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, XR_AXES, XR_BUTTONS, type XRHand, controlId } from './bindings';
 
-/** 0 = keyboard, mouse, pen, touch and VR; 1, 2, ... = gamepads. */
+/**
+ * 0 = keyboard, mouse, pen, touch and VR; 1, 2, ... = gamepads.
+ *
+ * @category Input
+ */
 export type InputDevice = number;
 
+/**
+ * The kind of device the player last used, see {@link Input.lastDevice}.
+ *
+ * @category Input
+ */
 export type InputDeviceType = 'keyboard' | 'mouse' | 'pen' | 'touch' | 'gamepad' | 'xr';
 
+/**
+ * When an {@link Input.onAction} callback fires: as the action becomes pressed, or released.
+ *
+ * @category Input
+ */
 export type ActionPhase = 'pressed' | 'released';
 
+/**
+ * Options for the {@link Input} constructor.
+ *
+ * @category Input
+ */
 export interface InputOptions {
     /** where key events are read; default: window */
     keyboardTarget?: EventTarget,
@@ -21,11 +40,21 @@ export interface InputOptions {
     preventContextMenu?: boolean,
 }
 
+/**
+ * Restricts an action query to one {@link InputDevice}; without it, any device counts.
+ *
+ * @category Input
+ */
 export interface DeviceQuery {
     /** only this device; default: any */
     device?: InputDevice,
 }
 
+/**
+ * A connected gamepad, see {@link Input.gamepads}.
+ *
+ * @category Input
+ */
 export interface GamepadInfo {
     /** gamepad.index + 1 */
     device: InputDevice,
@@ -35,21 +64,41 @@ export interface GamepadInfo {
     standard: boolean,
 }
 
-/** The parts of a WebXR XRSession that Input reads (structural, so no WebXR typings are required). */
+/**
+ * The parts of a WebXR XRSession that Input reads (structural, so no WebXR typings are required).
+ *
+ * @category Input
+ */
 export interface XRSessionLike extends EventTarget {
+    /** the session's controllers */
     readonly inputSources: Iterable<{
+        /** `'left'` or `'right'`; other values are ignored */
         readonly handedness: string,
+        /** buttons in {@link XR_BUTTONS} order (value 0..1) and axes in {@link XR_AXES} order (-1..1) */
         readonly gamepad?: { readonly buttons: readonly { pressed: boolean, value: number }[], readonly axes: readonly number[] } | null,
     }>,
 }
 
+/**
+ * Mouse or pen state, see {@link Input.pointer}. Positions update on pointer events; deltas and
+ * wheel totals on each {@link Input.update}.
+ *
+ * @property y pixels, relative to the target's top-left, y down
+ * @property ndcY -1..1, y up
+ * @property deltaY movement during the last frame, pixels
+ * @property wheelY wheel movement during the last frame, in pixels (positive = down)
+ * @property tiltY pen: degrees
+ *
+ * @category Input
+ */
 export interface PointerState {
+    /** the kind of pointer that last moved or pressed */
     type: 'mouse' | 'pen',
     /** pixels, relative to the target's top-left */
     x: number, y: number,
     /** -1..1, y up (for raycasting) */
     ndcX: number, ndcY: number,
-    /** movement during the last frame (works under pointer lock) */
+    /** movement during the last frame, pixels (works under pointer lock) */
     deltaX: number, deltaY: number,
     /** wheel movement during the last frame, in pixels */
     wheelX: number, wheelY: number,
@@ -59,10 +108,15 @@ export interface PointerState {
     tiltX: number, tiltY: number,
 }
 
+/**
+ * Options for {@link Input.captureBinding}.
+ *
+ * @category Input
+ */
 export interface CaptureOptions {
-    /** KeyboardEvent.code that cancels (resolves null). Default 'Escape'. */
+    /** KeyboardEvent.code that cancels (resolves null); `null` for none. Default 'Escape'. */
     cancelKey?: string | null,
-    /** only accept these kinds of input */
+    /** only accept these kinds of input; others are ignored and still reach actions */
     types?: Binding['type'][],
 }
 
@@ -109,8 +163,11 @@ const isEditable = (target: EventTarget | null): boolean => {
  *     if (input.isActionJustPressed('jump')) player.jump();
  *
  * Call `dispose()` to remove all listeners.
+ *
+ * @category Input
  */
 export class Input {
+    /** the actions to query; holds the `ui_*` defaults unless {@link InputOptions.defaults} is false */
     readonly actions = new ActionMap();
 
     /** Thresholds for taps, swipes etc. can be tuned via `gestureRecognizer.thresholds`. */
@@ -124,12 +181,16 @@ export class Input {
     /** Fingers currently on the target. */
     get touches(): TouchPoint[] { return this.gestureRecognizer.touches; }
 
+    /** the mouse or pen; not updated by touch */
     readonly pointer: PointerState = {
         type: 'mouse', x: 0, y: 0, ndcX: 0, ndcY: 0, deltaX: 0, deltaY: 0, wheelX: 0, wheelY: 0, pressure: 0, tiltX: 0, tiltY: 0,
     };
 
+    /** notified when {@link Input.lastDevice} changes, e.g. to switch on-screen button prompts */
     readonly onDeviceChange = new Observable<InputDeviceType>();
+    /** notified from update() when a gamepad is first seen */
     readonly onGamepadConnected = new Observable<GamepadInfo>();
+    /** notified from update() when a gamepad goes away; its held controls are released */
     readonly onGamepadDisconnected = new Observable<GamepadInfo>();
 
     private readonly _gamepads = new Map<InputDevice, Gamepad>();
@@ -157,8 +218,10 @@ export class Input {
 
     private _capture?: { options: CaptureOptions, resolve: (binding: Binding | null) => void };
 
+    /** The kind of device that produced the most recent input (initially `'keyboard'`). */
     get lastDevice(): InputDeviceType { return this._lastDevice; }
 
+    /** Whether the pointer is locked to the target, see {@link Input.lockPointer}. */
     get isPointerLocked(): boolean {
         return typeof document !== 'undefined' && !!this._target && document.pointerLockElement === this._target;
     }
@@ -264,15 +327,18 @@ export class Input {
 
     // ---- actions ----
 
+    /** Whether the action is held past its deadzone. Unknown actions return false (and warn once). */
     isActionPressed(action: string, query?: DeviceQuery): boolean {
         return this._state(action, query)?.pressed ?? false;
     }
 
+    /** Whether the action became pressed in the last update(). */
     isActionJustPressed(action: string, query?: DeviceQuery): boolean {
         const state = this._state(action, query);
         return !!state && state.pressed && !state.wasPressed;
     }
 
+    /** Whether the action was released in the last update(). */
     isActionJustReleased(action: string, query?: DeviceQuery): boolean {
         const state = this._state(action, query);
         return !!state && !state.pressed && state.wasPressed;
@@ -298,6 +364,7 @@ export class Input {
      * aren't faster). Y is positive towards `positiveY`, as in Godot's get_vector("left", "right", "up", "down").
      *
      * @param options.deadzone default: the average of the four actions' deadzones
+     * @returns `x` and `y` in -1..1; `{ x: 0, y: 0 }` inside the deadzone
      */
     getVector(negativeX: string, positiveX: string, negativeY: string, positiveY: string, options: DeviceQuery & { deadzone?: number } = {}): { x: number, y: number } {
         const names = [negativeX, positiveX, negativeY, positiveY];
@@ -335,10 +402,12 @@ export class Input {
 
     // ---- raw device state ----
 
+    /** Whether a key (by `KeyboardEvent.code`) is held right now, regardless of actions. */
     isKeyPressed(code: string): boolean {
         return (this._controls.get(0)!.get(`key:${code}`)?.value ?? 0) > 0;
     }
 
+    /** Whether a mouse or pen button is held right now, regardless of actions. */
     isMouseButtonPressed(button: MouseButton): boolean {
         return (this._controls.get(0)!.get(`mouse:${button}`)?.value ?? 0) > 0;
     }
@@ -362,10 +431,12 @@ export class Input {
 
     // ---- pointer lock ----
 
+    /** Requests pointer lock on the target (browsers only allow it from a user gesture, e.g. a click). */
     lockPointer(): void {
         (this._target as Element | undefined)?.requestPointerLock?.();
     }
 
+    /** Exits pointer lock if the target holds it. */
     unlockPointer(): void {
         if (this.isPointerLocked) document.exitPointerLock();
     }
@@ -385,6 +456,7 @@ export class Input {
         });
     }
 
+    /** Ends a pending {@link Input.captureBinding}, resolving it with `null`. */
     cancelCapture(): void {
         const capture = this._capture;
 
@@ -393,7 +465,7 @@ export class Input {
     }
 
     /**
-     * Loads the keyboard layout (where supported, e.g. Chromium) so `bindingLabel()` names keys
+     * Loads the keyboard layout (where supported, e.g. Chromium) so {@link bindingLabel} names keys
      * as printed on the player's keyboard: KeyW is "Z" on AZERTY.
      */
     async loadKeyboardLayout(): Promise<ReadonlyMap<string, string> | undefined> {
@@ -408,8 +480,10 @@ export class Input {
         return this._keyLabels;
     }
 
+    /** The layout loaded by {@link Input.loadKeyboardLayout}, if any: `KeyboardEvent.code` to printed key. */
     get keyLabels(): ReadonlyMap<string, string> | undefined { return this._keyLabels; }
 
+    /** Removes all event listeners and action callbacks, cancels any capture and detaches XR. */
     dispose(): void {
         for (const [target, type, listener, options] of this._listeners) {
             target.removeEventListener(type, listener, options);
@@ -544,7 +618,10 @@ export class Input {
 
     // ---- gamepads ----
 
-    /** Vibrates a gamepad (where supported). Magnitudes are 0..1. */
+    /**
+     * Vibrates a gamepad (where supported). Magnitudes are 0..1; `strong` defaults to 1, `weak` to
+     * `strong`, `duration` to 200 ms.
+     */
     rumble(device: InputDevice, options: { strong?: number, weak?: number, duration?: number } = {}): void {
         const actuator = (this._gamepads.get(device) as (Gamepad & { vibrationActuator?: { playEffect?: (type: string, params: object) => Promise<unknown> } }) | undefined)?.vibrationActuator;
 
@@ -629,6 +706,7 @@ export class Input {
     private _xrEnd?: () => void;
     private readonly _xrHeld = new Set<string>(); // control ids the controllers currently drive
 
+    /** The session set by {@link Input.attachXR}, until detached or ended. */
     get xrSession(): XRSessionLike | undefined { return this._xrSession; }
 
     /**
@@ -645,6 +723,7 @@ export class Input {
         session.addEventListener('end', this._xrEnd);
     }
 
+    /** Stops reading the XR session and releases its controls. */
     detachXR(): void {
         if (this._xrSession && this._xrEnd) this._xrSession.removeEventListener('end', this._xrEnd);
 

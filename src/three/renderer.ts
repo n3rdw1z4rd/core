@@ -1,11 +1,30 @@
 import { Vector2, WebGLRenderer, type WebGLRendererParameters } from "three";
 
+/**
+ * `WebGLRenderer` that uses the device pixel ratio and can size itself to its parent element.
+ *
+ * ```ts
+ * const renderer = new Renderer({ antialias: true });
+ * container.appendChild(renderer.domElement);
+ *
+ * // each frame
+ * if (renderer.resize()) {
+ *     camera.aspect = renderer.aspectRatio;
+ *     camera.updateProjectionMatrix();
+ * }
+ * renderer.render(scene, camera);
+ * ```
+ *
+ * @category Rendering
+ */
 export class Renderer extends WebGLRenderer {
     private _size = new Vector2();
 
     /** CSS pixels, same as setSize() and resize(); domElement.width/height are CSS pixels * pixel ratio */
     get width(): number { return this.getSize(this._size).width; }
+    /** CSS pixels */
     get height(): number { return this.getSize(this._size).height; }
+    /** width / height */
     get aspectRatio(): number { return this.width / this.height; }
 
     constructor(parameters?: WebGLRendererParameters) {
@@ -14,6 +33,12 @@ export class Renderer extends WebGLRenderer {
         this.setPixelRatio(window.devicePixelRatio);
     }
 
+    /**
+     * Sets the size in CSS pixels, if it differs from the current one. A missing `width` / `height`
+     * defaults to the parent element's client size (or the current size when there is no parent).
+     *
+     * @returns whether the size changed
+     */
     resize(width?: number, height?: number): boolean {
         let resized = false;
 

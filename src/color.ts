@@ -1,6 +1,17 @@
 import { clamp } from './math';
 import { log } from './log';
 
+/**
+ * RGBA color with 8-bit channels (integers 0-255), kept in sync with an 8-digit hex string.
+ * Setting a channel rounds and clamps it to 0-255.
+ *
+ * ```ts
+ * new Color(255, 128, 0);           // opaque orange
+ * new Color('#ff8000');             // same, from a hex string
+ * Color.fromHsv(0.5, 1, 1).hexStr;  // '#00ffffff'
+ * ```
+ * @category Color
+ */
 export class Color {
     private _hex: string = '#ffffffff';
     private _r: number = 255;
@@ -8,31 +19,44 @@ export class Color {
     private _b: number = 255;
     private _a: number = 255;
 
+    /** red, 0-255 */
     public get r(): number { return this._r; }
+    /** rounded and clamped to 0-255 */
     public set r(value: number) {
         this._r = Color._channel(value);
         this._hex = this._to_hex();
     }
 
+    /** green, 0-255 */
     public get g(): number { return this._g; }
+    /** rounded and clamped to 0-255 */
     public set g(value: number) {
         this._g = Color._channel(value);
         this._hex = this._to_hex();
     }
 
+    /** blue, 0-255 */
     public get b(): number { return this._b; }
+    /** rounded and clamped to 0-255 */
     public set b(value: number) {
         this._b = Color._channel(value);
         this._hex = this._to_hex();
     }
 
+    /** alpha, 0-255 (255 = opaque) */
     public get a(): number { return this._a; }
+    /** rounded and clamped to 0-255 */
     public set a(value: number) {
         this._a = Color._channel(value);
         this._hex = this._to_hex();
     }
 
+    /**
+     * lowercase `'#rrggbbaa'`. Accepts `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa` when set (alpha
+     * defaults to ff); an invalid string is logged and the color is left unchanged.
+     */
     public get hexStr(): string { return this._hex; }
+    /** `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa`; invalid strings are logged and ignored */
     public set hexStr(value: string) {
         const rgba = Color._parse_hex_color_string(value);
 
@@ -44,8 +68,15 @@ export class Color {
         }
     }
 
+    /** a new `[r, g, b, a]` array, each 0-255 */
     public get rgba(): number[] { return [this._r, this._g, this._b, this._a]; }
 
+    /**
+     * Creates a color from a hex string (as accepted by {@link Color.hexStr}) or from channel
+     * values. Numeric channels are truncated and clamped to 0-255, except that a value strictly
+     * between 0 and 1 is treated as a fraction of 255 (so `0.5` becomes 127, but `1` stays 1).
+     * An invalid string is logged and gives opaque white. Defaults to opaque white.
+     */
     constructor(r: string | number = 255, g: number = 255, b: number = 255, a: number = 255) {
         if (typeof r === 'string') {
             const rgba = Color._parse_hex_color_string(r);
@@ -96,6 +127,11 @@ export class Color {
         ];
     }
 
+    /**
+     * Creates a color from hue, saturation and value, each in [0, 1]
+     * (hues above 1 wrap around; negative hues give black).
+     * @param a alpha, 0-255 (default 255)
+     */
     public static fromHsv(h: number, s: number, v: number, a: number = 255): Color {
         let r: number = 0
         let g: number = 0
@@ -119,18 +155,34 @@ export class Color {
         return new Color(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), a);
     }
 
+    /** new opaque black */
     public static get BLACK(): Color { return new Color(0, 0, 0, 255); }
+    /** new opaque gray (128, 128, 128) */
     public static get GRAY(): Color { return new Color(128, 128, 128, 255); }
+    /** new opaque white */
     public static get WHITE(): Color { return new Color(255, 255, 255, 255); }
+    /** new opaque red (255, 0, 0) */
     public static get RED(): Color { return new Color(255, 0, 0, 255); }
+    /** new opaque green (0, 255, 0) */
     public static get GREEN(): Color { return new Color(0, 255, 0, 255); }
+    /** new opaque blue (0, 0, 255) */
     public static get BLUE(): Color { return new Color(0, 0, 255, 255); }
+    /** new opaque yellow (255, 255, 0) */
     public static get YELLOW(): Color { return new Color(255, 255, 0, 255); }
+    /** new opaque orange (255, 128, 0) */
     public static get ORANGE(): Color { return new Color(255, 128, 0, 255); }
+    /** new opaque purple (128, 0, 128) */
     public static get PURPLE(): Color { return new Color(128, 0, 128, 255); }
+    /** new opaque cyan (0, 255, 255) */
     public static get CYAN(): Color { return new Color(0, 255, 255, 255); }
+    /** new opaque magenta (255, 0, 255) */
     public static get MAGENTA(): Color { return new Color(255, 0, 255, 255); }
 
+    /**
+     * Creates a color from any CSS color string (e.g. `'rebeccapurple'`, `'rgb(0 0 0 / 50%)'`) by
+     * letting the browser compute it. Needs a DOM: it briefly appends an element to
+     * `document.body`. An unrecognised name is logged and gives {@link Color.TRANSPARENT}.
+     */
     public static fromName(name: string): Color {
         const element = document.createElement('div');
         element.style.color = name;
@@ -153,5 +205,6 @@ export class Color {
         }
     }
 
+    /** new fully transparent black (0, 0, 0, 0) */
     public static get TRANSPARENT(): Color { return new Color(0, 0, 0, 0); }
 }

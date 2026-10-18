@@ -2,6 +2,11 @@ import { type Material, Mesh, MeshLambertMaterial } from 'three';
 import { Map3D } from '../map3d';
 import { type BuildVoxelGeometryOptions, VoxelGeometry } from './voxel-geometry';
 
+/**
+ * Box of voxel cells a {@link VoxelMesh} accepts, from the origin.
+ *
+ * @category Voxels
+ */
 export interface VoxelBounds {
     /** x */
     width: number,
@@ -11,6 +16,11 @@ export interface VoxelBounds {
     depth: number,
 }
 
+/**
+ * Options for the {@link VoxelMesh} constructor; the rest are passed on to {@link VoxelGeometry}.
+ *
+ * @category Voxels
+ */
 export interface VoxelMeshOptions extends Omit<BuildVoxelGeometryOptions, 'target'> {
     /** vertexColors is turned on; default: MeshLambertMaterial */
     material?: Material | Material[],
@@ -23,12 +33,24 @@ export interface VoxelMeshOptions extends Omit<BuildVoxelGeometryOptions, 'targe
 /**
  * Editable voxel model: `set()` voxels, then `update()` rebuilds the geometry if anything changed.
  * Voxel values are palette indices; `Map3D`'s default value (-1) means empty.
+ *
+ * ```ts
+ * const model = new VoxelMesh({ palette: [0xff0000, 0x00ff00], bounds: { width: 16, height: 16, depth: 16 } });
+ * scene.add(model);
+ *
+ * model.set(0, 0, 0, 1);
+ * model.update(); // rebuilds once, however many voxels changed
+ * ```
+ *
+ * @category Voxels
  */
 export class VoxelMesh extends Mesh<VoxelGeometry, Material | Material[]> {
+    /** `set()` ignores voxels outside these; undefined = unbounded */
     bounds?: VoxelBounds;
 
     private _dirty = false;
 
+    /** the geometry's voxel data; call `invalidate()` after changing it directly */
     get voxels(): Map3D { return this.geometry.voxels; }
 
     /** geometry is out of date with the voxels */
@@ -46,6 +68,7 @@ export class VoxelMesh extends Mesh<VoxelGeometry, Material | Material[]> {
         this.bounds = bounds;
     }
 
+    /** Whether (x, y, z) is inside `bounds` (always true without bounds). */
     inBounds(x: number, y: number, z: number): boolean {
         if (!this.bounds) return true;
 
@@ -53,6 +76,7 @@ export class VoxelMesh extends Mesh<VoxelGeometry, Material | Material[]> {
             x < this.bounds.width && y < this.bounds.height && z < this.bounds.depth;
     }
 
+    /** Voxel value at (x, y, z); the map's default value (-1 unless you passed your own map) if empty. */
     get(x: number, y: number, z: number): number {
         return this.voxels.get(x, y, z);
     }

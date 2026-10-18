@@ -1,33 +1,52 @@
 import type { Gesture } from './bindings';
 
+/**
+ * A finger currently on the screen, as reported by {@link GestureRecognizer.touches}.
+ *
+ * @property y current position, pixels
+ * @property startY where the finger went down, pixels
+ * @category Input
+ */
 export interface TouchPoint {
+    /** pointer id, from `PointerEvent.pointerId` */
     id: number,
     /** current position, pixels relative to the input target */
     x: number, y: number,
+    /** where the finger went down, pixels */
     startX: number, startY: number,
-    /** ms */
+    /** when the finger went down, ms */
     startTime: number,
 }
 
+/**
+ * Tuning values for {@link GestureRecognizer}.
+ *
+ * @category Input
+ */
 export interface GestureThresholds {
-    /** ms */
+    /** ms, default 250 */
     tapMaxDuration: number,
-    /** px; also how far a long press may drift */
+    /** px; also how far a long press may drift. Default 10 */
     tapMaxMovement: number,
-    /** ms between the two taps */
+    /** ms between the two taps, default 300 */
     doubleTapMaxDelay: number,
-    /** px between the two taps */
+    /** px between the two taps, default 30 */
     doubleTapMaxDistance: number,
-    /** ms */
+    /** ms, default 500 */
     longPressDuration: number,
-    /** px */
+    /** px, default 50 */
     swipeMinDistance: number,
-    /** ms */
+    /** ms, default 500 */
     swipeMaxDuration: number,
-    /** relative scale change per frame that counts as pinching (0.005 = 0.5%) */
+    /** relative scale change per frame that counts as pinching (0.005 = 0.5%, the default) */
     pinchMinChange: number,
 }
 
+/**
+ * What {@link GestureRecognizer.update} recognized since the previous update.
+ *
+ * @category Input
+ */
 export interface GestureFrame {
     /** recognized since the last update */
     gestures: Gesture[],
@@ -60,8 +79,24 @@ const DEFAULT_THRESHOLDS: GestureThresholds = {
 /**
  * Turns touch points into gestures: tap, double tap, long press, swipes (one finger) and
  * pinch / pan / rotate (two fingers). Feed it with down / move / up, call update() once per frame.
+ * Times are in ms and positions in pixels, from any consistent clock and origin. {@link Input} drives
+ * one for you; use this class directly only for custom touch handling.
+ *
+ * Tap, double tap and swipe are reported when the finger lifts, long press while it is still held;
+ * a finger that was ever down together with another one never produces one-finger gestures.
+ *
+ * ```ts
+ * const recognizer = new GestureRecognizer({ longPressDuration: 400 });
+ * el.addEventListener('pointerdown', e => recognizer.down(e.pointerId, e.offsetX, e.offsetY, performance.now()));
+ * // ... move / up / cancel likewise
+ *
+ * const { gestures, pinch } = recognizer.update(performance.now());
+ * ```
+ *
+ * @category Input
  */
 export class GestureRecognizer {
+    /** current thresholds; may be changed at any time */
     readonly thresholds: GestureThresholds = { ...DEFAULT_THRESHOLDS };
 
     private readonly _touches = new Map<number, Tracked>();
@@ -71,14 +106,17 @@ export class GestureRecognizer {
     // two-finger baseline from the previous update
     private _pair?: { a: number, b: number, distance: number, angle: number, cx: number, cy: number };
 
+    /** Copies of the fingers currently down. */
     get touches(): TouchPoint[] {
         return [...this._touches.values()].map(({ id, x, y, startX, startY, startTime }) => ({ id, x, y, startX, startY, startTime }));
     }
 
+    /** @param thresholds overrides for the default thresholds */
     constructor(thresholds: Partial<GestureThresholds> = {}) {
         Object.assign(this.thresholds, thresholds);
     }
 
+    /** A finger touched down. */
     down(id: number, x: number, y: number, time: number): void {
         const multi = this._touches.size > 0;
 
@@ -87,6 +125,7 @@ export class GestureRecognizer {
         this._touches.set(id, { id, x, y, startX: x, startY: y, startTime: time, maxMovement: 0, multi, longPressed: false });
     }
 
+    /** A finger moved; unknown ids are ignored. */
     move(id: number, x: number, y: number): void {
         const touch = this._touches.get(id);
 
@@ -97,6 +136,7 @@ export class GestureRecognizer {
         touch.maxMovement = Math.max(touch.maxMovement, Math.hypot(x - touch.startX, y - touch.startY));
     }
 
+    /** A finger lifted; may queue a tap, double tap or swipe for the next update. */
     up(id: number, x: number, y: number, time: number): void {
         const touch = this._touches.get(id);
 
@@ -131,10 +171,12 @@ export class GestureRecognizer {
         }
     }
 
+    /** Forgets a finger without recognizing anything (e.g. on `pointercancel`). */
     cancel(id: number): void {
         this._touches.delete(id);
     }
 
+    /** Forgets all fingers. Gestures already recognized are still reported by the next update. */
     clear(): void {
         this._touches.clear();
         this._pair = undefined;
