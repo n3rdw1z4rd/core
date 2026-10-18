@@ -2,16 +2,49 @@
     "name": "@n3rdw1z4rd/core",
     "version": "0.18.5",
     "description": "core library",
-    "main": "dist/index.js",
-    "module": "dist/index.mjs",
+    "main": "dist/index.cjs",
+    "module": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./three": {
+            "import": {
+                "types": "./dist/three/index.d.ts",
+                "default": "./dist/three/index.js"
+            },
+            "require": {
+                "types": "./dist/three.d.cts",
+                "default": "./dist/three.cjs"
+            }
+        },
+        "./css/*": "./dist/css/*",
+        "./dist/*": "./dist/*",
+        "./package.json": "./package.json"
+    },
+    "sideEffects": [
+        "*.css"
+    ],
     "files": [
         "dist"
     ],
     "scripts": {
-        "build": "tsup && cp -r ./src/css ./dist/",
-        "dev": "tsup --watch",
-        "test": "npx ts-node src/test"
+        "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
+        "dev": "tsdown --watch",
+        "test": "tsx src/test",
+        "prepublishOnly": "npm test && npm run build",
+        "test:browser": "node scripts/test-browser.mjs",
+        "test:browser:headless": "node scripts/test-browser-headless.mjs",
+        "docs": "typedoc",
+        "docs:watch": "typedoc --watch"
     },
     "repository": {
         "type": "git",
@@ -32,12 +65,11 @@
         "procedural-generation",
         "pathfinding",
         "voxel",
-        "particle-system",
-        "simplex-noise"
+        "particle-system"
     ],
     "author": "",
     "license": "MIT",
-    "type": "commonjs",
+    "type": "module",
     "bugs": {
         "url": "https://github.com/n3rdw1z4rd/core/issues"
     },
@@ -46,17 +78,26 @@
         "heap-js": "^2.7.1"
     },
     "peerDependencies": {
-        "simplex-noise": "^4.0.3",
         "three": "^0.186.1"
+    },
+    "peerDependenciesMeta": {
+        "three": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "@types/three": "^0.186.0",
-        "tsup": "^9.0.0",
+        "esbuild": "^0.27.2",
+        "playwright-core": "^1.56.1",
+        "three": "^0.186.1",
+        "tsdown": "^0.23.0",
+        "tsx": "^4.23.15",
+        "typedoc": "^0.28.20",
         "typescript": "^6.0.3"
     },
     "allowScripts": {
-        "fsevents@2.3.3": true,
         "esbuild@0.27.2": true,
-        "esbuild@0.28.2": true
+        "esbuild@0.28.2": true,
+        "fsevents@2.3.3": true
     }
 }

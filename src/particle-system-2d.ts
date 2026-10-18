@@ -1,17 +1,24 @@
 import { Color } from './color';
+import { fract } from './math';
 import { rng } from './rng';
 import { SpatialPartition2d, SpatialPartitionEntity2d } from './spatial-partition-2d';
 import { Random } from './random';
 import { ParticleRenderer } from './particle-renderer';
 
-export function randomMatrix(size: number): number[][] {
+/**
+ * A `size` x `size` attraction matrix with values in [-1, 1). Deterministic: the same `size` and
+ * `seed` always give the same matrix.
+ *
+ * @category Particles
+ */
+export function randomMatrix(size: number, seed: number = 0): number[][] {
     const rows: number[][] = [];
 
     for (let i = 0; i < size; i++) {
         const row: number[] = [];
 
         for (let j = 0; j < size; j++) {
-            row.push(Random.float(i, j) * 2 - 1);
+            row.push(Random.float(seed, i, j) * 2 - 1);
         }
 
         rows.push(row);
@@ -36,27 +43,60 @@ const colors: Color[] = [
     Color.MAGENTA,
 ];
 
+/**
+ * A "particle life" simulation: 2000 particles of 5 colors attract or repel each other according
+ * to a seeded {@link randomMatrix} and are drawn with a {@link ParticleRenderer}. The world is the
+ * unit square [0, 1) and wraps at the edges (forces act across them too).
+ *
+ * ```ts
+ * const renderer = new ParticleRenderer();
+ * const particles = new ParticleSystem2d(42);
+ * const clock = new Clock();
+ *
+ * renderer.appendTo(document.body);
+ *
+ * clock.start((dt) => {
+ *     particles.update(renderer, dt);
+ *     renderer.render();
+ * });
+ * ```
+ *
+ * @category Particles
+ */
 export class ParticleSystem2d {
+    /** number of particles (fixed) */
     public readonly particleCount = 2000;
+    /** the seed the starting state was generated from */
+    public readonly seed: number;
+    /** seconds; larger `dt` values passed to `update()` are capped to this so a stall can't blow the simulation up */
+    public maxDeltaTime = 0.1;
 
     private _particleSize = 2;
     private _frictionHalfLife = 0.04;
     private _range = 0.1;
-    private _rangeFactor = 0.1;
+    private _forceFactor = 6; // per second; equivalent to the old per-frame factor of 0.1 at 60fps
 
-    private _attractionMatrix: number[][] = randomMatrix(colors.length);
+    private _attractionMatrix: number[][];
     private _particles: Particle[] = [];
 
     private _spatialPartition: SpatialPartition2d;
 
-    constructor() {
+    /**
+     * The same seed always produces the same starting state (positions, colors, attraction matrix).
+     *
+     * @param seed defaults to a random seed from the shared `rng`, so each instance differs
+     */
+    constructor(seed: number = rng.nextUint()) {
+        this.seed = seed;
+        this._attractionMatrix = randomMatrix(colors.length, seed);
+
         for (let i = 0; i < this.particleCount; i++) {
             this._particles.push({
-                x: Random.float(i),
-                y: Random.float(i + 1),
+                x: Random.float(seed, i, 0),
+                y: Random.float(seed, i, 1),
                 vx: 0,
                 vy: 0,
-                color: rng.range(colors.length),
+                color: Math.floor(Random.float(seed, i, 2) * colors.length),
             });
         }
 
@@ -84,15 +124,13 @@ export class ParticleSystem2d {
         for (let y = 0; y < this._spatialPartition.cells.length; y++) {
             for (let x = 0; x < this._spatialPartition.cells[y].length; x++) {
                 const cell = this._spatialPartition.cells[y][x];
+                const neighborCells = this._spatialPartition.getCellNeighbors(x, y);
 
                 for (let i = 0; i < cell.length; i++) {
                     let fx: number = 0;
                     let fy: number = 0;
 
                     const p1: Particle = cell[i] as Particle;
-
-                    // Get neighboring cells
-                    const neighborCells = this._spatialPartition.getCellNeighbors(x, y);
 
                     // Check particles in the same and neighboring cells
                     for (const neighborCell of neighborCells) {
@@ -121,8 +159,9 @@ export class ParticleSystem2d {
                         }
                     }
 
-                    fx *= this._range * this._rangeFactor;
-                    fy *= this._range * this._rangeFactor;
+                    // scale by dt so the simulation runs at the same speed regardless of frame rate
+                    fx *= this._range * this._forceFactor * deltaTimeSeconds;
+                    fy *= this._range * this._forceFactor * deltaTimeSeconds;
 
                     p1.vx *= frictionFactor;
                     p1.vy *= frictionFactor;
@@ -142,11 +181,9 @@ export class ParticleSystem2d {
             particle.x += particle.vx * deltaTimeSeconds;
             particle.y += particle.vy * deltaTimeSeconds;
 
-            if (particle.x < 0) particle.x = 1 + (particle.x % 1);
-            if (particle.x > 1) particle.x = particle.x % 1;
-
-            if (particle.y < 0) particle.y = 1 + (particle.y % 1);
-            if (particle.y > 1) particle.y = particle.y % 1;
+            // wrap into [0, 1) - the old checks let exactly 1.0 through
+            particle.x = fract(particle.x);
+            particle.y = fract(particle.y);
 
             renderer.setPixel(
                 particle.x * renderer.width,
@@ -167,7 +204,14 @@ export class ParticleSystem2d {
         }
     };
 
+    /**
+     * Advances the simulation by `dt` seconds and draws every particle into the renderer's buffer
+     * with {@link ParticleRenderer.setPixel}. Does not call {@link ParticleRenderer.render}.
+     * `dt` is capped to {@link ParticleSystem2d.maxDeltaTime}.
+     */
     public update(renderer: ParticleRenderer, dt: number) {
+        dt = Math.min(dt, this.maxDeltaTime);
+
         this._updateVelocities(dt);
         this._updatePositions(dt, renderer);
     }

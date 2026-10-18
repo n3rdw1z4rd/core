@@ -1,4 +1,4 @@
-import { AStar, type AStarFindPathParams } from './astar';
+import { findPath } from './astar';
 import { Heap } from 'heap-js';
 import { Map2D } from './map2d';
 import { rng } from './rng';
@@ -7,39 +7,96 @@ import { distance2d, squaredDistance } from './math';
 import { Rectangle } from './rectangle';
 import { XY } from './types';
 
+/**
+ * Two rooms to be joined by a corridor.
+ *
+ * @property a first room
+ * @property b second room
+ * @category Pathfinding & Procedural
+ */
 export type RectPair = { a: Rectangle, b: Rectangle };
+/**
+ * Two tiles, e.g. the closest edge tiles of two rooms.
+ *
+ * @property a first point
+ * @property b second point
+ * @category Pathfinding & Procedural
+ */
 export type PointPair = { a: XY, b: XY };
 
+/**
+ * Room placement options for {@link GenerateRooms}.
+ *
+ * @category Pathfinding & Procedural
+ */
 export interface RoomsParams {
+    /** level width and height in tiles, default 64 */
     size?: number,
+    /** smallest room side in tiles, default 3 */
     minSize?: number,
+    /** largest room side in tiles, default 9 */
     maxSize?: number,
+    /** spacing kept around each room and from the level edge in tiles, default 1 */
     padding?: number,
+    /** stop after this many consecutive failed placements, default 1000 */
     maxIterations?: number,
 }
 
+/**
+ * Corridor options for {@link GenerateRooms}.
+ *
+ * @category Pathfinding & Procedural
+ */
 export interface PathsParams {
-    timeout?: number,
+    /** number of shortest unused room connections considered as extra (loop) corridors, default 0 */
     extraPaths?: number,
+    /** chance (0-1) that each considered extra connection is added, default 0.1 */
     extraPathDensity?: number,
-    astarFindPathParams?: AStarFindPathParams,
+    /** tile values corridors may be carved through, default: the map's default value (empty space) */
+    walkableValues?: number[],
 }
 
+/**
+ * Options for {@link GenerateDoors}.
+ *
+ * @category Pathfinding & Procedural
+ */
 export interface DoorsParams {
-    plotDoors?: boolean,
+    /** chance (0-1) that a door is placed at each eligible corridor end, default 0.5 */
     chanceExists?: number,
-    chanceOpen?: number,
-    chanceLocked?: number,
 }
 
+/**
+ * Options for {@link GenerateRooms}.
+ *
+ * @category Pathfinding & Procedural
+ */
 export interface GenerateRoomsParams {
+    /** map to draw into, default a new {@link Map2D} filled with {@link TILE_EMPTY} */
     map?: Map2D,
+    /** room placement options */
     rooms?: RoomsParams,
+    /** corridor options */
     paths?: PathsParams,
 }
 
+/**
+ * Tile value for empty (unused) space.
+ *
+ * @category Pathfinding & Procedural
+ */
 export const TILE_EMPTY = 0;
+/**
+ * Tile value for room floor.
+ *
+ * @category Pathfinding & Procedural
+ */
 export const TILE_FLOOR = 1;
+/**
+ * Tile value for corridor floor.
+ *
+ * @category Pathfinding & Procedural
+ */
 export const TILE_PATH = 2;
 
 const DEFAULT_LEVEL_SIZE = 64;
@@ -49,7 +106,6 @@ const DEFAULT_ROOM_MAX_SIZE = 9;
 const DEFAULT_ROOM_PADDING = 1;
 const DEFAULT_ROOM_MAX_ITERATIONS = 1000;
 
-const DEFAULT_PATH_TIMEOUT = 10000;
 const DEFAULT_PATH_EXTRA_PATHS = 0;
 const DEFAULT_PATH_EXTRA_PATH_DENSITY = 0.1;
 
@@ -102,12 +158,13 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
         const width = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize * aspectRatio)));
         const height = Math.min(maxRoomSize, Math.max(minRoomSize, Math.round(baseSize / aspectRatio)));
 
-        const x = Math.floor(rng.range(1 + padding, size - width - padding));
-        const y = Math.floor(rng.range(1 + padding, size - height - padding));
+        const x = rng.range(1 + padding, size - width - padding);
+        const y = rng.range(1 + padding, size - height - padding);
 
         const room = new Rectangle(x, y, width, height);
 
-        if (!rooms.some((existing: Rectangle) => room.intersects(existing, padding))) {
+        // padding on both rooms: they stay at least 2 * padding apart
+        if (!rooms.some((existing: Rectangle) => room.intersects(existing, padding * 2))) {
             rooms.push(room);
             iterations = 0;
         } else {
@@ -119,14 +176,13 @@ function _generateRooms(params: RoomsParams = {}): Rectangle[] {
 }
 
 function _generateMST(rooms: Rectangle[], params: PathsParams = {}): RectPair[] {
-    const timeout = params.timeout ?? DEFAULT_PATH_TIMEOUT;
     const extraPathLevels = params.extraPaths ?? DEFAULT_PATH_EXTRA_PATHS;
     const extraPathDensity = params.extraPathDensity ?? DEFAULT_PATH_EXTRA_PATH_DENSITY;
 
-    const startTime = Date.now();
-
     const mst: RectPair[] = [];
     const extraPaths: RectPair[] = [];
+
+    if (rooms.length < 2) return [];
 
     const visited = new Set<number>();
     const heap = new Heap<{ cost: number; from: number; to: number }>((a, b) => a.cost - b.cost);
@@ -148,7 +204,7 @@ function _generateMST(rooms: Rectangle[], params: PathsParams = {}): RectPair[] 
         });
     }
 
-    while (visited.size < rooms.length && Date.now() - startTime < timeout) {
+    while (visited.size < rooms.length) {
         let edge = heap.pop();
 
         while (edge && visited.has(edge.to)) {
@@ -203,12 +259,13 @@ function _getRectEdgePoints(rect: Rectangle): XY[] {
     const x2 = rect.x + rect.width - 1;
     const y2 = rect.y + rect.height - 1;
 
-    for (let x1 = rect.x; x1 < x2; x1++) {
+    // inclusive bounds: the old `<` skipped the far corner, and returned nothing for 1-wide rooms
+    for (let x1 = rect.x; x1 <= x2; x1++) {
         points.push({ x: x1, y: rect.y });
         points.push({ x: x1, y: y2 });
     }
 
-    for (let y1 = rect.y; y1 < y2; y1++) {
+    for (let y1 = rect.y; y1 <= y2; y1++) {
         points.push({ x: rect.x, y: y1 });
         points.push({ x: x2, y: y1 });
     }
@@ -236,19 +293,48 @@ function _getShortestPathBetweenRects(rectA: Rectangle, rectB: Rectangle): Point
 }
 
 function _generatePaths(map: Map2D, rooms: Rectangle[], params: PathsParams = {}) {
-    const aStar = new AStar(map);
+    const walkable = params.walkableValues ?? [map.defaultValue];
+    const cost = (x: number, y: number) => walkable.includes(map.get(x, y)) ? 1 : Infinity;
 
     const paths: XY[][] = [];
 
     _generateMST(rooms, params).forEach((rects: RectPair) => {
         const { a, b } = _getShortestPathBetweenRects(rects.a, rects.b);
-        paths.push(aStar.findPath(a, b, params.astarFindPathParams));
+
+        // corridors end next to the target room's edge tile, which is floor (not walkable)
+        paths.push(findPath(a, b, cost, { adjacent: true, maxNodes: Infinity }));
     });
 
     return paths;
 }
 
-export function GenerateRooms(params: GenerateRoomsParams = {}): { map: Map2D, rooms: Rectangle[], paths: XY[][] } {
+/**
+ * Generates a dungeon level: scatters non-overlapping rectangular rooms, joins them with a minimum
+ * spanning tree of A* corridors (plus optional extra ones) and plots both into the map as
+ * {@link TILE_FLOOR} and {@link TILE_PATH}.
+ *
+ * Rooms are placed at random until {@link RoomsParams.maxIterations} placements in a row fail.
+ * Corridors are carved only through {@link PathsParams.walkableValues} tiles; each runs from next to
+ * one room's edge to next to the other's, and is empty if no route exists. Randomness comes from the
+ * shared {@link rng}, so set `rng.seed` first for a reproducible level. Logs its duration.
+ *
+ * ```ts
+ * rng.seed = 1234;
+ * const { map, rooms, paths } = GenerateRooms({ rooms: { size: 48 } });
+ * const doors = GenerateDoors(map, paths);
+ * const walls = GenerateWalls(map);
+ * ```
+ *
+ * @category Pathfinding & Procedural
+ */
+export function GenerateRooms(params: GenerateRoomsParams = {}): {
+    /** the given map (modified) or a new one */
+    map: Map2D,
+    /** the placed rooms */
+    rooms: Rectangle[],
+    /** one tile list per corridor */
+    paths: XY[][],
+} {
     const startTime = Date.now();
 
     const map = params.map ?? new Map2D(TILE_EMPTY);
@@ -264,6 +350,16 @@ export function GenerateRooms(params: GenerateRoomsParams = {}): { map: Map2D, r
     return { map, rooms, paths };
 }
 
+/**
+ * Picks door tiles from the two end tiles of each corridor (corridors shorter than 2 tiles are
+ * skipped). An end qualifies when both its up/down or both its left/right neighbours hold the map's
+ * default value, i.e. it sits in a 1-wide gap; each qualifying end becomes a door with probability
+ * {@link DoorsParams.chanceExists}, using the shared {@link rng}. Does not modify the map.
+ *
+ * @param paths corridors as returned by {@link GenerateRooms}
+ * @returns the door tiles
+ * @category Pathfinding & Procedural
+ */
 export function GenerateDoors(map: Map2D, paths: XY[][], params: DoorsParams = {}): XY[] {
     const chanceExists = params.chanceExists ?? DEFAULT_DOOR_CHANCE_EXISTS;
 
@@ -290,8 +386,14 @@ export function GenerateDoors(map: Map2D, paths: XY[][], params: DoorsParams = {
     return doors;
 }
 
+/**
+ * Returns every tile holding the map's default value that touches (8-way) a non-default tile, each
+ * once: the walls around all rooms and corridors. Does not modify the map.
+ *
+ * @category Pathfinding & Procedural
+ */
 export function GenerateWalls(map: Map2D): XY[] {
-    const walls: XY[] = [];
+    const walls = new Map<string, XY>();
 
     map.forEach((x: number, y: number, _v: number) => {
         DIRECTIONS_8_WAY.forEach((dir: XY) => {
@@ -299,10 +401,10 @@ export function GenerateWalls(map: Map2D): XY[] {
             const ny = dir.y + y;
 
             if (map.get(nx, ny) === map.defaultValue) {
-                walls.push({ x: nx, y: ny });
+                walls.set(`${nx},${ny}`, { x: nx, y: ny }); // de-dupe tiles shared by several floor tiles
             }
         });
     });
 
-    return walls;
+    return [...walls.values()];
 }

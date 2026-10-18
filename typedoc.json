@@ -1,0 +1,39 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "name": "@n3rdw1z4rd/core",
+    "entryPoints": ["src/index.ts", "src/three/index.ts"],
+    "out": "docs",
+    "readme": "README.md",
+    "tsconfig": "tsconfig.json",
+    "excludePrivate": true,
+    "excludeInternal": true,
+    "sort": ["kind", "alphabetical"],
+    "excludeExternals": true,
+    "externalSymbolLinkMappings": { "@types/three": { "*": "https://threejs.org/docs/" } },
+    "treatWarningsAsErrors": true,
+    "headings": { "readme": false },
+    "navigation": {
+        "includeFolders": false,
+        "includeCategories": true
+    },
+    "categorizeByGroup": false,
+    "categoryOrder": [
+        "Math & Random",
+        "Color",
+        "Events & Timing",
+        "Input",
+        "ECS",
+        "Maps & Spatial",
+        "Pathfinding & Procedural",
+        "Canvas 2D",
+        "WebGL",
+        "Particles",
+        "Camera",
+        "Voxels",
+        "Geometry & Meshes",
+        "Textures",
+        "Rendering",
+        "Utilities",
+        "*"
+    ]
+}

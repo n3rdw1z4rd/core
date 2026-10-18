@@ -1,56 +1,129 @@
-import { Observable } from "./observable";
-
+/**
+ * Milliseconds in one second.
+ *
+ * @category Events & Timing
+ */
 export const ONE_SECOND = 1000;
 
+/**
+ * Called by {@link Clock.start} every animation frame with the capped delta time and the elapsed
+ * time, both in seconds.
+ *
+ * @category Events & Timing
+ */
+export type ClockCallback = (deltaTime: number, elapsedTime: number) => void;
+
+/**
+ * Frame timing: delta time, elapsed time and FPS.
+ *
+ * Either let the clock run the loop:
+ *
+ *     clock.start((dt) => { update(dt); render(); });
+ *
+ * or advance it from a loop something else drives (three.js, WebXR):
+ *
+ *     renderer.setAnimationLoop((time) => { const dt = clock.tick(time); ... });
+ *
+ * @category Events & Timing
+ */
 export class Clock {
-    private _fps: number = 0;
-    private _frameCount: number = 0;
-    private _frameTime: number = 0;
+    /**
+     * seconds; caps the delta time after a stall or a hidden tab (browsers pause the frame loop
+     * in background tabs, so the first frame back would otherwise cover the whole absence)
+     */
+    maxDeltaTime: number = 0.1;
+
+    private _callback?: ClockCallback;
+    private _rafId: number = 0;
     private _isRunning: boolean = false;
-    private _lastTime: number = 0;
 
-    readonly onFpsUpdate = new Observable();
-    readonly onFrame = new Observable();
+    private _lastTime: number = -1; // ms; -1 until the first tick
+    private _deltaTime: number = 0;
+    private _elapsedTime: number = 0;
 
-    readonly startTime = performance.now();
+    private _fps: number = 0;
+    private _fpsFrames: number = 0;
+    private _fpsTime: number = 0;
 
-    get elapsedTime(): number { return performance.now() - this.startTime; }
+    /** seconds since the previous tick, capped at `maxDeltaTime`; 0 on the first tick */
+    get deltaTime(): number { return this._deltaTime; }
+
+    /**
+     * seconds since start() (or the first tick), summed from the capped delta times,
+     * so it stays in step with the simulation rather than wall-clock time
+     */
+    get elapsedTime(): number { return this._elapsedTime; }
+
+    /** frames per second, rounded; recomputed about once a second, 0 until the first second has passed */
     get fps(): number { return this._fps; }
+    /** whether {@link Clock.start} is driving the loop (manual {@link Clock.tick} calls don't count) */
     get isRunning(): boolean { return this._isRunning; }
 
-    update(time: number): number {
-        const deltaTime = (time - this._lastTime) / ONE_SECOND;
+    /**
+     * Advances the clock and returns the delta time in seconds. The first tick returns 0.
+     *
+     * @param time timestamp in milliseconds, e.g. from requestAnimationFrame or setAnimationLoop
+     */
+    tick(time: number = performance.now()): number {
+        // first tick only starts the timing: no elapsed time yet, and it opens the fps window
+        if (this._lastTime < 0) {
+            this._lastTime = time;
+            this._fpsTime = time;
+            this._deltaTime = 0;
 
+            return 0;
+        }
+
+        this._deltaTime = Math.min(Math.max(0, (time - this._lastTime) / ONE_SECOND), this.maxDeltaTime);
+        this._elapsedTime += this._deltaTime;
         this._lastTime = time;
 
-        if (this._frameTime + ONE_SECOND >= time) {
-            this._frameCount++;
-        } else {
-            this._frameTime = time;
-            this._fps = this._frameCount;
-            this._frameCount = 0;
+        this._fpsFrames++;
 
-            this.onFpsUpdate.notify(this.fps);
+        if (time - this._fpsTime >= ONE_SECOND) {
+            this._fps = Math.round(this._fpsFrames * ONE_SECOND / (time - this._fpsTime));
+            this._fpsFrames = 0;
+            this._fpsTime = time;
         }
 
-        return deltaTime;
+        return this._deltaTime;
     }
 
-    start() {
-        if (!this._isRunning) {
-            const animate = (time: DOMHighResTimeStamp) => {
-                this.onFrame.notify(this.update(time));
+    /**
+     * Runs `callback` every animation frame with the delta and elapsed time in seconds.
+     * Restarts timing from zero; calling it while running just swaps the callback.
+     */
+    start(callback: ClockCallback): void {
+        this._callback = callback;
 
-                if (this._isRunning)
-                    requestAnimationFrame(animate);
-            };
+        if (this._isRunning) return;
 
-            this._isRunning = true;
-            requestAnimationFrame(animate);
-        }
+        this._isRunning = true;
+        this._reset();
+
+        const frame = (time: DOMHighResTimeStamp) => {
+            this.tick(time);
+            this._callback?.(this._deltaTime, this._elapsedTime);
+
+            if (this._isRunning) {
+                this._rafId = requestAnimationFrame(frame);
+            }
+        };
+
+        this._rafId = requestAnimationFrame(frame);
     }
 
-    stop() {
+    /** Stops the loop started by {@link Clock.start}. Timing state is kept until the next `start()`. */
+    stop(): void {
         this._isRunning = false;
+        cancelAnimationFrame(this._rafId);
+    }
+
+    private _reset(): void {
+        this._lastTime = -1;
+        this._deltaTime = 0;
+        this._elapsedTime = 0;
+        this._fps = 0;
+        this._fpsFrames = 0;
     }
 }
