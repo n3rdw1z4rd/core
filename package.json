@@ -42,7 +42,9 @@
         "test": "tsx src/test",
         "prepublishOnly": "npm test && npm run build",
         "test:browser": "node scripts/test-browser.mjs",
-        "test:browser:headless": "node scripts/test-browser-headless.mjs"
+        "test:browser:headless": "node scripts/test-browser-headless.mjs",
+        "docs": "typedoc",
+        "docs:watch": "typedoc --watch"
     },
     "repository": {
         "type": "git",
@@ -90,6 +92,7 @@
         "three": "^0.186.1",
         "tsdown": "^0.23.0",
         "tsx": "^4.23.15",
+        "typedoc": "^0.28.20",
         "typescript": "^6.0.3"
     },
     "allowScripts": {

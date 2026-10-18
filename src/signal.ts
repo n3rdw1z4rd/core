@@ -1,4 +1,5 @@
-type Subscriber<T> = (value: T) => void;
+/** A Signal subscriber: called with the new value. */
+export type Subscriber<T> = (value: T) => void;
 
 export class Signal<T> {
     private value: T;

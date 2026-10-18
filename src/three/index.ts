@@ -1,3 +1,14 @@
+/**
+ * Three.js helpers: camera rig, voxel meshing, texture atlases, procedural geometry, particles.
+ * Requires the `three` package (an optional peer dependency).
+ *
+ * ```ts
+ * import { CameraRig, buildVoxelGeometry } from '@n3rdw1z4rd/core/three';
+ * ```
+ *
+ * @packageDocumentation
+ * @module @n3rdw1z4rd/core/three
+ */
 export * from './asteroid-mesh';
 export * from './camera-rig';
 export * from './cube-sphere-geometry';

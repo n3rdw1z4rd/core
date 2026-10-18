@@ -5,7 +5,8 @@ export type ComponentType<T extends Component = Component> = new (...args: any[]
 
 type ComponentMap<T extends Component = Component> = Map<Entity, T>;
 
-type Instances<T extends readonly ComponentType[]> = {
+/** The component instances for a tuple of component types, as yielded by {@link ECS.query}. */
+export type ComponentInstances<T extends readonly ComponentType[]> = {
     [K in keyof T]:
     T[K] extends ComponentType<infer U> ? U : never;
 };
@@ -61,7 +62,7 @@ export class ECS {
 
     *query<T extends readonly ComponentType[]>(
         ...types: T
-    ): IterableIterator<[Entity, ...Instances<T>]> {
+    ): IterableIterator<[Entity, ...ComponentInstances<T>]> {
         if (types.length === 0) {
             return;
         }
@@ -103,7 +104,7 @@ export class ECS {
             }
 
             if (matches) {
-                yield [entity, ...(components as Instances<T>)];
+                yield [entity, ...(components as ComponentInstances<T>)];
             }
         }
     }

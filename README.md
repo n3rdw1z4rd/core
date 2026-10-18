@@ -102,4 +102,5 @@ npm test -- astar      # also draws the visual A* demo in the terminal
 npm test -- astar 1234 # the demo with a given seed (each run logs the seed it used)
 npm run test:browser   # WebGL tests in your browser: serves a test page and opens it (refresh to re-run)
 npm run test:browser:headless   # same tests in headless Chrome/Chromium via playwright-core (installed Chrome, or set CHROMIUM_PATH)
+npm run docs           # API reference (TypeDoc) -> docs/index.html; npm run docs:watch regenerates on change
 ```

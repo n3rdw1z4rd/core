@@ -1,3 +1,14 @@
+/**
+ * The main entry point: math and RNG, input, pathfinding, maps, ECS, events, color, canvas and
+ * raw WebGL helpers. Never imports three.js; see {@link "@n3rdw1z4rd/core/three"} for those helpers.
+ *
+ * ```ts
+ * import { rng, findPath, Input } from '@n3rdw1z4rd/core';
+ * ```
+ *
+ * @packageDocumentation
+ * @module @n3rdw1z4rd/core
+ */
 export * from './astar'
 export * from './canvas-renderer'
 export * from './clock'

@@ -278,7 +278,7 @@ export class Input {
      * A 2D direction from four actions, with a circular deadzone and length at most 1 (diagonals
      * aren't faster). Y is positive towards `positiveY`, as in Godot's get_vector("left", "right", "up", "down").
      *
-     * @param deadzone default: the average of the four actions' deadzones
+     * @param options.deadzone default: the average of the four actions' deadzones
      */
     getVector(negativeX: string, positiveX: string, negativeY: string, positiveY: string, options: DeviceQuery & { deadzone?: number } = {}): { x: number, y: number } {
         const names = [negativeX, positiveX, negativeY, positiveY];

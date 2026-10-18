@@ -1,4 +1,5 @@
-type Observer<T> = (value: T, ...args: any[]) => void;
+/** An Observable observer: called with the notified value (and any extra arguments). */
+export type Observer<T> = (value: T, ...args: any[]) => void;
 
 /* Example:
 class Texture {
