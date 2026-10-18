@@ -325,11 +325,16 @@ function _generatePaths(map: Map2D, rooms: Rectangle[], params: PathsParams = {}
  * const walls = GenerateWalls(map);
  * ```
  *
- * @returns `map`: the given map (modified) or a new one; `rooms`: the placed rooms; `paths`: one
- * tile list per corridor
  * @category Pathfinding & Procedural
  */
-export function GenerateRooms(params: GenerateRoomsParams = {}): { map: Map2D, rooms: Rectangle[], paths: XY[][] } {
+export function GenerateRooms(params: GenerateRoomsParams = {}): {
+    /** the given map (modified) or a new one */
+    map: Map2D,
+    /** the placed rooms */
+    rooms: Rectangle[],
+    /** one tile list per corridor */
+    paths: XY[][],
+} {
     const startTime = Date.now();
 
     const map = params.map ?? new Map2D(TILE_EMPTY);

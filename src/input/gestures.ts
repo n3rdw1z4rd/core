@@ -53,7 +53,12 @@ export interface GestureFrame {
     /** two-finger scale change this frame (1 = none, > 1 = fingers apart) */
     pinch: number,
     /** two-finger movement this frame, px */
-    pan: { x: number, y: number },
+    pan: {
+        /** px, positive = right */
+        x: number,
+        /** px, positive = down */
+        y: number,
+    },
     /** two-finger rotation this frame, radians (clockwise on screen) */
     rotate: number,
 }

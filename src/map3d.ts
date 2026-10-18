@@ -26,6 +26,22 @@ export const MAP_3D_MIN_COORD = -OFFSET_3D;
 export const MAP_3D_MAX_COORD = BASE_3D - OFFSET_3D - 1;
 
 /**
+ * One stored cell, as in {@link Map3D.export} and {@link Map3D.import}.
+ *
+ * @category Maps & Spatial
+ */
+export interface Map3DCell {
+    /** cell x */
+    x: number,
+    /** cell y */
+    y: number,
+    /** cell z */
+    z: number,
+    /** the cell's value */
+    n: number,
+}
+
+/**
  * Sparse 3D grid of numbers keyed by integer coordinates, e.g. voxel data. Coordinates are floored,
  * so any point inside a cell addresses that cell. Cells holding `defaultValue` are not stored:
  * setting a cell to it removes the cell, and reading a missing cell returns it.
@@ -157,8 +173,8 @@ export class Map3D {
     }
 
     /** Stored cells as a plain array (e.g. for JSON); the inverse of {@link Map3D.import}. */
-    export(): { x: number, y: number, z: number, n: number }[] {
-        const data: { x: number, y: number, z: number, n: number }[] = [];
+    export(): Map3DCell[] {
+        const data: Map3DCell[] = [];
 
         this.forEach((x: number, y: number, z: number, n: number) => {
             data.push({ x, y, z, n });
@@ -168,7 +184,7 @@ export class Map3D {
     }
 
     /** Replaces the map's contents with cells from {@link Map3D.export} (clears it first). */
-    import(data: { x: number, y: number, z: number, n: number }[]) {
+    import(data: Map3DCell[]) {
         this.clear();
 
         data.forEach(({ x, y, z, n }: { x: number, y: number, z: number, n: number }) => {

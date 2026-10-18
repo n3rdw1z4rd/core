@@ -208,7 +208,10 @@ export type ProgramLocations = {
  *
  * @category WebGL
  */
-export type ProgramInfo = ProgramLocations & { program: WebGLProgram };
+export type ProgramInfo = ProgramLocations & {
+    /** the linked program */
+    program: WebGLProgram,
+};
 
 function isSamplerType(gl: WebGL2RenderingContext, type: number): boolean {
     return samplerTarget(gl, type) !== undefined;

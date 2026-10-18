@@ -121,31 +121,127 @@ export const XR_AXES = ['padX', 'padY', 'thumbX', 'thumbY'] as const; // Y is po
 export type XRAxis = typeof XR_AXES[number];
 
 /**
- * One physical input that can trigger an action: a plain, JSON-serializable object, usually made
- * with {@link key}, {@link mouse}, {@link wheel}, {@link pad}, {@link padAxis}, {@link gesture},
- * {@link xr} or {@link xrAxis}.
+ * A keyboard key, made with {@link key}.
  *
- * `type` selects the kind of control; the other fields name it. For `padAxis` and `xrAxis`,
- * `direction` picks the half of the axis: 1 = positive, -1 = negative (Y axes are positive downwards).
- * Key `modifiers` must also be held, see {@link KeyModifiers}.
  * @category Input
  */
-export type Binding =
-    | { type: 'key', code: string, modifiers?: KeyModifiers }
-    | { type: 'mouse', button: MouseButton }
-    | { type: 'wheel', direction: WheelDirection }
-    | { type: 'pad', button: GamepadButton }
-    | { type: 'padAxis', axis: GamepadAxis, direction: 1 | -1 }
-    | { type: 'gesture', gesture: Gesture }
-    | { type: 'xr', hand: XRHand, button: XRButton }
-    | { type: 'xrAxis', hand: XRHand, axis: XRAxis, direction: 1 | -1 };
+export interface KeyBinding {
+    /** always 'key' */
+    type: 'key',
+    /** `KeyboardEvent.code`, e.g. 'KeyW' (layout independent) */
+    code: string,
+    /** modifiers that must also be held, see {@link KeyModifiers} */
+    modifiers?: KeyModifiers,
+}
+
+/**
+ * A mouse (or pen) button, made with {@link mouse}.
+ *
+ * @category Input
+ */
+export interface MouseBinding {
+    /** always 'mouse' */
+    type: 'mouse',
+    /** which button */
+    button: MouseButton,
+}
+
+/**
+ * A wheel direction, made with {@link wheel}.
+ *
+ * @category Input
+ */
+export interface WheelBinding {
+    /** always 'wheel' */
+    type: 'wheel',
+    /** which way the wheel moves */
+    direction: WheelDirection,
+}
+
+/**
+ * A gamepad button (standard mapping), made with {@link pad}.
+ *
+ * @category Input
+ */
+export interface PadBinding {
+    /** always 'pad' */
+    type: 'pad',
+    /** button name from the standard mapping */
+    button: GamepadButton,
+}
+
+/**
+ * One half of a gamepad stick axis, made with {@link padAxis}.
+ *
+ * @category Input
+ */
+export interface PadAxisBinding {
+    /** always 'padAxis' */
+    type: 'padAxis',
+    /** which stick axis */
+    axis: GamepadAxis,
+    /** 1 = positive half (right / down), -1 = negative half (left / up) */
+    direction: 1 | -1,
+}
+
+/**
+ * A touch gesture, made with {@link gesture}.
+ *
+ * @category Input
+ */
+export interface GestureBinding {
+    /** always 'gesture' */
+    type: 'gesture',
+    /** which gesture */
+    gesture: Gesture,
+}
+
+/**
+ * A VR controller button, made with {@link xr}.
+ *
+ * @category Input
+ */
+export interface XRBinding {
+    /** always 'xr' */
+    type: 'xr',
+    /** which controller */
+    hand: XRHand,
+    /** button name from the xr-standard mapping */
+    button: XRButton,
+}
+
+/**
+ * One half of a VR controller axis, made with {@link xrAxis}.
+ *
+ * @category Input
+ */
+export interface XRAxisBinding {
+    /** always 'xrAxis' */
+    type: 'xrAxis',
+    /** which controller */
+    hand: XRHand,
+    /** which touchpad or thumbstick axis */
+    axis: XRAxis,
+    /** 1 = positive half (right / down), -1 = negative half (left / up) */
+    direction: 1 | -1,
+}
+
+/**
+ * One physical input that can trigger an action: a plain, JSON-serializable object, usually made
+ * with {@link key}, {@link mouse}, {@link wheel}, {@link pad}, {@link padAxis}, {@link gesture},
+ * {@link xr} or {@link xrAxis}. `type` selects the variant.
+ *
+ * @category Input
+ */
+export type Binding = KeyBinding | MouseBinding | WheelBinding | PadBinding
+    | PadAxisBinding | GestureBinding | XRBinding | XRAxisBinding;
 
 /**
  * A physical key, by `KeyboardEvent.code` (layout independent: 'KeyW' is W on QWERTY, Z on AZERTY).
  *
  * @category Input
  */
-export const key = (code: string, modifiers?: KeyModifiers): Binding =>
+export const key = (code: string, modifiers?: KeyModifiers): KeyBinding =>
     modifiers ? { type: 'key', code, modifiers } : { type: 'key', code };
 
 /**
@@ -153,49 +249,49 @@ export const key = (code: string, modifiers?: KeyModifiers): Binding =>
  *
  * @category Input
  */
-export const mouse = (button: MouseButton): Binding => ({ type: 'mouse', button });
+export const mouse = (button: MouseButton): MouseBinding => ({ type: 'mouse', button });
 
 /**
  * A wheel direction: pressed for one frame whenever the wheel moves that way.
  *
  * @category Input
  */
-export const wheel = (direction: WheelDirection): Binding => ({ type: 'wheel', direction });
+export const wheel = (direction: WheelDirection): WheelBinding => ({ type: 'wheel', direction });
 
 /**
  * A gamepad button (standard mapping).
  *
  * @category Input
  */
-export const pad = (button: GamepadButton): Binding => ({ type: 'pad', button });
+export const pad = (button: GamepadButton): PadBinding => ({ type: 'pad', button });
 
 /**
  * One direction of a gamepad stick axis, e.g. padAxis('leftX', -1) for "left stick left".
  *
  * @category Input
  */
-export const padAxis = (axis: GamepadAxis, direction: 1 | -1): Binding => ({ type: 'padAxis', axis, direction });
+export const padAxis = (axis: GamepadAxis, direction: 1 | -1): PadAxisBinding => ({ type: 'padAxis', axis, direction });
 
 /**
  * A touch gesture.
  *
  * @category Input
  */
-export const gesture = (name: Gesture): Binding => ({ type: 'gesture', gesture: name });
+export const gesture = (name: Gesture): GestureBinding => ({ type: 'gesture', gesture: name });
 
 /**
  * A VR controller button.
  *
  * @category Input
  */
-export const xr = (hand: XRHand, button: XRButton): Binding => ({ type: 'xr', hand, button });
+export const xr = (hand: XRHand, button: XRButton): XRBinding => ({ type: 'xr', hand, button });
 
 /**
  * One direction of a VR controller axis.
  *
  * @category Input
  */
-export const xrAxis = (hand: XRHand, axis: XRAxis, direction: 1 | -1): Binding => ({ type: 'xrAxis', hand, axis, direction });
+export const xrAxis = (hand: XRHand, axis: XRAxis, direction: 1 | -1): XRAxisBinding => ({ type: 'xrAxis', hand, axis, direction });
 
 /**
  * Identifies the physical control behind a binding (modifiers aside), e.g. `'key:KeyW'` or

@@ -75,7 +75,17 @@ export interface XRSessionLike extends EventTarget {
         /** `'left'` or `'right'`; other values are ignored */
         readonly handedness: string,
         /** buttons in {@link XR_BUTTONS} order (value 0..1) and axes in {@link XR_AXES} order (-1..1) */
-        readonly gamepad?: { readonly buttons: readonly { pressed: boolean, value: number }[], readonly axes: readonly number[] } | null,
+        readonly gamepad?: {
+            /** in {@link XR_BUTTONS} order */
+            readonly buttons: readonly {
+                /** held down */
+                pressed: boolean,
+                /** 0..1 (analog for triggers and squeeze) */
+                value: number,
+            }[],
+            /** in {@link XR_AXES} order, -1..1 */
+            readonly axes: readonly number[],
+        } | null,
     }>,
 }
 
@@ -366,7 +376,12 @@ export class Input {
      * @param options.deadzone default: the average of the four actions' deadzones
      * @returns `x` and `y` in -1..1; `{ x: 0, y: 0 }` inside the deadzone
      */
-    getVector(negativeX: string, positiveX: string, negativeY: string, positiveY: string, options: DeviceQuery & { deadzone?: number } = {}): { x: number, y: number } {
+    getVector(negativeX: string, positiveX: string, negativeY: string, positiveY: string, options: DeviceQuery & { deadzone?: number } = {}): {
+        /** -1..1, positive towards `positiveX` */
+        x: number,
+        /** -1..1, positive towards `positiveY` */
+        y: number,
+    } {
         const names = [negativeX, positiveX, negativeY, positiveY];
         const raw = names.map(name => this.getActionRawStrength(name, options));
 

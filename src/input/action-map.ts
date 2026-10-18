@@ -24,11 +24,14 @@ export interface Action {
 /**
  * The serialized form of an {@link ActionMap} (from {@link ActionMap.toJSON}), keyed by action name.
  *
- * Each entry holds the action's `deadzone` and `bindings` (see {@link Action}).
- *
  * @category Input
  */
-export type ActionMapJSON = Record<string, { deadzone: number, bindings: Binding[] }>;
+export type ActionMapJSON = Record<string, {
+    /** see {@link Action.deadzone} */
+    deadzone: number,
+    /** the action's bindings, in order */
+    bindings: Binding[],
+}>;
 
 /**
  * Named actions and the inputs bound to them, like Godot's InputMap. Every {@link Input} has one as
