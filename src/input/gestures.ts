@@ -102,7 +102,7 @@ const DEFAULT_THRESHOLDS: GestureThresholds = {
 /**
  * Turns touch points into gestures: tap, double tap, long press, swipes (one finger) and
  * pinch / pan / rotate (two fingers). Feed it with down / move / up, call update() once per frame.
- * Times are in ms and positions in pixels, from any consistent clock and origin. {@link Input} drives
+ * Times are in ms and positions in pixels, from any consistent clock and origin. {@link InputActionMap} drives
  * one for you; use this class directly only for custom touch handling.
  *
  * Tap, double tap and swipe are reported when the finger lifts, long press while it is still held;

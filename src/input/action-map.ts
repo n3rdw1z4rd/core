@@ -54,7 +54,7 @@ export interface Action {
     deadzone: number,
     /** inputs that trigger the action; the strongest one wins */
     readonly bindings: Binding[],
-    /** auto-repeat while held, see {@link Input.isActionJustPressed}; none if unset */
+    /** auto-repeat while held, see {@link InputActionMap.isActionJustPressed}; none if unset */
     repeat?: ActionRepeat,
 }
 
@@ -73,8 +73,8 @@ export type ActionMapJSON = Record<string, {
 }>;
 
 /**
- * Named actions and the inputs bound to them, like Godot's InputMap. Every {@link Input} has one as
- * {@link Input.actions}; the methods that change it return `this` for chaining.
+ * Named actions and the inputs bound to them, like Godot's InputMap. Every {@link InputActionMap} has one as
+ * {@link InputActionMap.actions}; the methods that change it return `this` for chaining.
  *
  * ```ts
  * input.actions

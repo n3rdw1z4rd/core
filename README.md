@@ -34,7 +34,7 @@ This package ships ESM and CJS builds plus `.d.ts` types (built with `tsdown`). 
 
 The data and logic modules load and run anywhere, including Node (the tests run there): math, `Random`/`Rng`, `Vector`, `Rectangle`, `Map2D`/`Map3D`/`Tilemap`, `findPath` (A*), the dungeon generator, `ECS`, the event helpers (`Emitter`, `Observable`, `Signal`, `EventQueue`, `Disposable`), `Color` and color palettes, the spatial partitions and the particle simulations.
 
-These need a browser when used (importing them is still safe anywhere): `CanvasRenderer`, `ParticleRenderer`, `WebGlRenderer` and the WebGL helpers, `Input`, `WorkerInterface`, `Clock.start()`, `Color.fromName()` and `GetUrlParams()`, plus anything in `@n3rdw1z4rd/core/three` that renders or loads textures.
+These need a browser when used (importing them is still safe anywhere): `CanvasRenderer`, `ParticleRenderer`, `WebGlRenderer` and the WebGL helpers, `Input`, `InputActionMap`, `WorkerInterface`, `Clock.start()`, `Color.fromName()` and `GetUrlParams()`, plus anything in `@n3rdw1z4rd/core/three` that renders or loads textures.
 
 ## Quick start
 
@@ -61,39 +61,42 @@ renderer.setAnimationLoop((time) => {
 });
 ```
 
-Input works through a Godot-style action map, so game code asks about actions rather than keys or buttons:
+`Input` is event-based and needs no frame loop, so it suits apps, editors and turn-based games alike:
 
 ```ts
-import { Input, key, mouse, pad, padAxis, gesture, xr } from "@n3rdw1z4rd/core";
+import { Input } from "@n3rdw1z4rd/core";
 
-const input = new Input(canvas);   // includes ui_accept, ui_cancel, ui_left, ... defaults
+const input = Input.instance;
+input.target = canvas;   // pointer positions are measured on it (keys are always read from window)
 
-input.actions.add("jump", [key("Space"), pad("A"), gesture("tap"), xr("right", "primary")]);
-input.actions.add("move_left", [key("KeyA"), padAxis("leftX", -1)]);
+input.on("keyw_down", "arrowup_down", () => move(0, -1));
+input.on("space_pressed", wait);   // released within inputThreshold ms
+input.on("button0_clicked", () => select(input.pointerPosition));   // not after a drag
+input.on("pointer_move", () => {
+    if (input.isButtonDown(0)) pan(input.pointerDelta.x, input.pointerDelta.y);
+});
+input.on("mouse_wheel", (ev: WheelEvent) => zoom(ev.deltaY));
+```
+
+`InputActionMap` adds a Godot-style action map on top, for games that read input once per frame: game code asks about actions rather than keys or buttons.
+
+```ts
+import { InputActionMap, key, pad, padAxis, gesture, xr } from "@n3rdw1z4rd/core";
+
+const controls = new InputActionMap();   // reads Input.instance; includes ui_accept, ui_cancel, ui_left, ... defaults
+
+controls.actions.add("jump", [key("Space"), pad("A"), gesture("tap"), xr("right", "primary")]);
+controls.actions.add("move_left", [key("KeyA"), padAxis("leftX", -1)]);
 // ... move_right, move_forward, move_back
 
 // once per frame, before game logic
-input.update();
+controls.update();
 
-if (input.isActionJustPressed("jump")) player.jump();
-const move = input.getVector("move_left", "move_right", "move_forward", "move_back");
+if (controls.isActionJustPressed("jump")) player.jump();
+const move = controls.getVector("move_left", "move_right", "move_forward", "move_back");
 ```
 
-Keyboard, mouse and pen, touch gestures, gamepads (each its own device for local multiplayer) and WebXR controllers (`input.attachXR(session)`) all feed the same actions.
-
-Turn-based games can react to actions instead of polling them; `repeat` keeps a held direction stepping like a held key in a text field (the `ui_*` directions repeat by default):
-
-```ts
-input.actions.add("move_up", [key("ArrowUp"), pad("DpadUp")], { repeat: true }); // 400 ms, then every 100 ms
-input.onAction("move_up", "pressed", () => { move(0, -1); redraw = true; });
-
-clock.start(() => {
-    input.update(); // callbacks fire from here
-    if (redraw) { redraw = false; draw(); }
-});
-```
-
-`input.gestures.events` says where the last frame's taps, swipes and long presses happened, e.g. to move towards a tapped tile. `input.actions.toJSON()` / `load()` save rebinds, and `input.captureBinding()` waits for the next input for rebinding menus.
+Keyboard, mouse and pen, touch gestures, gamepads (each its own device for local multiplayer) and WebXR controllers (`controls.attachXR(session)`) all feed the same actions. `repeat` keeps a held action pressing again like a held key in a text field (`{ repeat: true }`; the `ui_*` directions repeat by default), `controls.gestures.events` says where the last frame's taps and swipes happened, `controls.actions.toJSON()` / `load()` save rebinds, and `controls.captureBinding()` waits for the next input for rebinding menus.
 
 Three.js helpers come from the `three` subpath:
 
