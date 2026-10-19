@@ -1,22 +1,33 @@
 import { bindingLabel, gesture, key, mouse, pad, padAxis, wheel, xr, xrAxis } from '../input/bindings';
 import { GestureRecognizer } from '../input/gestures';
 import { Input } from '../input/input';
+import { InputActionMap, type InputActionMapOptions } from '../input/input-action-map';
 import { assert, type TestSuite } from './assert';
 
-// dispatches a plain Event carrying the given properties (Node has no KeyboardEvent / PointerEvent)
+// dispatches a plain Event carrying the given properties (Node has no KeyboardEvent / PointerEvent);
+// pointer events are from the primary pointer unless isPrimary says otherwise
 const fire = (target: EventTarget, type: string, props: object = {}): Event => {
     const event = new Event(type, { cancelable: true });
+    const all = type.startsWith('pointer') ? { isPrimary: true, ...props } : props;
 
-    Object.assign(event, props);
+    for (const [key, value] of Object.entries(all)) Object.defineProperty(event, key, { value }); // timeStamp is a getter
     target.dispatchEvent(event);
 
     return event;
 };
 
-const setup = () => {
-    const keyboard = new EventTarget();
+// Node has no window: Input reads keys from this one
+const g = globalThis as { window?: unknown };
+if (!g.window) g.window = Object.assign(new EventTarget(), { innerWidth: 800, innerHeight: 600 });
+
+const setup = (options: InputActionMapOptions = {}) => {
+    Input.instance.dispose(); // a fresh Input per test
+
+    const keyboard = window as EventTarget;
     const canvas = new EventTarget();
-    const input = new Input(canvas, { keyboardTarget: keyboard });
+    Input.instance.target = canvas;
+
+    const input = new InputActionMap(options);
 
     const down = (code: string, props: object = {}) => fire(keyboard, 'keydown', { code, ...props });
     const up = (code: string) => fire(keyboard, 'keyup', { code });
@@ -25,7 +36,100 @@ const setup = () => {
 };
 
 export const inputTests: TestSuite = {
-    'Input: pressed / just pressed / just released follow update() frames'() {
+    'Input: key and button events, _pressed / _clicked within inputThreshold'() {
+        const { keyboard, canvas } = setup();
+        const input = Input.instance;
+        const events: string[] = [];
+
+        for (const name of ['key_down', 'keyw_down', 'keyw_up', 'keyw_pressed', 'key_repeat', 'button0_down', 'button0_up', 'button0_clicked']) {
+            input.on(name, () => events.push(name));
+        }
+
+        fire(keyboard, 'keydown', { code: 'KeyW', timeStamp: 0 });
+        fire(keyboard, 'keydown', { code: 'KeyW', timeStamp: 30, repeat: true });
+        assert.ok(input.isKeyDown('KeyW'));
+        fire(keyboard, 'keyup', { code: 'KeyW', timeStamp: 100 });
+        fire(keyboard, 'keydown', { code: 'KeyW', timeStamp: 1000 });
+        fire(keyboard, 'keyup', { code: 'KeyW', timeStamp: 1500 }); // held too long for _pressed
+        assert.deepEqual(events.splice(0), ['key_down', 'keyw_down', 'key_repeat', 'keyw_up', 'keyw_pressed', 'key_down', 'keyw_down', 'keyw_up']);
+
+        fire(canvas, 'pointerdown', { pointerType: 'mouse', button: 0, buttons: 1, timeStamp: 2000 });
+        assert.ok(input.isButtonDown(0));
+        fire(canvas, 'pointerup', { pointerType: 'mouse', button: 0, buttons: 0, timeStamp: 2050 });
+        assert.deepEqual(events, ['button0_down', 'button0_up', 'button0_clicked']);
+    },
+
+    'Input: positions on the target, pointerDelta, drags (no click after one), chorded buttons'() {
+        const { canvas } = setup();
+        const input = Input.instance;
+        const events: string[] = [];
+
+        Object.assign(canvas, { getBoundingClientRect: () => ({ left: 100, top: 50, width: 200, height: 100 }) });
+        for (const name of ['drag_start', 'drag', 'drag_end', 'button0_clicked', 'button2_down']) input.on(name, () => events.push(name));
+
+        fire(canvas, 'pointerdown', { pointerType: 'mouse', button: 0, buttons: 1, clientX: 150, clientY: 100, timeStamp: 0 });
+        assert.deepEqual([input.pointerPosition.x, input.pointerPosition.y], [50, 50]);
+        assert.deepEqual([input.pointerPositionNdc.x, input.pointerPositionNdc.y], [-0.5, 0]);
+
+        fire(canvas, 'pointermove', { pointerType: 'mouse', button: -1, buttons: 1, clientX: 153, clientY: 100, movementX: 3, timeStamp: 10 });
+        assert.ok(!input.isDragging); // within dragThreshold
+        fire(canvas, 'pointermove', { pointerType: 'mouse', button: -1, buttons: 1, clientX: 170, clientY: 100, movementX: 17, timeStamp: 20 });
+        assert.ok(input.isDragging);
+        assert.equal(input.pointerDelta.x, 17);
+        fire(canvas, 'pointermove', { pointerType: 'mouse', button: 2, buttons: 3, clientX: 171, clientY: 100, movementX: 1, timeStamp: 30 });
+        assert.ok(input.isButtonDown(2));
+        fire(canvas, 'pointermove', { pointerType: 'mouse', button: 2, buttons: 1, clientX: 171, clientY: 100, timeStamp: 40 });
+        fire(canvas, 'pointerup', { pointerType: 'mouse', button: 0, buttons: 0, clientX: 171, clientY: 100, timeStamp: 50 });
+
+        assert.deepEqual(events, ['drag_start', 'drag', 'button2_down', 'drag', 'drag', 'drag_end']);
+    },
+
+    'Input: touch — every finger reported, only the primary one is button 0; deltas; blur releases'() {
+        const { keyboard, canvas } = setup();
+        const input = Input.instance;
+        const events: string[] = [];
+
+        for (const name of ['touch_down', 'touch_move', 'touch_up', 'button0_down', 'button0_up', 'blur']) input.on(name, () => events.push(name));
+
+        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 1, button: 0, buttons: 1, clientX: 10, clientY: 10 });
+        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 2, isPrimary: false, button: 0, buttons: 1, clientX: 90, clientY: 10 });
+        fire(canvas, 'pointerup', { pointerType: 'touch', pointerId: 2, isPrimary: false, button: 0, buttons: 0, clientX: 90, clientY: 10 });
+        assert.ok(input.isButtonDown(0)); // the second finger lifting doesn't release the first
+
+        fire(canvas, 'pointermove', { pointerType: 'touch', pointerId: 1, button: -1, buttons: 1, clientX: 30, clientY: 15 });
+        assert.deepEqual([input.pointerDelta.x, input.pointerDelta.y], [20, 5]); // touch has no movementX
+
+        fire(keyboard, 'blur');
+        assert.ok(!input.isButtonDown(0));
+        assert.deepEqual(events, ['touch_down', 'button0_down', 'touch_down', 'touch_up', 'touch_move', 'blur']);
+    },
+
+    'Input: changing the target moves the listeners; dispose; one context-menu listener'() {
+        const { canvas } = setup();
+        const input = Input.instance;
+        const other = new EventTarget();
+        let moves = 0;
+
+        input.on('pointer_move', () => moves++);
+        input.target = other;
+        fire(canvas, 'pointermove', { pointerType: 'mouse', button: -1 });
+        fire(other, 'pointermove', { pointerType: 'mouse', button: -1 });
+        assert.equal(moves, 1);
+
+        input.disableContextMenu();
+        input.disableContextMenu();
+        let menus = 0;
+        input.on('contextmenu', () => menus++);
+        assert.ok(fire(other, 'contextmenu').defaultPrevented);
+        assert.equal(menus, 1);
+
+        input.dispose();
+        fire(other, 'pointermove', { pointerType: 'mouse', button: -1 });
+        assert.equal(moves, 1);
+        assert.ok(Input.instance !== input);
+    },
+
+    'InputActionMap: pressed / just pressed / just released follow update() frames'() {
         const { input, down, up } = setup();
 
         input.actions.add('jump', [key('Space'), pad('A')]);
@@ -52,7 +156,7 @@ export const inputTests: TestSuite = {
         assert.ok(!input.isActionJustReleased('jump'));
     },
 
-    'Input: a press and release between two frames still counts once'() {
+    'InputActionMap: a press and release between two frames still counts once'() {
         const { input, down, up } = setup();
 
         input.actions.add('fire', [key('KeyF')]);
@@ -67,7 +171,7 @@ export const inputTests: TestSuite = {
         assert.ok(input.isActionJustReleased('fire'));
     },
 
-    'Input: modifiers, defaults, unknown actions, raw key state'() {
+    'InputActionMap: modifiers, defaults, unknown actions, raw key state'() {
         const { input, down, up } = setup();
 
         input.actions.add('save', [key('KeyS', { ctrl: true })]);
@@ -101,10 +205,10 @@ export const inputTests: TestSuite = {
             console.warn = warn;
         }
 
-        assert.ok(!new Input(undefined, { keyboardTarget: new EventTarget(), defaults: false }).actions.has('ui_accept'));
+        assert.ok(!new InputActionMap({ defaults: false }).actions.has('ui_accept'));
     },
 
-    'Input: getAxis and getVector (diagonals are not faster)'() {
+    'InputActionMap: getAxis and getVector (diagonals are not faster)'() {
         const { input, down, up } = setup();
 
         input.actions.add('left', [key('KeyA')]).add('right', [key('KeyD')]).add('up', [key('KeyW')]).add('down', [key('KeyS')]);
@@ -125,7 +229,7 @@ export const inputTests: TestSuite = {
         assert.deepEqual(input.getVector('left', 'right', 'up', 'down'), { x: 0, y: 0 });
     },
 
-    'Input: mouse buttons (incl. chorded), movement, wheel steps, last device'() {
+    'InputActionMap: mouse buttons (incl. chorded), movement, wheel steps, last device'() {
         const { input, canvas, down } = setup();
 
         input.actions.add('fire', [mouse('left')]).add('aim', [mouse('right')]).add('zoom_in', [wheel('up')]);
@@ -161,7 +265,7 @@ export const inputTests: TestSuite = {
         assert.deepEqual(devices, ['mouse', 'keyboard']);
     },
 
-    'Input: onAction callbacks, blur releases held actions, preventDefault only for bound keys'() {
+    'InputActionMap: onAction callbacks, blur releases held actions, preventDefault only for bound keys'() {
         const { input, keyboard, down } = setup();
         const events: string[] = [];
 
@@ -185,7 +289,7 @@ export const inputTests: TestSuite = {
         assert.deepEqual(events, ['pressed', 'released']);
     },
 
-    async 'Input: captureBinding for rebinding menus'() {
+    async 'InputActionMap: captureBinding for rebinding menus'() {
         const { input, canvas, down } = setup();
 
         input.actions.add('jump', [key('Space')]);
@@ -207,7 +311,7 @@ export const inputTests: TestSuite = {
         assert.deepEqual(await mouseOnly, mouse('right'));
     },
 
-    async 'Input: gamepads (buttons, analog, sticks, per-device queries, connect / disconnect, capture)'() {
+    async 'InputActionMap: gamepads (buttons, analog, sticks, per-device queries, connect / disconnect, capture)'() {
         const { input, down } = setup();
 
         const fakePad = (index: number) => ({
@@ -291,12 +395,50 @@ export const inputTests: TestSuite = {
         }
     },
 
+    'InputActionMap: auto-repeat for held actions (delay, interval, no catch-up burst)'() {
+        const { input, down, up } = setup();
+        const presses: [number, boolean][] = [];
+
+        input.actions.add('walk', [key('ArrowRight')], { repeat: { delay: 300, interval: 100 } });
+        input.actions.add('jump', [key('Space')]);
+        input.onAction('walk', 'pressed', ({ repeat }) => presses.push([t, repeat]));
+
+        let t = 0;
+        const frame = (time: number) => { t = time; input.update(time); };
+
+        down('ArrowRight');
+        down('Space');
+        frame(0);
+        assert.ok(input.isActionJustPressed('walk') && !input.isActionRepeated('walk'));
+
+        frame(200);
+        assert.ok(!input.isActionJustPressed('walk')); // still inside the delay
+        frame(300);
+        assert.ok(input.isActionJustPressed('walk') && input.isActionRepeated('walk'));
+        frame(350);
+        frame(400);
+        frame(1000); // a stall: one repeat, not six
+        frame(1016);
+        frame(1100);
+        assert.ok(!input.isActionJustPressed('jump')); // no repeat unless the action asks for it
+
+        up('ArrowRight');
+        frame(1200);
+        assert.deepEqual(presses, [[0, false], [300, true], [400, true], [1000, true], [1100, true]]);
+
+        // ui_* directions repeat by default
+        down('ArrowUp');
+        frame(2000);
+        frame(2000 + 400);
+        assert.ok(input.isActionRepeated('ui_up'));
+    },
+
     'GestureRecognizer: tap, double tap, long press, swipes'() {
         const g = new GestureRecognizer();
 
         g.down(1, 100, 100, 0);
         g.up(1, 103, 102, 120);
-        assert.deepEqual(g.update(130).gestures, ['tap']);
+        assert.deepEqual(g.update(130).events, [{ gesture: 'tap', x: 103, y: 102 }]); // where it lifted
 
         g.down(1, 105, 100, 300); // second tap 180ms later, nearby
         g.up(1, 105, 100, 380);
@@ -308,7 +450,7 @@ export const inputTests: TestSuite = {
 
         g.down(1, 0, 0, 1000);
         assert.deepEqual(g.update(1400).gestures, []);
-        assert.deepEqual(g.update(1520).gestures, ['longPress']); // fires once, while held
+        assert.deepEqual(g.update(1520).events, [{ gesture: 'longPress', x: 0, y: 0 }]); // fires once, while held
         assert.deepEqual(g.update(1700).gestures, []);
         g.up(1, 0, 0, 1800);
         assert.deepEqual(g.update(1810).gestures, []); // no tap after a long press
@@ -317,7 +459,7 @@ export const inputTests: TestSuite = {
             g.down(2, 200, 200, 2000);
             g.move(2, 200 + dx / 2, 200 + dy / 2);
             g.up(2, 200 + dx, 200 + dy, 2200);
-            assert.deepEqual(g.update(2210).gestures, [expected]);
+            assert.deepEqual(g.update(2210).events, [{ gesture: expected, x: 200, y: 200 }]); // where it started
         }
 
         g.down(3, 0, 0, 3000); // too slow for a swipe, moved too far for a tap
@@ -356,7 +498,7 @@ export const inputTests: TestSuite = {
         assert.equal(g.touches.length, 0);
     },
 
-    'Input: touch feeds gestures into actions, not the mouse'() {
+    'InputActionMap: touch feeds gestures into actions, not the mouse'() {
         const { input, canvas } = setup();
 
         input.actions.add('select', [gesture('tap')]).add('zoom_in', [gesture('pinchOut')]).add('fire', [mouse('left')]);
@@ -370,27 +512,28 @@ export const inputTests: TestSuite = {
         input.update();
         assert.ok(input.isActionJustPressed('select'));
         assert.ok(!input.isActionPressed('fire'));
+        assert.deepEqual(input.gestures.events, [{ gesture: 'tap', x: 31, y: 40 }]); // where the tap was
 
         input.update();
         assert.ok(!input.isActionPressed('select')); // gestures are one-frame presses
 
         fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 1, clientX: 100, clientY: 100 });
-        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 200, clientY: 100 });
+        fire(canvas, 'pointerdown', { pointerType: 'touch', pointerId: 2, isPrimary: false, clientX: 200, clientY: 100 });
         input.update();
 
-        fire(canvas, 'pointermove', { pointerType: 'touch', pointerId: 2, clientX: 300, clientY: 100 });
+        fire(canvas, 'pointermove', { pointerType: 'touch', pointerId: 2, isPrimary: false, clientX: 300, clientY: 100 });
         input.update();
         assert.equal(input.gestures.pinch, 2);
         assert.ok(input.isActionJustPressed('zoom_in'));
 
         fire(canvas, 'pointercancel', { pointerType: 'touch', pointerId: 1 });
-        fire(canvas, 'pointercancel', { pointerType: 'touch', pointerId: 2 });
+        fire(canvas, 'pointercancel', { pointerType: 'touch', pointerId: 2, isPrimary: false });
         input.update();
         assert.equal(input.touches.length, 0);
         assert.equal(input.gestures.pinch, 1);
     },
 
-    async 'Input: VR controllers (buttons, thumbsticks, controller loss, session end, capture)'() {
+    async 'InputActionMap: VR controllers (buttons, thumbsticks, controller loss, session end, capture)'() {
         const { input } = setup();
 
         const controller = (handedness: string) => ({
@@ -443,6 +586,12 @@ export const inputTests: TestSuite = {
         const actions = input.actions;
 
         actions.add('jump', [key('Space')], { deadzone: 0.3 });
+        actions.add('walk', [key('KeyD')], { repeat: true });
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 100 });
+        actions.add('walk', [key('ArrowRight')]); // replacing bindings keeps the repeat
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 100 });
+        actions.add('walk', [key('ArrowRight')], { repeat: { interval: 50 } });
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 50 });
         actions.bind('jump', pad('A')).bind('jump', pad('A'));
         assert.equal(actions.get('jump')!.bindings.length, 2);
 
@@ -453,6 +602,8 @@ export const inputTests: TestSuite = {
         const saved = JSON.parse(JSON.stringify(actions.toJSON()));
         actions.clear().load(saved);
         assert.equal(actions.get('jump')!.deadzone, 0.3);
+        assert.equal(actions.get('jump')!.repeat, undefined);
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 50 });
         assert.deepEqual(actions.get('jump')!.bindings, [pad('A')]);
 
         assert.equal(bindingLabel(key('KeyW')), 'W');
@@ -462,7 +613,7 @@ export const inputTests: TestSuite = {
         assert.equal(bindingLabel(mouse('right')), 'Mouse Right');
     },
 
-    'Input: dispose removes listeners'() {
+    'InputActionMap: dispose removes listeners'() {
         const { input, down } = setup();
 
         input.actions.add('jump', [key('Space')]);

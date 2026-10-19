@@ -346,7 +346,7 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
  * A readable name for a binding, e.g. for "Press Space to jump" prompts. Pass `keyLabels` (from
- * {@link Input.loadKeyboardLayout}) to name keys as printed on the player's keyboard.
+ * {@link InputActionMap.loadKeyboardLayout}) to name keys as printed on the player's keyboard.
  *
  * @category Input
  */

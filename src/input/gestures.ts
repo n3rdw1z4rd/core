@@ -43,6 +43,22 @@ export interface GestureThresholds {
 }
 
 /**
+ * A recognized gesture and where it happened, in pixels: where the finger lifted for a tap or
+ * double tap, where it is held for a long press, where it started for a swipe, and the midpoint
+ * of the two fingers for a pinch.
+ *
+ * @category Input
+ */
+export interface GestureEvent {
+    /** which gesture */
+    gesture: Gesture,
+    /** px */
+    x: number,
+    /** px */
+    y: number,
+}
+
+/**
  * What {@link GestureRecognizer.update} recognized since the previous update.
  *
  * @category Input
@@ -50,6 +66,8 @@ export interface GestureThresholds {
 export interface GestureFrame {
     /** recognized since the last update */
     gestures: Gesture[],
+    /** the same gestures, with positions */
+    events: GestureEvent[],
     /** two-finger scale change this frame (1 = none, > 1 = fingers apart) */
     pinch: number,
     /** two-finger movement this frame, px */
@@ -84,7 +102,7 @@ const DEFAULT_THRESHOLDS: GestureThresholds = {
 /**
  * Turns touch points into gestures: tap, double tap, long press, swipes (one finger) and
  * pinch / pan / rotate (two fingers). Feed it with down / move / up, call update() once per frame.
- * Times are in ms and positions in pixels, from any consistent clock and origin. {@link Input} drives
+ * Times are in ms and positions in pixels, from any consistent clock and origin. {@link InputActionMap} drives
  * one for you; use this class directly only for custom touch handling.
  *
  * Tap, double tap and swipe are reported when the finger lifts, long press while it is still held;
@@ -95,7 +113,8 @@ const DEFAULT_THRESHOLDS: GestureThresholds = {
  * el.addEventListener('pointerdown', e => recognizer.down(e.pointerId, e.offsetX, e.offsetY, performance.now()));
  * // ... move / up / cancel likewise
  *
- * const { gestures, pinch } = recognizer.update(performance.now());
+ * const { gestures, events, pinch } = recognizer.update(performance.now());
+ * const tap = events.find(e => e.gesture === 'tap'); // { gesture, x, y }
  * ```
  *
  * @category Input
@@ -105,7 +124,7 @@ export class GestureRecognizer {
     readonly thresholds: GestureThresholds = { ...DEFAULT_THRESHOLDS };
 
     private readonly _touches = new Map<number, Tracked>();
-    private _pending: Gesture[] = [];
+    private _pending: GestureEvent[] = [];
     private _lastTap?: { x: number, y: number, time: number };
 
     // two-finger baseline from the previous update
@@ -159,20 +178,22 @@ export class GestureRecognizer {
         const distance = Math.hypot(dx, dy);
 
         if (duration <= t.tapMaxDuration && touch.maxMovement <= t.tapMaxMovement) {
-            this._pending.push('tap');
+            this._pending.push({ gesture: 'tap', x, y });
 
             const last = this._lastTap;
 
             if (last && time - last.time <= t.doubleTapMaxDelay && Math.hypot(x - last.x, y - last.y) <= t.doubleTapMaxDistance) {
-                this._pending.push('doubleTap');
+                this._pending.push({ gesture: 'doubleTap', x, y });
                 this._lastTap = undefined; // a third tap starts a new pair
             } else {
                 this._lastTap = { x, y, time };
             }
         } else if (distance >= t.swipeMinDistance && duration <= t.swipeMaxDuration) {
-            this._pending.push(Math.abs(dx) >= Math.abs(dy)
+            const gesture = Math.abs(dx) >= Math.abs(dy)
                 ? (dx > 0 ? 'swipeRight' : 'swipeLeft')
-                : (dy > 0 ? 'swipeDown' : 'swipeUp'));
+                : (dy > 0 ? 'swipeDown' : 'swipeUp');
+
+            this._pending.push({ gesture, x: touch.startX, y: touch.startY });
         }
     }
 
@@ -191,14 +212,14 @@ export class GestureRecognizer {
 
     /** Returns what happened since the last update. `time` is the current time in ms. */
     update(time: number): GestureFrame {
-        const frame: GestureFrame = { gestures: [], pinch: 1, pan: { x: 0, y: 0 }, rotate: 0 };
+        const frame: GestureFrame = { gestures: [], events: [], pinch: 1, pan: { x: 0, y: 0 }, rotate: 0 };
 
         // long press fires once, while still held
         for (const touch of this._touches.values()) {
             if (!touch.multi && !touch.longPressed && touch.maxMovement <= this.thresholds.tapMaxMovement &&
                 time - touch.startTime >= this.thresholds.longPressDuration) {
                 touch.longPressed = true;
-                this._pending.push('longPress');
+                this._pending.push({ gesture: 'longPress', x: touch.x, y: touch.y });
             }
         }
 
@@ -218,7 +239,7 @@ export class GestureRecognizer {
                 frame.rotate = Math.atan2(Math.sin(angle - pair.angle), Math.cos(angle - pair.angle));
 
                 if (Math.abs(frame.pinch - 1) >= this.thresholds.pinchMinChange) {
-                    this._pending.push(frame.pinch > 1 ? 'pinchOut' : 'pinchIn');
+                    this._pending.push({ gesture: frame.pinch > 1 ? 'pinchOut' : 'pinchIn', x: cx, y: cy });
                 }
             }
 
@@ -227,7 +248,8 @@ export class GestureRecognizer {
             this._pair = undefined;
         }
 
-        frame.gestures = this._pending;
+        frame.events = this._pending;
+        frame.gestures = frame.events.map(e => e.gesture);
         this._pending = [];
 
         return frame;
