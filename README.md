@@ -79,7 +79,21 @@ if (input.isActionJustPressed("jump")) player.jump();
 const move = input.getVector("move_left", "move_right", "move_forward", "move_back");
 ```
 
-Keyboard, mouse and pen, touch gestures, gamepads (each its own device for local multiplayer) and WebXR controllers (`input.attachXR(session)`) all feed the same actions. `input.actions.toJSON()` / `load()` save rebinds, and `input.captureBinding()` waits for the next input for rebinding menus.
+Keyboard, mouse and pen, touch gestures, gamepads (each its own device for local multiplayer) and WebXR controllers (`input.attachXR(session)`) all feed the same actions.
+
+Turn-based games can react to actions instead of polling them; `repeat` keeps a held direction stepping like a held key in a text field (the `ui_*` directions repeat by default):
+
+```ts
+input.actions.add("move_up", [key("ArrowUp"), pad("DpadUp")], { repeat: true }); // 400 ms, then every 100 ms
+input.onAction("move_up", "pressed", () => { move(0, -1); redraw = true; });
+
+clock.start(() => {
+    input.update(); // callbacks fire from here
+    if (redraw) { redraw = false; draw(); }
+});
+```
+
+`input.gestures.events` says where the last frame's taps, swipes and long presses happened, e.g. to move towards a tapped tile. `input.actions.toJSON()` / `load()` save rebinds, and `input.captureBinding()` waits for the next input for rebinding menus.
 
 Three.js helpers come from the `three` subpath:
 

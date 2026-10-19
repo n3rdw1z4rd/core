@@ -291,12 +291,50 @@ export const inputTests: TestSuite = {
         }
     },
 
+    'Input: auto-repeat for held actions (delay, interval, no catch-up burst)'() {
+        const { input, down, up } = setup();
+        const presses: [number, boolean][] = [];
+
+        input.actions.add('walk', [key('ArrowRight')], { repeat: { delay: 300, interval: 100 } });
+        input.actions.add('jump', [key('Space')]);
+        input.onAction('walk', 'pressed', ({ repeat }) => presses.push([t, repeat]));
+
+        let t = 0;
+        const frame = (time: number) => { t = time; input.update(time); };
+
+        down('ArrowRight');
+        down('Space');
+        frame(0);
+        assert.ok(input.isActionJustPressed('walk') && !input.isActionRepeated('walk'));
+
+        frame(200);
+        assert.ok(!input.isActionJustPressed('walk')); // still inside the delay
+        frame(300);
+        assert.ok(input.isActionJustPressed('walk') && input.isActionRepeated('walk'));
+        frame(350);
+        frame(400);
+        frame(1000); // a stall: one repeat, not six
+        frame(1016);
+        frame(1100);
+        assert.ok(!input.isActionJustPressed('jump')); // no repeat unless the action asks for it
+
+        up('ArrowRight');
+        frame(1200);
+        assert.deepEqual(presses, [[0, false], [300, true], [400, true], [1000, true], [1100, true]]);
+
+        // ui_* directions repeat by default
+        down('ArrowUp');
+        frame(2000);
+        frame(2000 + 400);
+        assert.ok(input.isActionRepeated('ui_up'));
+    },
+
     'GestureRecognizer: tap, double tap, long press, swipes'() {
         const g = new GestureRecognizer();
 
         g.down(1, 100, 100, 0);
         g.up(1, 103, 102, 120);
-        assert.deepEqual(g.update(130).gestures, ['tap']);
+        assert.deepEqual(g.update(130).events, [{ gesture: 'tap', x: 103, y: 102 }]); // where it lifted
 
         g.down(1, 105, 100, 300); // second tap 180ms later, nearby
         g.up(1, 105, 100, 380);
@@ -308,7 +346,7 @@ export const inputTests: TestSuite = {
 
         g.down(1, 0, 0, 1000);
         assert.deepEqual(g.update(1400).gestures, []);
-        assert.deepEqual(g.update(1520).gestures, ['longPress']); // fires once, while held
+        assert.deepEqual(g.update(1520).events, [{ gesture: 'longPress', x: 0, y: 0 }]); // fires once, while held
         assert.deepEqual(g.update(1700).gestures, []);
         g.up(1, 0, 0, 1800);
         assert.deepEqual(g.update(1810).gestures, []); // no tap after a long press
@@ -317,7 +355,7 @@ export const inputTests: TestSuite = {
             g.down(2, 200, 200, 2000);
             g.move(2, 200 + dx / 2, 200 + dy / 2);
             g.up(2, 200 + dx, 200 + dy, 2200);
-            assert.deepEqual(g.update(2210).gestures, [expected]);
+            assert.deepEqual(g.update(2210).events, [{ gesture: expected, x: 200, y: 200 }]); // where it started
         }
 
         g.down(3, 0, 0, 3000); // too slow for a swipe, moved too far for a tap
@@ -370,6 +408,7 @@ export const inputTests: TestSuite = {
         input.update();
         assert.ok(input.isActionJustPressed('select'));
         assert.ok(!input.isActionPressed('fire'));
+        assert.deepEqual(input.gestures.events, [{ gesture: 'tap', x: 31, y: 40 }]); // where the tap was
 
         input.update();
         assert.ok(!input.isActionPressed('select')); // gestures are one-frame presses
@@ -443,6 +482,12 @@ export const inputTests: TestSuite = {
         const actions = input.actions;
 
         actions.add('jump', [key('Space')], { deadzone: 0.3 });
+        actions.add('walk', [key('KeyD')], { repeat: true });
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 100 });
+        actions.add('walk', [key('ArrowRight')]); // replacing bindings keeps the repeat
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 100 });
+        actions.add('walk', [key('ArrowRight')], { repeat: { interval: 50 } });
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 50 });
         actions.bind('jump', pad('A')).bind('jump', pad('A'));
         assert.equal(actions.get('jump')!.bindings.length, 2);
 
@@ -453,6 +498,8 @@ export const inputTests: TestSuite = {
         const saved = JSON.parse(JSON.stringify(actions.toJSON()));
         actions.clear().load(saved);
         assert.equal(actions.get('jump')!.deadzone, 0.3);
+        assert.equal(actions.get('jump')!.repeat, undefined);
+        assert.deepEqual(actions.get('walk')!.repeat, { delay: 400, interval: 50 });
         assert.deepEqual(actions.get('jump')!.bindings, [pad('A')]);
 
         assert.equal(bindingLabel(key('KeyW')), 'W');

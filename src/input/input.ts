@@ -1,5 +1,5 @@
 import { Observable } from '../observable';
-import { ActionMap } from './action-map';
+import { type Action, ActionMap } from './action-map';
 import { type GestureFrame, GestureRecognizer, type TouchPoint } from './gestures';
 import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, XR_AXES, XR_BUTTONS, type XRHand, controlId } from './bindings';
 
@@ -23,6 +23,18 @@ export type InputDeviceType = 'keyboard' | 'mouse' | 'pen' | 'touch' | 'gamepad'
  * @category Input
  */
 export type ActionPhase = 'pressed' | 'released';
+
+/**
+ * Passed to {@link Input.onAction} callbacks.
+ *
+ * @category Input
+ */
+export interface ActionEvent {
+    /** the action's name */
+    action: string,
+    /** an auto-repeat of a held action (see {@link ActionRepeat}), not a new press */
+    repeat: boolean,
+}
 
 /**
  * Options for the {@link Input} constructor.
@@ -144,6 +156,10 @@ interface ActionState {
     strength: number,
     pressed: boolean,
     wasPressed: boolean,
+    /** auto-repeated in the last update */
+    repeated: boolean,
+    /** ms; when the next auto-repeat is due */
+    nextRepeat: number,
 }
 
 const ANY = -1;
@@ -183,8 +199,12 @@ export class Input {
     /** Thresholds for taps, swipes etc. can be tuned via `gestureRecognizer.thresholds`. */
     readonly gestureRecognizer = new GestureRecognizer();
 
-    /** Two-finger gesture values for the last frame (pinch 1 / pan 0 / rotate 0 when not gesturing). */
-    readonly gestures: Omit<GestureFrame, 'gestures'> = { pinch: 1, pan: { x: 0, y: 0 }, rotate: 0 };
+    /**
+     * Touch gestures from the last frame: `events` (each recognized gesture and where it happened,
+     * e.g. the tap that triggered an action) and the two-finger values (pinch 1 / pan 0 / rotate 0
+     * when not gesturing).
+     */
+    readonly gestures: Omit<GestureFrame, 'gestures'> = { events: [], pinch: 1, pan: { x: 0, y: 0 }, rotate: 0 };
 
     // TODO: on-screen virtual joystick / buttons for touch, feeding padAxis-style values into the action map
 
@@ -221,7 +241,7 @@ export class Input {
     private readonly _controls = new Map<InputDevice, Map<string, ControlState>>([[0, new Map()]]);
     // action -> device (or ANY) -> state
     private readonly _actionStates = new Map<string, Map<InputDevice, ActionState>>();
-    private readonly _actionListeners: { action: string, phase: ActionPhase, device: InputDevice, callback: () => void }[] = [];
+    private readonly _actionListeners: { action: string, phase: ActionPhase, device: InputDevice, callback: (event: ActionEvent) => void }[] = [];
     private readonly _warned = new Set<string>();
 
     private readonly _pending = { deltaX: 0, deltaY: 0, wheelX: 0, wheelY: 0 };
@@ -278,8 +298,11 @@ export class Input {
     /**
      * Call once per frame, before reading input: polls devices and advances "just pressed" /
      * "just released" by one frame. Action callbacks fire from here.
+     *
+     * @param time current time in ms (e.g. the `requestAnimationFrame` timestamp), used for
+     * gesture timing and auto-repeat; default `performance.now()`
      */
-    update(): void {
+    update(time: number = now()): void {
         // pointer movement and wheel accumulated since the last frame
         this.pointer.deltaX = this._pending.deltaX;
         this.pointer.deltaY = this._pending.deltaY;
@@ -289,10 +312,10 @@ export class Input {
 
         this._pollGamepads();
         this._pollXR();
-        this._updateGestures();
+        this._updateGestures(time);
 
         const devices = [...this._controls.keys()];
-        const fired: { action: string, phase: ActionPhase, device: InputDevice }[] = [];
+        const fired: { action: string, phase: ActionPhase, device: InputDevice, repeat: boolean }[] = [];
 
         for (const name of this.actions.names) {
             const action = this.actions.get(name)!;
@@ -311,14 +334,12 @@ export class Input {
 
                 anyRaw = Math.max(anyRaw, raw);
 
-                if (this._advance(states, device, raw, action.deadzone)) {
-                    fired.push({ action: name, phase: states.get(device)!.pressed ? 'pressed' : 'released', device });
-                }
+                const phase = this._advance(states, device, raw, action, time);
+                if (phase) fired.push({ action: name, phase, device, repeat: states.get(device)!.repeated });
             }
 
-            if (this._advance(states, ANY, anyRaw, action.deadzone)) {
-                fired.push({ action: name, phase: states.get(ANY)!.pressed ? 'pressed' : 'released', device: ANY });
-            }
+            const phase = this._advance(states, ANY, anyRaw, action, time);
+            if (phase) fired.push({ action: name, phase, device: ANY, repeat: states.get(ANY)!.repeated });
         }
 
         // presses are consumed once actions have seen them
@@ -326,10 +347,10 @@ export class Input {
             for (const state of controls.values()) state.pressed = false;
         }
 
-        for (const { action, phase, device } of fired) {
+        for (const { action, phase, device, repeat } of fired) {
             for (const listener of [...this._actionListeners]) {
                 if (listener.action === action && listener.phase === phase && listener.device === device) {
-                    listener.callback();
+                    listener.callback({ action, repeat });
                 }
             }
         }
@@ -342,10 +363,18 @@ export class Input {
         return this._state(action, query)?.pressed ?? false;
     }
 
-    /** Whether the action became pressed in the last update(). */
+    /**
+     * Whether the action became pressed in the last update(), or auto-repeated while held if the
+     * action has {@link Action.repeat} (e.g. to keep walking while a direction is held).
+     */
     isActionJustPressed(action: string, query?: DeviceQuery): boolean {
         const state = this._state(action, query);
-        return !!state && state.pressed && !state.wasPressed;
+        return !!state && state.pressed && (!state.wasPressed || state.repeated);
+    }
+
+    /** Whether the last update()'s press of the action was an auto-repeat rather than a new press. */
+    isActionRepeated(action: string, query?: DeviceQuery): boolean {
+        return this._state(action, query)?.repeated ?? false;
     }
 
     /** Whether the action was released in the last update(). */
@@ -403,8 +432,12 @@ export class Input {
         return { x, y };
     }
 
-    /** Calls `callback` when the action is pressed or released (during update()). Returns an unsubscribe function. */
-    onAction(action: string, phase: ActionPhase, callback: () => void, query: DeviceQuery = {}): () => void {
+    /**
+     * Calls `callback` when the action is pressed or released (during update()). With
+     * {@link Action.repeat}, `'pressed'` also fires on each auto-repeat, with `event.repeat` set.
+     * Returns an unsubscribe function.
+     */
+    onAction(action: string, phase: ActionPhase, callback: (event: ActionEvent) => void, query: DeviceQuery = {}): () => void {
         const listener = { action, phase, device: query.device ?? ANY, callback };
 
         this._actionListeners.push(listener);
@@ -530,12 +563,15 @@ export class Input {
         return this._actionStates.get(action)?.get(query?.device ?? ANY);
     }
 
-    // returns true when the pressed state changed
-    private _advance(states: Map<InputDevice, ActionState>, device: InputDevice, raw: number, deadzone: number): boolean {
+    // returns the phase to report: a press (new or auto-repeated) or a release
+    private _advance(states: Map<InputDevice, ActionState>, device: InputDevice, raw: number, action: Action, time: number): ActionPhase | undefined {
+        const deadzone = action.deadzone;
+
         let state = states.get(device);
-        if (!state) states.set(device, state = { raw: 0, strength: 0, pressed: false, wasPressed: false });
+        if (!state) states.set(device, state = { raw: 0, strength: 0, pressed: false, wasPressed: false, repeated: false, nextRepeat: 0 });
 
         state.wasPressed = state.pressed;
+        state.repeated = false;
         state.raw = raw;
         state.pressed = raw > 0 && raw >= deadzone;
         state.strength = !state.pressed ? 0 : deadzone >= 1 ? 1 : Math.min(1, (raw - deadzone) / (1 - deadzone));
@@ -543,7 +579,23 @@ export class Input {
         // a digital press always reads as full strength, even with a large deadzone
         if (state.pressed && raw >= 1) state.strength = 1;
 
-        return state.pressed !== state.wasPressed;
+        if (state.pressed !== state.wasPressed) {
+            if (state.pressed && action.repeat) state.nextRepeat = time + action.repeat.delay;
+
+            return state.pressed ? 'pressed' : 'released';
+        }
+
+        // held: repeat at most once per update, and never in a burst to catch up after a stall
+        if (state.pressed && action.repeat && time >= state.nextRepeat) {
+            const next = state.nextRepeat + action.repeat.interval;
+
+            state.repeated = true;
+            state.nextRepeat = next > time ? next : time + action.repeat.interval;
+
+            return 'pressed';
+        }
+
+        return undefined;
     }
 
     private _controlValue(device: InputDevice, id: string): number {
@@ -703,9 +755,10 @@ export class Input {
 
     // ---- touch ----
 
-    private _updateGestures(): void {
-        const frame = this.gestureRecognizer.update(now());
+    private _updateGestures(time: number): void {
+        const frame = this.gestureRecognizer.update(time);
 
+        this.gestures.events = frame.events;
         this.gestures.pinch = frame.pinch;
         this.gestures.pan = frame.pan;
         this.gestures.rotate = frame.rotate;
