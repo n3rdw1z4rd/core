@@ -16,7 +16,7 @@ export type ThreeComponent = Record<string, any>;
 export interface ThreeEntity extends Object3D {
     /** `Object3D.userData` with the entity's id and components */
     userData: {
-        /** unique within the page, from {@link GenerateEntityId} */
+        /** the object's `uuid` (kept in sync by {@link World}) */
         entityId: string;
         /** components by name */
         components: Record<string, ThreeComponent>;
@@ -29,6 +29,8 @@ let entityCounter = 0;
 /**
  * Returns a new id `"entity_<n>"` from a module-level counter (unique per page load, not random).
  *
+ * @deprecated entities now use their `Object3D.uuid` as id (stable across save and load);
+ * this is no longer used by {@link CreateThreeEntity}
  * @category ECS
  */
 export function GenerateEntityId(): string {
@@ -36,8 +38,8 @@ export function GenerateEntityId(): string {
 }
 
 /**
- * Turns `obj` (default: a new `Group`) into an entity in place: gives it a new id and an empty
- * component set, replacing any it had.
+ * Turns `obj` (default: a new `Group`) into an entity in place: an empty component set
+ * (replacing any it had), with its `uuid` as id.
  *
  * ```ts
  * const ship = CreateThreeEntity(shipMesh);
@@ -50,7 +52,7 @@ export function GenerateEntityId(): string {
  */
 export function CreateThreeEntity(obj?: Object3D): ThreeEntity {
     const entity = (obj ?? new Group()) as ThreeEntity;
-    entity.userData.entityId = GenerateEntityId();
+    entity.userData.entityId = entity.uuid;
     entity.userData.components = {};
     return entity;
 }

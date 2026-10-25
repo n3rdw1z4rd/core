@@ -3,6 +3,8 @@ import { runTests } from "./assert";
 import { inputTests } from "./input-test";
 import { fixesTests } from "./fixes-test";
 import { regressionTests } from "./regression-test";
+import { worldTests } from "./world-test";
+import { editorTests } from "./editor-test";
 
 declare const process: { argv: string[], exitCode?: number };
 
@@ -13,7 +15,7 @@ const astar = args.indexOf('astar');
 const seedArg = astar >= 0 ? args[astar + 1] : undefined;
 const seed = seedArg === undefined ? undefined : Number(seedArg);
 
-runTests([regressionTests, fixesTests, inputTests]).then(() => {
+runTests([regressionTests, fixesTests, inputTests, worldTests, editorTests]).then(() => {
     if (astar < 0) return;
 
     if (seed !== undefined && !Number.isFinite(seed)) {

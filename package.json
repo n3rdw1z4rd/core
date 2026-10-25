@@ -26,6 +26,16 @@
                 "default": "./dist/three.cjs"
             }
         },
+        "./vite": {
+            "import": {
+                "types": "./dist/vite.d.ts",
+                "default": "./dist/vite.js"
+            },
+            "require": {
+                "types": "./dist/vite.d.cts",
+                "default": "./dist/vite.cjs"
+            }
+        },
         "./css/*": "./dist/css/*",
         "./dist/*": "./dist/*",
         "./package.json": "./package.json"

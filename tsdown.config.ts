@@ -19,6 +19,7 @@ export default defineConfig([
         entry: {
             index: 'src/index.ts',
             three: 'src/three/index.ts',
+            vite: 'src/vite.ts',
         },
         format: 'cjs',
         platform: 'browser',
