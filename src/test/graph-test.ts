@@ -262,3 +262,54 @@ export const graphDisableTests: TestSuite = {
         assert.equal(ev.animated(graph).length, 0);
     },
 };
+
+/** Inputs to try each built-in with (besides its defaults), so source and TS stay in step. */
+const SAMPLES: Record<string, { inputs?: Record<string, unknown>; params?: Record<string, unknown>; ctx?: Record<string, number> }[]> = {
+    'value/number': [{ params: { value: 4.5 } }],
+    'value/vec2': [{ inputs: { x: 3, y: -2 } }],
+    'value/color': [{ params: { color: '#123456' } }],
+    'value/text': [{ params: { text: 'hi' } }],
+    'value/time': [{ params: { speed: 2 }, ctx: { time: 1.5, dt: 0.016, frame: 90 } }],
+    'math/wave': [{ inputs: { t: 0.3, period: 2, amplitude: 5 }, params: { shape: 'sine' } }, { inputs: { t: 0.7, period: 1, amplitude: 2 }, params: { shape: 'triangle' } }, { inputs: { t: 1.2, period: 1, amplitude: 1 }, params: { shape: 'saw' } }],
+    'math/math': ['+', '−', '×', '÷', 'min', 'max', 'pow', 'mod'].map((op) => ({ inputs: { a: 7, b: -3 }, params: { op } })),
+    'math/remap': [{ inputs: { value: 2, inMin: 0, inMax: 1, outMin: 0, outMax: 10 }, params: { clamp: true } }],
+    'vec2/split': [{ inputs: { vec: { x: 1, y: 2 } } }],
+    'vec2/offset': [{ inputs: { vec: { x: 1, y: 2 }, by: { x: 10, y: 20 } } }],
+    'list/range': [{ inputs: { start: 5, end: 0, step: -2 } }],
+    'list/grid2d': [{ inputs: { cols: 4, rows: 3, spacing: { x: 10, y: 20 }, center: { x: 1, y: 1 } }, params: { stagger: true } }],
+    'list/random': [{ inputs: { count: 5, min: -1, max: 1, seed: 42 } }],
+    'list/count': [{ inputs: { list: [1, 2, 3] } }],
+    'list/merge': [{ inputs: { lists: [1, 'a', null] } }],
+    'list/pick': [{ inputs: { list: [0, 1, 2, 3, 4, 5, 6], every: 3, offset: 1 } }],
+};
+
+export const builtinSourceTests: TestSuite = {
+    async 'graph: every built-in has a source that compiles to the same interface and behaviour'() {
+        const nodes = createNodeRegistry();
+        for (const def of nodes.all()) {
+            assert.ok(def.source, `${def.type} has no source`);
+            const fromSource = await compileNodeScript(def.type, def.source!);
+            const strip = (ports: readonly { name: string; type: string; default?: unknown; multi: boolean; optional: boolean }[]) =>
+                ports.map((p) => [p.name, p.type, p.default, p.multi, p.optional]);
+            assert.deepEqual(strip(fromSource.inputs), strip(def.inputs));
+            assert.deepEqual(strip(fromSource.outputs), strip(def.outputs));
+            assert.deepEqual(fromSource.params.map((p) => [p.name, p.type, p.default, p.options]), def.params.map((p) => [p.name, p.type, p.default, p.options]));
+            assert.equal(fromSource.title, def.title);
+            assert.equal(fromSource.animate, def.animate);
+
+            const defaults = (ports: readonly { name: string; default?: unknown }[]) => Object.fromEntries(ports.map((p) => [p.name, p.default]));
+            const cases = [{}, ...(SAMPLES[def.type] ?? [])] as { inputs?: Record<string, unknown>; params?: Record<string, unknown>; ctx?: Record<string, number> }[];
+            assert.ok(SAMPLES[def.type], `add sample inputs for ${def.type}`);
+            for (const c of cases) {
+                const inputs = { ...defaults(def.inputs), ...c.inputs };
+                const params = { ...defaults(def.params), ...c.params };
+                const ctx = { nodeId: 'n', index: 0, count: 1, env: {}, time: 0, dt: 0, frame: 0, ...c.ctx };
+                // nodes without defaults on every input can't run on "defaults only"
+                if (!c.inputs && def.inputs.some((p) => p.default === undefined && !p.optional)) continue;
+                const a = JSON.stringify(await def.run(structuredClone(inputs), params, ctx));
+                const b = JSON.stringify(await fromSource.run(structuredClone(inputs), params, ctx));
+                assert.equal(b, a);
+            }
+        }
+    },
+};

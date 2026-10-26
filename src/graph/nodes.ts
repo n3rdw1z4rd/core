@@ -1,5 +1,6 @@
 import { Rng } from '../rng';
 import { NodeRegistry, type NodeSpec } from './node';
+import { BUILTIN_SOURCES } from './sources';
 
 /**
  * General-purpose built-in nodes: values, math, vectors and lists. Domain nodes (shapes,
@@ -218,6 +219,7 @@ export const BUILTIN_NODES: NodeSpec[] = [
  */
 export function createNodeRegistry(): NodeRegistry {
     const registry = new NodeRegistry();
-    for (const spec of BUILTIN_NODES) registry.register(spec);
+    // each built-in carries its source (a script module) so it can be viewed and forked
+    for (const spec of BUILTIN_NODES) registry.register({ ...spec, source: spec.source ?? BUILTIN_SOURCES[spec.type] });
     return registry;
 }

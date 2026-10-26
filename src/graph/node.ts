@@ -94,7 +94,10 @@ export interface NodeSpec {
      * The type's default; each node can switch it (`GraphNode.animate`). Default false.
      */
     animate?: boolean;
-    /** the ES module source, for script nodes */
+    /**
+     * An equivalent ES module (see {@link compileNodeScript}): a script node's own code, or a
+     * built-in's code written out so it can be viewed and forked into a custom node.
+     */
     source?: string;
 }
 
