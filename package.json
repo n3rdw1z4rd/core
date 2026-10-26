@@ -26,6 +26,16 @@
                 "default": "./dist/three.cjs"
             }
         },
+        "./graph": {
+            "import": {
+                "types": "./dist/graph/index.d.ts",
+                "default": "./dist/graph/index.js"
+            },
+            "require": {
+                "types": "./dist/graph.d.cts",
+                "default": "./dist/graph.cjs"
+            }
+        },
         "./vite": {
             "import": {
                 "types": "./dist/vite.d.ts",
