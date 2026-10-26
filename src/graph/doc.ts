@@ -37,6 +37,8 @@ export interface GraphNode {
     collapsed?: boolean;
     /** re-run every frame while animating (overrides the type's default) */
     animate?: boolean;
+    /** switched off: doesn't run; downstream treats it like a failed node (skipped) */
+    disabled?: boolean;
 }
 
 /** @category Graph */

@@ -207,3 +207,58 @@ export const graphMultiTests: TestSuite = {
         assert.ok(threw);
     },
 };
+
+export const graphSkipTests: TestSuite = {
+    async 'graph: a multi input leaves failed sources out (and says which); a plain input still blocks'() {
+        const { nodes, graph, ev, add, link } = setup();
+        nodes.register({ type: 'test/boom2', outputs: { v: 'number' }, run: () => { throw new Error('nope'); } });
+        const good = add('list/range', { start: 0, end: 3 });
+        const bad = add('test/boom2');
+        const merge = add('list/merge');
+        link(good, 'numbers', merge, 'lists');
+        link(bad, 'v', merge, 'lists');
+        const after = add('math/math');
+        link(bad, 'v', after, 'a');
+        const { results } = await ev.evaluate(graph);
+        assert.deepEqual(results.get(merge.id)!.outputs.list, [0, 1, 2]);
+        assert.deepEqual(results.get(merge.id)!.skipped, [bad.id]);
+        assert.equal(results.get(after.id)!.blocked, bad.id);
+        // fixing the source re-runs the merge with it included
+        nodes.register({ type: 'test/boom2', outputs: { v: 'number' }, run: () => ({ v: 9 }) });
+        const r2 = await ev.evaluate(graph);
+        assert.deepEqual(r2.results.get(merge.id)!.outputs.list, [0, 1, 2, 9]);
+        assert.equal(r2.results.get(merge.id)!.skipped, undefined);
+    },
+};
+
+export const graphDisableTests: TestSuite = {
+    async 'graph: disabled nodes don’t run; downstream is blocked or leaves them out; re-enabling runs them again'() {
+        const { graph, ev, add, link } = setup();
+        const a = add('list/range', { start: 0, end: 2 });
+        const b = add('list/range', { start: 5, end: 7 });
+        const merge = add('list/merge');
+        const count = add('list/count');
+        link(a, 'numbers', merge, 'lists');
+        link(b, 'numbers', merge, 'lists');
+        link(b, 'numbers', count, 'list');
+        b.disabled = true;
+        let r = await ev.evaluate(graph);
+        assert.equal(r.results.get(b.id)!.disabled, true);
+        assert.ok(!r.ran.includes(b.id));
+        assert.deepEqual(r.results.get(merge.id)!.outputs.list, [0, 1]);
+        assert.deepEqual(r.results.get(merge.id)!.skipped, [b.id]);
+        assert.equal(r.results.get(count.id)!.blocked, b.id);
+        b.disabled = false;
+        r = await ev.evaluate(graph);
+        assert.deepEqual(r.results.get(merge.id)!.outputs.list, [0, 1, 5, 6]);
+        assert.equal(r.results.get(count.id)!.outputs.count, 2);
+    },
+
+    'graph: a disabled animated node doesn’t make the graph animated'() {
+        const { graph, ev, add } = setup();
+        const t = add('value/time');
+        assert.equal(ev.animated(graph).length, 1);
+        t.disabled = true;
+        assert.equal(ev.animated(graph).length, 0);
+    },
+};

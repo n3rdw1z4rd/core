@@ -18,8 +18,12 @@ import type { NodeDef, NodeRegistry, Port } from './node';
  *   re-runs on every evaluation that passes a new `frame`, and so does everything downstream
  *   of it; the rest stays cached. {@link GraphEvaluator.animated} tells the host whether any
  *   output depends on an animated node — if not, there's nothing to re-evaluate per frame.
+ * - **Disabled nodes** (`GraphNode.disabled`) don't run; downstream they count as failed
+ *   (blocked, or left out of a multi input).
  * - **Errors stay local:** a throwing node gets an `error`; nodes downstream of it are
- *   `blocked` and don't run; the rest of the graph still evaluates.
+ *   `blocked` (skipped) and don't run; the rest of the graph still evaluates. A **multi**
+ *   input leaves failed sources out instead (listed in `skipped`), so one broken branch
+ *   doesn't take down everything it feeds into.
  *
  * Nodes must treat their inputs as read-only: values are shared with upstream caches.
  *
@@ -47,7 +51,7 @@ export class GraphEvaluator {
         const { order } = this.order(doc, targets ?? this.defaultTargets(doc));
         return order.filter((id) => {
             const node = getNode(doc, id)!;
-            return node.animate ?? this.registry.get(node.type)?.animate ?? false;
+            return !node.disabled && (node.animate ?? this.registry.get(node.type)?.animate ?? false);
         });
     }
 
@@ -70,6 +74,10 @@ export class GraphEvaluator {
                 results.set(id, this.store(id, '', fail('part of a loop')));
                 continue;
             }
+            if (node.disabled) {
+                results.set(id, this.store(id, '', { outputs: {}, lists: {}, disabled: true, ms: 0 }));
+                continue;
+            }
 
             // gather inputs
             const values: Record<string, unknown> = {};
@@ -78,6 +86,7 @@ export class GraphEvaluator {
             if (node.animate ?? def.animate) keyParts.push(['frame', frame.frame, frame.time]);
             let blocked: string | undefined;
             let missing: string | undefined;
+            const skipped: string[] = [];
 
             for (const p of def.inputs) {
                 const links = linksInto(doc, id, p.name);
@@ -85,8 +94,10 @@ export class GraphEvaluator {
                     const gathered: unknown[] = [];
                     for (const link of p.multi ? links : links.slice(0, 1)) {
                         const src = results.get(link.from.node);
-                        if (!src || src.error || src.blocked) {
-                            blocked ??= link.from.node;
+                        if (!src || src.error || src.blocked || src.disabled) {
+                            if (p.multi) skipped.push(link.from.node); // leave it out, keep going
+                            else blocked ??= link.from.node;
+                            keyParts.push([p.name, link.from.node, 'failed']);
                             continue;
                         }
                         const v = src.outputs[link.from.port];
@@ -135,6 +146,7 @@ export class GraphEvaluator {
             }
 
             const res = await this.run(def, id, values, isList, params, env, frame);
+            if (skipped.length) res.skipped = skipped;
             ran.push(id);
             results.set(id, this.store(id, key, res));
         }
@@ -259,8 +271,12 @@ export interface NodeResult {
     lists: Record<string, boolean>;
     /** the node threw (or couldn't run) */
     error?: string;
-    /** an upstream node failed: its id */
+    /** switched off by the user: didn't run */
+    disabled?: boolean;
+    /** an upstream node failed, was blocked or is disabled, so this one didn't run: its id */
     blocked?: string;
+    /** multi inputs only: sources that failed and were left out (the node still ran) */
+    skipped?: string[];
     /** time spent in run(), ms */
     ms: number;
     /** changes whenever the node actually re-ran */
