@@ -54,6 +54,9 @@ export type ParamSpec = { type: string; description?: string } & WidgetSpec;
 export interface RunContext {
     /** the node instance's id */
     nodeId: string;
+    /** the node's type, and its source module (if it has one) — behaviour nodes pass these on */
+    type: string;
+    source?: string;
     /** while broadcasting over lists: this call's index (else 0) and the call count (else 1) */
     index: number;
     count: number;

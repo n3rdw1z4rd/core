@@ -303,7 +303,7 @@ export const builtinSourceTests: TestSuite = {
             for (const c of cases) {
                 const inputs = { ...defaults(def.inputs), ...c.inputs };
                 const params = { ...defaults(def.params), ...c.params };
-                const ctx = { nodeId: 'n', index: 0, count: 1, env: {}, time: 0, dt: 0, frame: 0, ...c.ctx };
+                const ctx = { nodeId: 'n', type: def.type, source: def.source, index: 0, count: 1, env: {}, time: 0, dt: 0, frame: 0, ...c.ctx };
                 // nodes without defaults on every input can't run on "defaults only"
                 if (!c.inputs && def.inputs.some((p) => p.default === undefined && !p.optional)) continue;
                 const a = JSON.stringify(await def.run(structuredClone(inputs), params, ctx));
@@ -321,5 +321,22 @@ export const graphGroupTests: TestSuite = {
             groups: [{ id: 'g1', title: 'pegs', color: '#335', rect: [0, 0, 100, 50] }, { id: 'bad', rect: [0, 'x'] }, null],
         });
         assert.deepEqual(g.groups, [{ id: 'g1', title: 'pegs', color: '#335', rect: [0, 0, 100, 50] }]);
+    },
+};
+
+export const behaviorTests: TestSuite = {
+    async 'graph: a module exporting step (no run) is a behaviour node: it evaluates to its params + source'() {
+        const { nodes, graph, ev, add } = setup();
+        const src = `export const title = 'Push';
+export const inputs = { force: { type: 'vec2', default: { x: 0, y: 600 } } };
+export const params = { local: { type: 'boolean', default: false } };
+export function step(self, world, dt, params) { self.accelerate(params.force.x, params.force.y); }`;
+        const def = await compileNodeScript('behavior/push', src);
+        assert.equal(def.category, 'behavior');
+        assert.deepEqual(def.outputs.map((o) => [o.name, o.type]), [['behavior', 'behavior']]);
+        nodes.register(def);
+        const n = add('behavior/push', { force: { x: 1, y: 2 } });
+        const v = (await ev.evaluate(graph)).results.get(n.id)!.outputs.behavior as any;
+        assert.deepEqual([v.kind, v.type, v.node, v.params, v.source === src], ['behavior', 'behavior/push', n.id, { force: { x: 1, y: 2 }, local: false }, true]);
     },
 };

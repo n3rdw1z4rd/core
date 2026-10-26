@@ -203,7 +203,7 @@ export class GraphEvaluator {
 
         try {
             if (broadcast.length === 0) {
-                const r = (await def.run(values, params, { nodeId, index: 0, count: 1, env, ...frame })) ?? {};
+                const r = (await def.run(values, params, { nodeId, type: def.type, source: def.source, index: 0, count: 1, env, ...frame })) ?? {};
                 for (const o of def.outputs) {
                     outputs[o.name] = r[o.name];
                     lists[o.name] = o.list;
@@ -221,7 +221,7 @@ export class GraphEvaluator {
                         const list = values[p.name] as unknown[];
                         args[p.name] = list[Math.min(i, lens[k] - 1)];
                     });
-                    const r = (await def.run(args, params, { nodeId, index: i, count, env, ...frame })) ?? {};
+                    const r = (await def.run(args, params, { nodeId, type: def.type, source: def.source, index: i, count, env, ...frame })) ?? {};
                     for (const o of def.outputs) {
                         const v = r[o.name];
                         if (o.list && Array.isArray(v)) (outputs[o.name] as unknown[]).push(...v);

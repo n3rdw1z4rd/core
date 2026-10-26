@@ -1,4 +1,4 @@
-import { defineNode, type NodeDef, type NodeSpec } from './node';
+import { defineNode, type NodeDef, type NodeSpec, type RunContext } from './node';
 
 /**
  * Script nodes: a node type written as a plain ES module, compiled at runtime.
@@ -28,8 +28,14 @@ import { defineNode, type NodeDef, type NodeSpec } from './node';
 export async function compileNodeScript(type: string, source: string): Promise<NodeDef> {
     const url = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
     const mod = await import(/* @vite-ignore */ url);
-    const m = (mod.default && typeof mod.default === 'object' && !mod.run ? mod.default : mod) as Partial<NodeSpec>;
-    if (typeof m.run !== 'function') throw new Error(`script node "${type}": export a run(inputs, params, ctx) function`);
+    const m = { ...(mod.default && typeof mod.default === 'object' && !mod.run ? mod.default : mod) } as Partial<NodeSpec> & { step?: unknown; setup?: unknown };
+    // a behaviour module: exports step (and maybe setup) but no run
+    if (typeof m.run !== 'function' && (typeof m.step === 'function' || typeof m.setup === 'function')) {
+        m.run = behaviorRun;
+        m.outputs ??= { behavior: 'behavior' };
+        m.category ??= 'behavior';
+    }
+    if (typeof m.run !== 'function') throw new Error(`script node "${type}": export a run(inputs, params, ctx) function (or step(self, world, dt, params) for a behaviour)`);
     return defineNode({
         type,
         title: m.title,
@@ -43,6 +49,35 @@ export async function compileNodeScript(type: string, source: string): Promise<N
         run: m.run,
         source,
     });
+}
+
+/**
+ * A behaviour: what a behaviour node evaluates to. The host runs `source`'s `step` (and
+ * `setup`) against whatever it's attached to, with `params`.
+ *
+ * @category Graph
+ */
+export interface BehaviorValue {
+    kind: 'behavior';
+    /** the behaviour node's type */
+    type: string;
+    /** the node instance (for error reports) */
+    node: string;
+    /** its inputs and params at evaluation time */
+    params: Record<string, unknown>;
+    /** the module with step / setup */
+    source: string;
+}
+
+/**
+ * The `run` of a behaviour node: packs its inputs, params and source into a {@link BehaviorValue}
+ * on the `behavior` output. Behaviour modules (exporting `step`, no `run`) get it automatically.
+ *
+ * @category Graph
+ */
+export function behaviorRun(inputs: Record<string, unknown>, params: Record<string, unknown>, ctx: RunContext): { behavior: BehaviorValue } {
+    if (!ctx.source) throw new Error(`behaviour node ${ctx.type} has no source module`);
+    return { behavior: { kind: 'behavior', type: ctx.type, node: ctx.nodeId, params: { ...inputs, ...params }, source: ctx.source } };
 }
 
 /** A starting point for a new script node. @category Graph */
