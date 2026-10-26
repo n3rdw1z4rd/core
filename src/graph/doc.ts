@@ -54,6 +54,20 @@ export interface GraphLink {
     to: PortRef;
 }
 
+/**
+ * A group: a titled, colored frame around nodes. Purely visual — the evaluator ignores it;
+ * the nodes "in" a group are the ones inside its rectangle.
+ *
+ * @category Graph
+ */
+export interface GraphGroup {
+    id: string;
+    title: string;
+    color: string;
+    /** x, y, width, height in graph units */
+    rect: [number, number, number, number];
+}
+
 /** @category Graph */
 export interface GraphDoc {
     format: typeof GRAPH_FORMAT;
@@ -62,6 +76,8 @@ export interface GraphDoc {
     links: GraphLink[];
     /** script node type → ES module source */
     scripts?: Record<string, string>;
+    /** frames around nodes (visual only) */
+    groups?: GraphGroup[];
     meta?: Record<string, unknown>;
 }
 
@@ -86,7 +102,10 @@ export function normalizeGraph(raw: unknown): GraphDoc {
     const ids = new Set(nodes.map((n) => n.id));
     const links = (Array.isArray(g.links) ? g.links : []).filter((l): l is GraphLink =>
         !!l && typeof l.id === 'string' && ids.has(l.from?.node) && ids.has(l.to?.node) && typeof l.from.port === 'string' && typeof l.to.port === 'string');
-    return { ...g, format: GRAPH_FORMAT, version: GRAPH_VERSION, nodes, links } as GraphDoc;
+    const groups = (Array.isArray(g.groups) ? g.groups : []).filter((gr): gr is GraphGroup =>
+        !!gr && typeof gr.id === 'string' && Array.isArray(gr.rect) && gr.rect.length === 4 && gr.rect.every((v) => Number.isFinite(v)))
+        .map((gr) => ({ id: gr.id, title: String(gr.title ?? 'group'), color: String(gr.color ?? '#3a3a3a'), rect: [...gr.rect] as [number, number, number, number] }));
+    return { ...g, format: GRAPH_FORMAT, version: GRAPH_VERSION, nodes, links, ...(groups.length ? { groups } : { groups: undefined }) } as GraphDoc;
 }
 
 /** @category Graph */

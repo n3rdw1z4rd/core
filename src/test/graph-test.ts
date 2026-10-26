@@ -313,3 +313,13 @@ export const builtinSourceTests: TestSuite = {
         }
     },
 };
+
+export const graphGroupTests: TestSuite = {
+    'graph: groups survive normalizeGraph; malformed ones are dropped'() {
+        const g = normalizeGraph({
+            format: 'n3rdw1z4rd.graph', version: 1, nodes: [], links: [],
+            groups: [{ id: 'g1', title: 'pegs', color: '#335', rect: [0, 0, 100, 50] }, { id: 'bad', rect: [0, 'x'] }, null],
+        });
+        assert.deepEqual(g.groups, [{ id: 'g1', title: 'pegs', color: '#335', rect: [0, 0, 100, 50] }]);
+    },
+};
