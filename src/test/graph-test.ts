@@ -1,7 +1,7 @@
 import { assert, type TestSuite } from './assert';
 import {
     GraphEvaluator, SCRIPT_NODE_TEMPLATE, addNode, canConnect, collapseToSubgraph, compileNodeScript, connect, createGraph,
-    createNodeRegistry, defineNode, expandSubgraph, getNode, normalizeGraph, registerSubgraphs, removeNode,
+    createNodeRegistry, defineNode, expandSubgraph, getNode, normalizeGraph, registerSubgraphs, removeNode, type ModuleKind,
 } from '../graph';
 
 function setup() {
@@ -324,34 +324,44 @@ export const graphGroupTests: TestSuite = {
     },
 };
 
-export const behaviorTests: TestSuite = {
-    async 'graph: a module exporting step (no run) is a behaviour node: it evaluates to its params + source'() {
+export const moduleKindTests: TestSuite = {
+    async 'graph: a host can declare module kinds: hooks instead of run, compiled with the host\'s run'() {
         const { nodes, graph, ev, add } = setup();
-        const src = `export const title = 'Push';
-export const inputs = { force: { type: 'vec2', default: { x: 0, y: 600 } } };
-export const params = { local: { type: 'boolean', default: false } };
-export function step(self, world, dt, params) { self.accelerate(params.force.x, params.force.y); }`;
-        const def = await compileNodeScript('behavior/push', src);
-        assert.equal(def.category, 'behavior');
-        assert.deepEqual(def.outputs.map((o) => [o.name, o.type]), [['behavior', 'behavior']]);
+        const agent: ModuleKind = {
+            hooks: ['update', 'collide'],
+            outputs: { agent: 'any' },
+            category: 'agents',
+            run: (inputs, params, ctx) => ({ agent: { type: ctx.type, node: ctx.nodeId, params: { ...inputs, ...params }, source: ctx.source } }),
+        };
+        const src = `export const title = 'Wander';
+export const inputs = { speed: { type: 'number', default: 2 } };
+export const params = { turn: { type: 'boolean', default: false } };
+export function update(self, dt, params) { self.x += params.speed * dt; }`;
+        const def = await compileNodeScript('agents/wander', src, { kinds: [agent] });
+        assert.equal(def.category, 'agents');
+        assert.deepEqual(def.outputs.map((o) => [o.name, o.type]), [['agent', 'any']]);
         nodes.register(def);
-        const n = add('behavior/push', { force: { x: 1, y: 2 } });
-        const v = (await ev.evaluate(graph)).results.get(n.id)!.outputs.behavior as any;
-        assert.deepEqual([v.kind, v.type, v.node, v.params, v.source === src], ['behavior', 'behavior/push', n.id, { force: { x: 1, y: 2 }, local: false }, true]);
+        const n = add('agents/wander', { speed: 3 });
+        const v = (await ev.evaluate(graph)).results.get(n.id)!.outputs.agent as any;
+        assert.deepEqual([v.type, v.node, v.params, v.source === src], ['agents/wander', n.id, { speed: 3, turn: false }, true]);
+
+        // any of the kind's hooks will do
+        const other = await compileNodeScript('agents/bump', 'export function collide() {}', { kinds: [agent] });
+        assert.equal(other.category, 'agents');
     },
-    async 'graph: a module exporting only enter / exit (no step, no run) is a behaviour node too'() {
-        for (const hook of ['enter', 'exit']) {
-            const def = await compileNodeScript(`behavior/${hook}-only`, `export function ${hook}(self, other) { other.remove(); }`);
-            assert.equal(def.category, 'behavior');
-            assert.deepEqual(def.outputs.map((o) => [o.name, o.type]), [['behavior', 'behavior']]);
-        }
-        let error = '';
-        try {
-            await compileNodeScript('x/none', 'export const title = "nothing";');
-        } catch (e) {
-            error = String(e);
-        }
-        assert.ok(/export a run/.test(error), 'a module with no run and no hooks is refused');
+    async 'graph: without a matching kind, a module needs a run (and the error names the hooks it could have used)'() {
+        const errorOf = async (src: string, kinds?: ModuleKind[]) => {
+            try {
+                await compileNodeScript('x/test', src, { kinds });
+                return '';
+            } catch (e) {
+                return String(e);
+            }
+        };
+        assert.ok(/export a run/.test(await errorOf('export function update() {}')), 'no kinds declared: hooks mean nothing');
+        const kinds: ModuleKind[] = [{ hooks: ['setup', 'step'], run: () => ({}) }];
+        assert.ok(/or setup \/ step/.test(await errorOf('export const title = "nothing";', kinds)), 'the error lists the hooks');
+        assert.equal(await errorOf('export function step() {}', kinds), '');
     },
 };
 

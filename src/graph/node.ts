@@ -14,11 +14,11 @@ import { parseType, type ParsedType } from './types';
  *
  * ```ts
  * defineNode({
- *     type: 'shapes/ball',
- *     inputs: { at: 'vec2', radius: { type: 'number', default: 8, min: 0.5 } },
- *     params: { color: { type: 'color', default: '#e8554e' } },
- *     outputs: { entity: 'entity' },
- *     run: ({ at, radius }, { color }) => ({ entity: { shape: 'ball', x: at.x, y: at.y, r: radius, color } }),
+ *     type: 'math/lerp',
+ *     inputs: { a: 'number', b: { type: 'number', default: 1 } },
+ *     params: { t: { type: 'number', default: 0.5, min: 0, max: 1, step: 0.05 } },
+ *     outputs: { value: 'number' },
+ *     run: ({ a, b }, { t }) => ({ value: a + (b - a) * t }),
  * });
  * ```
  *
@@ -54,7 +54,7 @@ export type ParamSpec = { type: string; description?: string } & WidgetSpec;
 export interface RunContext {
     /** the node instance's id */
     nodeId: string;
-    /** the node's type, and its source module (if it has one) — behaviour nodes pass these on */
+    /** the node's type, and its source module (if it has one), for nodes whose output carries their own code */
     type: string;
     source?: string;
     /** while broadcasting over lists: this call's index (else 0) and the call count (else 1) */

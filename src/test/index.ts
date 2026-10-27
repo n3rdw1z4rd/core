@@ -5,7 +5,7 @@ import { fixesTests } from "./fixes-test";
 import { regressionTests } from "./regression-test";
 import { worldTests } from "./world-test";
 import { editorTests } from "./editor-test";
-import { graphAnimationTests, graphMultiTests, graphSkipTests, graphDisableTests, graphTests, builtinSourceTests, graphGroupTests, behaviorTests, subgraphTests } from "./graph-test";
+import { graphAnimationTests, graphMultiTests, graphSkipTests, graphDisableTests, graphTests, builtinSourceTests, graphGroupTests, moduleKindTests, subgraphTests } from "./graph-test";
 
 declare const process: { argv: string[], exitCode?: number };
 
@@ -16,7 +16,7 @@ const astar = args.indexOf('astar');
 const seedArg = astar >= 0 ? args[astar + 1] : undefined;
 const seed = seedArg === undefined ? undefined : Number(seedArg);
 
-runTests([regressionTests, fixesTests, inputTests, worldTests, editorTests, graphTests, graphAnimationTests, graphMultiTests, graphSkipTests, graphDisableTests, builtinSourceTests, graphGroupTests, behaviorTests, subgraphTests]).then(() => {
+runTests([regressionTests, fixesTests, inputTests, worldTests, editorTests, graphTests, graphAnimationTests, graphMultiTests, graphSkipTests, graphDisableTests, builtinSourceTests, graphGroupTests, moduleKindTests, subgraphTests]).then(() => {
     if (astar < 0) return;
 
     if (seed !== undefined && !Number.isFinite(seed)) {

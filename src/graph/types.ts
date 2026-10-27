@@ -1,5 +1,5 @@
 /**
- * Pin types. A type is a name (`number`, `vec2`, `entity`…) with a color for the editor;
+ * Pin types. A type is a name (`number`, `vec2`, your own…) with a color for the editor;
  * a trailing `[]` in a port declaration (`vec2[]`) makes the port a **list port** — it takes
  * or produces a whole list instead of one value at a time (see {@link GraphEvaluator}).
  *
@@ -76,7 +76,7 @@ export class TypeRegistry {
 }
 
 /**
- * The default pin types (colors match the apparatus palette).
+ * The default pin types. Add your own with `portTypes.define(name, color)`.
  *
  * @category Graph
  */
