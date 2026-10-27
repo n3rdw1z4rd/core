@@ -153,7 +153,7 @@ results.get(count.id)!.outputs.count;             // 6
   export function run({ value }, params, ctx) { return { value: value * 2 }; }
   ```
 
-  A module that exports hooks instead of `run` (any of `BEHAVIOR_HOOKS`: `setup`, `step`, `enter`, `exit`) is a **behaviour** node: it evaluates to a `BehaviorValue` (its params and source) for a host to run, e.g. on a physics body.
+  A host can also declare its own **module kinds** (`compileNodeScript(type, source, { kinds })`): a module that exports hooks instead of `run` (say, an `update(self, dt)` the host calls every frame) becomes a node with a `run` the host provides, typically one that outputs the node's params and source for the host to run later. apparatus's behaviours (`setup` / `step` / `enter` / `exit` on a physics body) are one.
 - **Subgraphs**: `collapseToSubgraph(graph, nodes, ids, title)` turns a selection into a reusable node type (the wires crossing the selection become its pins); `expandSubgraph()` undoes it, and `registerSubgraphs()` restores the types from a saved document.
 - **Documents** are plain JSON (`normalizeGraph()` checks and fills in one you've loaded): nodes, links, groups, subgraph definitions and embedded scripts.
 

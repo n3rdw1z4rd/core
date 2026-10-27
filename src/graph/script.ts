@@ -1,15 +1,15 @@
-import { defineNode, type NodeDef, type NodeSpec, type RunContext } from './node';
+import { defineNode, type NodeDef, type NodeSpec } from './node';
 
 /**
  * Script nodes: a node type written as a plain ES module, compiled at runtime.
  *
  * ```js
- * export const title = 'Ball';                       // optional: title, category, description, output, animate
- * export const inputs = { at: 'vec2', radius: { type: 'number', default: 8 } };
- * export const params = { color: { type: 'color', default: '#e8554e' } };
- * export const outputs = { entity: 'entity' };
- * export function run({ at, radius }, { color }, ctx) {
- *     return { entity: { shape: 'ball', x: at.x, y: at.y, r: radius, color } };
+ * export const title = 'Lerp';                       // optional: title, category, description, output, animate
+ * export const inputs = { a: 'number', b: { type: 'number', default: 1 } };
+ * export const params = { t: { type: 'number', default: 0.5, min: 0, max: 1, step: 0.05 } };
+ * export const outputs = { value: 'number' };
+ * export function run({ a, b }, { t }, ctx) {
+ *     return { value: a + (b - a) * t };
  * }
  * ```
  *
@@ -21,30 +21,62 @@ import { defineNode, type NodeDef, type NodeSpec, type RunContext } from './node
  */
 
 /**
- * The functions a behaviour module can export (any of them, and no `run`): what they mean is up to
- * the host. apparatus runs `setup` once, `step` every physics step, and `enter` / `exit` when a body
- * starts / stops touching (or overlapping) the one the behaviour is on.
+ * Another shape of script module a host understands, besides `run` nodes: a module that exports
+ * no `run` but any of `hooks` is compiled into a node with this `run` (and these outputs and
+ * category, unless the module declares its own). What the hooks mean is up to the host — e.g. a
+ * per-frame `update` it calls later: `run` typically packs the node's params and `ctx.source`
+ * into a value the host picks up from the output.
+ *
+ * ```ts
+ * const agent: ModuleKind = {
+ *     hooks: ['update'],
+ *     outputs: { agent: 'agent' },
+ *     run: (inputs, params, ctx) => ({ agent: { params: { ...inputs, ...params }, source: ctx.source } }),
+ * };
+ * const def = await compileNodeScript('agents/wander', source, { kinds: [agent] });
+ * ```
  *
  * @category Graph
  */
-export const BEHAVIOR_HOOKS = ['setup', 'step', 'enter', 'exit'] as const;
+export interface ModuleKind {
+    /** exporting any of these (and no `run`) makes a module this kind */
+    hooks: readonly string[];
+    /** the node's run */
+    run: NodeSpec['run'];
+    /** outputs, unless the module exports its own */
+    outputs?: NodeSpec['outputs'];
+    /** category, unless the module exports its own */
+    category?: string;
+}
+
+/** @category Graph */
+export interface ScriptOptions {
+    /** the module kinds this host understands besides `run` nodes (first match wins) */
+    kinds?: readonly ModuleKind[];
+}
 
 /**
  * Compiles a script node's source into a node type named `type`.
  *
  * @category Graph
  */
-export async function compileNodeScript(type: string, source: string): Promise<NodeDef> {
+export async function compileNodeScript(type: string, source: string, options: ScriptOptions = {}): Promise<NodeDef> {
     const url = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
     const mod = await import(/* @vite-ignore */ url);
-    const m = { ...(mod.default && typeof mod.default === 'object' && !mod.run ? mod.default : mod) } as Partial<NodeSpec> & Record<(typeof BEHAVIOR_HOOKS)[number], unknown>;
-    // a behaviour module: exports one or more hooks (setup, step, enter, exit) but no run
-    if (typeof m.run !== 'function' && BEHAVIOR_HOOKS.some((h) => typeof m[h] === 'function')) {
-        m.run = behaviorRun;
-        m.outputs ??= { behavior: 'behavior' };
-        m.category ??= 'behavior';
+    const m = { ...(mod.default && typeof mod.default === 'object' && !mod.run ? mod.default : mod) } as Partial<NodeSpec> & Record<string, unknown>;
+    if (typeof m.run !== 'function') {
+        // another kind of module the host understands: hooks instead of run
+        const kind = options.kinds?.find((k) => k.hooks.some((h) => typeof m[h] === 'function'));
+        if (kind) {
+            m.run = kind.run;
+            m.outputs ??= kind.outputs;
+            m.category ??= kind.category;
+        }
     }
-    if (typeof m.run !== 'function') throw new Error(`script node "${type}": export a run(inputs, params, ctx) function (or setup / step / enter / exit for a behaviour)`);
+    if (typeof m.run !== 'function') {
+        const hooks = options.kinds?.flatMap((k) => k.hooks) ?? [];
+        throw new Error(`script node "${type}": export a run(inputs, params, ctx) function${hooks.length ? ` (or ${hooks.join(' / ')})` : ''}`);
+    }
     return defineNode({
         type,
         title: m.title,
@@ -58,35 +90,6 @@ export async function compileNodeScript(type: string, source: string): Promise<N
         run: m.run,
         source,
     });
-}
-
-/**
- * A behaviour: what a behaviour node evaluates to. The host runs `source`'s hooks
- * ({@link BEHAVIOR_HOOKS}) against whatever it's attached to, with `params`.
- *
- * @category Graph
- */
-export interface BehaviorValue {
-    kind: 'behavior';
-    /** the behaviour node's type */
-    type: string;
-    /** the node instance (for error reports) */
-    node: string;
-    /** its inputs and params at evaluation time */
-    params: Record<string, unknown>;
-    /** the module with its hooks (setup / step / enter / exit) */
-    source: string;
-}
-
-/**
- * The `run` of a behaviour node: packs its inputs, params and source into a {@link BehaviorValue}
- * on the `behavior` output. Behaviour modules (exporting a hook, no `run`) get it automatically.
- *
- * @category Graph
- */
-export function behaviorRun(inputs: Record<string, unknown>, params: Record<string, unknown>, ctx: RunContext): { behavior: BehaviorValue } {
-    if (!ctx.source) throw new Error(`behaviour node ${ctx.type} has no source module`);
-    return { behavior: { kind: 'behavior', type: ctx.type, node: ctx.nodeId, params: { ...inputs, ...params }, source: ctx.source } };
 }
 
 /** A starting point for a new script node. @category Graph */
