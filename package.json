@@ -1,6 +1,6 @@
 {
     "name": "@n3rdw1z4rd/core",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "core library",
     "main": "dist/index.cjs",
     "module": "dist/index.js",
@@ -24,6 +24,26 @@
             "require": {
                 "types": "./dist/three.d.cts",
                 "default": "./dist/three.cjs"
+            }
+        },
+        "./graph": {
+            "import": {
+                "types": "./dist/graph/index.d.ts",
+                "default": "./dist/graph/index.js"
+            },
+            "require": {
+                "types": "./dist/graph.d.cts",
+                "default": "./dist/graph.cjs"
+            }
+        },
+        "./vite": {
+            "import": {
+                "types": "./dist/vite.d.ts",
+                "default": "./dist/vite.js"
+            },
+            "require": {
+                "types": "./dist/vite.d.cts",
+                "default": "./dist/vite.cjs"
             }
         },
         "./css/*": "./dist/css/*",
