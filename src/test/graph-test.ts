@@ -339,6 +339,20 @@ export function step(self, world, dt, params) { self.accelerate(params.force.x, 
         const v = (await ev.evaluate(graph)).results.get(n.id)!.outputs.behavior as any;
         assert.deepEqual([v.kind, v.type, v.node, v.params, v.source === src], ['behavior', 'behavior/push', n.id, { force: { x: 1, y: 2 }, local: false }, true]);
     },
+    async 'graph: a module exporting only enter / exit (no step, no run) is a behaviour node too'() {
+        for (const hook of ['enter', 'exit']) {
+            const def = await compileNodeScript(`behavior/${hook}-only`, `export function ${hook}(self, other) { other.remove(); }`);
+            assert.equal(def.category, 'behavior');
+            assert.deepEqual(def.outputs.map((o) => [o.name, o.type]), [['behavior', 'behavior']]);
+        }
+        let error = '';
+        try {
+            await compileNodeScript('x/none', 'export const title = "nothing";');
+        } catch (e) {
+            error = String(e);
+        }
+        assert.ok(/export a run/.test(error), 'a module with no run and no hooks is refused');
+    },
 };
 
 export const subgraphTests: TestSuite = {

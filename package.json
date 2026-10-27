@@ -1,6 +1,6 @@
 {
     "name": "@n3rdw1z4rd/core",
-    "version": "0.21.0",
+    "version": "0.22.0",
     "description": "core library",
     "main": "dist/index.cjs",
     "module": "dist/index.js",

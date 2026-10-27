@@ -21,6 +21,15 @@ import { defineNode, type NodeDef, type NodeSpec, type RunContext } from './node
  */
 
 /**
+ * The functions a behaviour module can export (any of them, and no `run`): what they mean is up to
+ * the host. apparatus runs `setup` once, `step` every physics step, and `enter` / `exit` when a body
+ * starts / stops touching (or overlapping) the one the behaviour is on.
+ *
+ * @category Graph
+ */
+export const BEHAVIOR_HOOKS = ['setup', 'step', 'enter', 'exit'] as const;
+
+/**
  * Compiles a script node's source into a node type named `type`.
  *
  * @category Graph
@@ -28,14 +37,14 @@ import { defineNode, type NodeDef, type NodeSpec, type RunContext } from './node
 export async function compileNodeScript(type: string, source: string): Promise<NodeDef> {
     const url = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
     const mod = await import(/* @vite-ignore */ url);
-    const m = { ...(mod.default && typeof mod.default === 'object' && !mod.run ? mod.default : mod) } as Partial<NodeSpec> & { step?: unknown; setup?: unknown };
-    // a behaviour module: exports step (and maybe setup) but no run
-    if (typeof m.run !== 'function' && (typeof m.step === 'function' || typeof m.setup === 'function')) {
+    const m = { ...(mod.default && typeof mod.default === 'object' && !mod.run ? mod.default : mod) } as Partial<NodeSpec> & Record<(typeof BEHAVIOR_HOOKS)[number], unknown>;
+    // a behaviour module: exports one or more hooks (setup, step, enter, exit) but no run
+    if (typeof m.run !== 'function' && BEHAVIOR_HOOKS.some((h) => typeof m[h] === 'function')) {
         m.run = behaviorRun;
         m.outputs ??= { behavior: 'behavior' };
         m.category ??= 'behavior';
     }
-    if (typeof m.run !== 'function') throw new Error(`script node "${type}": export a run(inputs, params, ctx) function (or step(self, world, dt, params) for a behaviour)`);
+    if (typeof m.run !== 'function') throw new Error(`script node "${type}": export a run(inputs, params, ctx) function (or setup / step / enter / exit for a behaviour)`);
     return defineNode({
         type,
         title: m.title,
@@ -52,8 +61,8 @@ export async function compileNodeScript(type: string, source: string): Promise<N
 }
 
 /**
- * A behaviour: what a behaviour node evaluates to. The host runs `source`'s `step` (and
- * `setup`) against whatever it's attached to, with `params`.
+ * A behaviour: what a behaviour node evaluates to. The host runs `source`'s hooks
+ * ({@link BEHAVIOR_HOOKS}) against whatever it's attached to, with `params`.
  *
  * @category Graph
  */
@@ -65,13 +74,13 @@ export interface BehaviorValue {
     node: string;
     /** its inputs and params at evaluation time */
     params: Record<string, unknown>;
-    /** the module with step / setup */
+    /** the module with its hooks (setup / step / enter / exit) */
     source: string;
 }
 
 /**
  * The `run` of a behaviour node: packs its inputs, params and source into a {@link BehaviorValue}
- * on the `behavior` output. Behaviour modules (exporting `step`, no `run`) get it automatically.
+ * on the `behavior` output. Behaviour modules (exporting a hook, no `run`) get it automatically.
  *
  * @category Graph
  */
