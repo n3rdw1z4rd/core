@@ -25,4 +25,5 @@ export * from './node';
 export * from './nodes';
 export * from './script';
 export * from './sources';
+export * from './subgraph';
 export * from './types';

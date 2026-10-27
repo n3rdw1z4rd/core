@@ -1,7 +1,7 @@
 import { assert, type TestSuite } from './assert';
 import {
-    GraphEvaluator, SCRIPT_NODE_TEMPLATE, addNode, canConnect, compileNodeScript, connect, createGraph, createNodeRegistry,
-    defineNode, normalizeGraph, removeNode,
+    GraphEvaluator, SCRIPT_NODE_TEMPLATE, addNode, canConnect, collapseToSubgraph, compileNodeScript, connect, createGraph,
+    createNodeRegistry, defineNode, expandSubgraph, getNode, normalizeGraph, registerSubgraphs, removeNode,
 } from '../graph';
 
 function setup() {
@@ -338,5 +338,89 @@ export function step(self, world, dt, params) { self.accelerate(params.force.x, 
         const n = add('behavior/push', { force: { x: 1, y: 2 } });
         const v = (await ev.evaluate(graph)).results.get(n.id)!.outputs.behavior as any;
         assert.deepEqual([v.kind, v.type, v.node, v.params, v.source === src], ['behavior', 'behavior/push', n.id, { force: { x: 1, y: 2 }, local: false }, true]);
+    },
+};
+
+export const subgraphTests: TestSuite = {
+    async 'subgraph: collapsing nodes keeps what the graph computes (lists stay lists); expand undoes it'() {
+        const { nodes, graph, ev, add, link } = setup();
+        const grid = add('list/grid2d', { cols: 3, rows: 2, spacing: { x: 10, y: 10 } });
+        const split = add('vec2/split');
+        const scale = add('math/math', { b: 2, op: '×' });
+        const count = add('list/count');
+        const merge = add('list/merge');
+        link(grid, 'points', split, 'vec');
+        link(split, 'x', scale, 'a');
+        link(scale, 'result', merge, 'lists');
+        link(merge, 'list', count, 'list');
+        const before = (await ev.evaluate(graph)).results;
+        const expected = before.get(merge.id)!.outputs.list;
+
+        const { type, node } = collapseToSubgraph(graph, nodes, [split.id, scale.id], 'Double X');
+        assert.equal(type, 'subgraph/double-x');
+        assert.equal(graph.nodes.length, 4);
+        const def = graph.subgraphs![type];
+        assert.deepEqual(def.inputs.map((p) => [p.name, p.type, p.to.length]), [['vec', 'vec2', 1]]);
+        assert.deepEqual(def.outputs.map((p) => [p.name, p.type]), [['result', 'number']]);
+
+        const after = (await ev.evaluate(graph)).results;
+        assert.equal(after.get(node.id)!.error, undefined);
+        assert.equal(after.get(node.id)!.lists.result, true); // the inner node broadcast: still a list
+        assert.deepEqual(after.get(merge.id)!.outputs.list, expected);
+
+        const back = expandSubgraph(graph, node.id);
+        assert.equal(back.length, 2);
+        assert.deepEqual((await ev.evaluate(graph)).results.get(merge.id)!.outputs.list, expected);
+    },
+
+    async 'subgraph: each instance has its own scope (distinct ctx.nodeId) and cache'() {
+        const { nodes, graph, ev, add, link } = setup();
+        nodes.register({ type: 'test/who', inputs: { x: { type: 'number', default: 0 } }, outputs: { id: 'string' }, run: ({ x }, _p, ctx) => ({ id: `${ctx.nodeId}:${x}` }) });
+        const n1 = add('value/number', { value: 1 });
+        const who = add('test/who');
+        link(n1, 'value', who, 'x');
+        const merge = add('list/merge');
+        link(who, 'id', merge, 'lists');
+        const { node: a } = collapseToSubgraph(graph, nodes, [who.id], 'Who');
+        // a second instance of the same type, fed differently
+        const n2 = add('value/number', { value: 2 });
+        const b = add(graph.subgraphs ? Object.keys(graph.subgraphs)[0] : '');
+        link(n2, 'value', b, 'x');
+        link(b, 'id', merge, 'lists');
+        const out = (await ev.evaluate(graph)).results.get(merge.id)!.outputs.list as string[];
+        assert.equal(out.length, 2);
+        assert.ok(out[0] !== out[1] && out[0].startsWith(`${a.id}#0/`) && out[1].startsWith(`${b.id}#0/`), out.join(' | '));
+        assert.ok(out[0].endsWith(':1') && out[1].endsWith(':2'));
+    },
+
+    async 'subgraph: errors inside surface on the subgraph node; output nodes stay outside'() {
+        const { nodes, graph, ev, add, link } = setup();
+        nodes.register({ type: 'test/boom3', inputs: { x: { type: 'number', default: 0 } }, outputs: { v: 'number' }, run: () => { throw new Error('nope'); } });
+        nodes.register({ type: 'test/out2', output: true, inputs: { v: 'any' }, run: () => {} });
+        const n = add('value/number');
+        const boom = add('test/boom3');
+        const out = add('test/out2');
+        link(n, 'value', boom, 'x');
+        link(boom, 'v', out, 'v');
+        const { node } = collapseToSubgraph(graph, nodes, [boom.id, out.id], 'Boom');
+        assert.ok(getNode(graph, out.id)); // the output node stayed
+        const r = (await ev.evaluate(graph)).results.get(node.id)!;
+        assert.ok(/inside, boom3: Error: nope/.test(r.error ?? ''), r.error);
+    },
+
+    async 'subgraph: registerSubgraphs restores types from a saved document'() {
+        const { nodes, graph, add, link } = setup();
+        const a = add('value/number', { value: 5 });
+        const m = add('math/math', { b: 3, op: '×' });
+        const c = add('list/count');
+        link(a, 'value', m, 'a');
+        link(m, 'result', c, 'list');
+        collapseToSubgraph(graph, nodes, [m.id], 'Triple');
+        const saved = JSON.parse(JSON.stringify(graph));
+        const fresh = createNodeRegistry();
+        registerSubgraphs(saved, fresh);
+        const r = (await new GraphEvaluator(fresh).evaluate(saved)).results;
+        const sub = saved.nodes.find((n: any) => n.type.startsWith('subgraph/'));
+        assert.equal(r.get(sub.id)!.outputs.result, 15);
     },
 };

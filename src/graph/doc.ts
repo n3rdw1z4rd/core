@@ -68,6 +68,21 @@ export interface GraphGroup {
     rect: [number, number, number, number];
 }
 
+/**
+ * A subgraph node type: an inner graph plus its interface. Each input feeds one or more inner
+ * input ports; each output reads one inner output port.
+ *
+ * @category Graph
+ */
+export interface SubgraphDef {
+    title: string;
+    nodes: GraphNode[];
+    links: GraphLink[];
+    groups?: GraphGroup[];
+    inputs: { name: string; type: string; multi?: boolean; to: PortRef[] }[];
+    outputs: { name: string; type: string; from: PortRef }[];
+}
+
 /** @category Graph */
 export interface GraphDoc {
     format: typeof GRAPH_FORMAT;
@@ -78,6 +93,8 @@ export interface GraphDoc {
     scripts?: Record<string, string>;
     /** frames around nodes (visual only) */
     groups?: GraphGroup[];
+    /** subgraph node types: type → definition (see subgraph.ts) */
+    subgraphs?: Record<string, SubgraphDef>;
     meta?: Record<string, unknown>;
 }
 

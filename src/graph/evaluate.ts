@@ -58,6 +58,7 @@ export class GraphEvaluator {
     async evaluate(doc: GraphDoc, options: EvaluateOptions = {}): Promise<EvaluateResult> {
         const env = options.env ?? {};
         const frame = options.frame ?? { time: 0, dt: 0, frame: 0 };
+        const scope = options.scope ? `${options.scope}/` : '';
         const targets = options.targets ?? this.defaultTargets(doc);
         const { order, cyclic } = this.order(doc, targets);
         const ran: string[] = [];
@@ -90,7 +91,18 @@ export class GraphEvaluator {
 
             for (const p of def.inputs) {
                 const links = linksInto(doc, id, p.name);
-                if (links.length) {
+                const external = options.externals?.get(`${id}:${p.name}`);
+                if (!links.length && external?.length) {
+                    // fed from outside (a subgraph's inputs)
+                    keyParts.push([p.name, 'external', options.externalsStamp ?? 0]);
+                    if (p.multi) {
+                        values[p.name] = external.flatMap((x) => (x.list ? (x.value as unknown[]) : x.value === undefined ? [] : [x.value]));
+                        isList[p.name] = true;
+                    } else {
+                        values[p.name] = external[0].value;
+                        isList[p.name] = external[0].list;
+                    }
+                } else if (links.length) {
                     const gathered: unknown[] = [];
                     for (const link of p.multi ? links : links.slice(0, 1)) {
                         const src = results.get(link.from.node);
@@ -145,7 +157,7 @@ export class GraphEvaluator {
                 continue;
             }
 
-            const res = await this.run(def, id, values, isList, params, env, frame);
+            const res = await this.run(def, scope + id, values, isList, params, env, frame);
             if (skipped.length) res.skipped = skipped;
             ran.push(id);
             results.set(id, this.store(id, key, res));
@@ -204,9 +216,11 @@ export class GraphEvaluator {
         try {
             if (broadcast.length === 0) {
                 const r = (await def.run(values, params, { nodeId, type: def.type, source: def.source, index: 0, count: 1, env, ...frame })) ?? {};
+                // a run may say which of its outputs are lists (subgraphs pass on their inner nodes')
+                const said = (r as Record<string, unknown>)[OUTPUT_LISTS] as Record<string, boolean> | undefined;
                 for (const o of def.outputs) {
                     outputs[o.name] = r[o.name];
-                    lists[o.name] = o.list;
+                    lists[o.name] = said?.[o.name] ?? o.list;
                 }
             } else {
                 const lens = broadcast.map((p) => (values[p.name] as unknown[]).length);
@@ -251,7 +265,23 @@ export interface EvaluateOptions {
     env?: Record<string, unknown>;
     /** the current frame while animating: animated nodes re-run when it changes */
     frame?: FrameInfo;
+    /**
+     * Values for inputs that have no link, by `"<node>:<port>"` — how a subgraph's inputs
+     * reach its inner nodes. Bump `externalsStamp` when they change.
+     */
+    externals?: Map<string, { value: unknown; list: boolean }[]>;
+    externalsStamp?: number;
+    /** prefixes `ctx.nodeId` (`<scope>/<id>`), so instances of a subgraph make distinct ids */
+    scope?: string;
 }
+
+/**
+ * A key a node's `run` may add to its result: `{ [OUTPUT_LISTS]: { out: true } }` marks outputs
+ * as lists regardless of their declared type.
+ *
+ * @category Graph
+ */
+export const OUTPUT_LISTS = '__lists';
 
 /** @category Graph */
 export interface FrameInfo {
