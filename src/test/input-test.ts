@@ -208,6 +208,58 @@ export const inputTests: TestSuite = {
         assert.ok(!new InputActionMap({ defaults: false }).actions.has('ui_accept'));
     },
 
+    'InputActionMap: modifiers held at the press count, even if let go before update()'() {
+        const { input, down, up } = setup();
+        const events: string[] = [];
+
+        input.actions.add('walk', [key('ArrowRight')], { repeat: { delay: 300, interval: 100 } });
+        input.actions.add('stairs', [key('Period', { shift: true })]);
+        input.onAction('walk', 'pressed', ({ modifiers: m, repeat }) => events.push(`walk${repeat ? ' repeat' : ''}${m.shift ? ' shift' : ''}${m.ctrl ? ' ctrl' : ''}`));
+        input.onAction('walk', 'released', ({ modifiers: m }) => events.push(`release${m.shift ? ' shift' : ''}`));
+
+        // Shift + arrow, all between two frames
+        input.update(0);
+        down('ShiftLeft');
+        input.update(16); // Shift alone: nothing to report
+        down('ArrowRight');
+        up('ArrowRight');
+        up('ShiftLeft');
+        input.update(32);
+        assert.deepEqual(events.splice(0), ['walk shift']);
+        input.update(48);
+        assert.deepEqual(events.splice(0), ['release']);
+
+        // the same for a binding that needs Shift
+        down('ShiftRight');
+        input.update(64);
+        down('Period');
+        up('Period');
+        up('ShiftRight');
+        input.update(80);
+        assert.ok(input.isActionJustPressed('stairs'));
+
+        // a plain press, then Ctrl comes down while it's held: the press was plain, the repeat sees Ctrl
+        down('ArrowRight');
+        input.update(100);
+        down('ControlLeft');
+        input.update(400);
+        input.update(500);
+        up('ArrowRight');
+        up('ControlLeft');
+        input.update(516);
+        assert.deepEqual(events.splice(0), ['walk', 'walk repeat ctrl', 'walk repeat ctrl', 'release']);
+
+        // Shift + click: keyboard modifiers apply to other devices' presses too
+        input.actions.add('look', [key('KeyL')]);
+        down('ShiftLeft');
+        down('KeyL');
+        up('ShiftLeft');
+        let shifted = false;
+        input.onAction('look', 'pressed', ({ modifiers }) => { shifted = modifiers.shift; });
+        input.update(532);
+        assert.ok(shifted);
+    },
+
     'InputActionMap: getAxis and getVector (diagonals are not faster)'() {
         const { input, down, up } = setup();
 

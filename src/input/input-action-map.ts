@@ -2,7 +2,7 @@ import { Observable } from '../observable';
 import { type Action, ActionMap } from './action-map';
 import { type GestureFrame, GestureRecognizer, type TouchPoint } from './gestures';
 import { Input } from './input';
-import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type MouseButton, XR_AXES, XR_BUTTONS, type XRHand, controlId } from './bindings';
+import { type Binding, GAMEPAD_AXES, GAMEPAD_BUTTONS, type KeyModifiers, type MouseButton, XR_AXES, XR_BUTTONS, type XRHand, controlId } from './bindings';
 
 /**
  * 0 = keyboard, mouse, pen, touch and VR; 1, 2, ... = gamepads.
@@ -35,7 +35,23 @@ export interface ActionEvent {
     action: string,
     /** an auto-repeat of a held action (see {@link ActionRepeat}), not a new press */
     repeat: boolean,
+    /**
+     * The modifier keys that were held when the press happened, even if they were let go again
+     * before update() (a quick Shift + arrow between two frames). For auto-repeats and releases:
+     * the ones held now.
+     */
+    modifiers: Required<KeyModifiers>,
 }
+
+// modifier keys as bits, left or right side
+const SHIFT = 1, CTRL = 2, ALT = 4, META = 8;
+const MODIFIER_KEYS: [code: string, bit: number][] = [
+    ['ShiftLeft', SHIFT], ['ShiftRight', SHIFT], ['ControlLeft', CTRL], ['ControlRight', CTRL],
+    ['AltLeft', ALT], ['AltRight', ALT], ['MetaLeft', META], ['MetaRight', META],
+];
+const modifierBits = (m: KeyModifiers): number => (m.shift ? SHIFT : 0) | (m.ctrl ? CTRL : 0) | (m.alt ? ALT : 0) | (m.meta ? META : 0);
+const modifiersOf = (bits: number): Required<KeyModifiers> =>
+    ({ shift: !!(bits & SHIFT), ctrl: !!(bits & CTRL), alt: !!(bits & ALT), meta: !!(bits & META) });
 
 /**
  * Options for the {@link InputActionMap} constructor.
@@ -150,6 +166,8 @@ interface ControlState {
     pressed: boolean,
     /** used to answer captureBinding(); ignored until released */
     suppressed: boolean,
+    /** the modifier keys held when it last went down (bits) */
+    mods: number,
 }
 
 interface ActionState {
@@ -306,7 +324,8 @@ export class InputActionMap {
         this._updateGestures(time);
 
         const devices = [...this._controls.keys()];
-        const fired: { action: string, phase: ActionPhase, device: InputDevice, repeat: boolean }[] = [];
+        const fired: { action: string, phase: ActionPhase, device: InputDevice, repeat: boolean, mods: number }[] = [];
+        const heldMods = this._heldMods();
 
         for (const name of this.actions.names) {
             const action = this.actions.get(name)!;
@@ -315,22 +334,32 @@ export class InputActionMap {
             if (!states) this._actionStates.set(name, states = new Map());
 
             let anyRaw = 0;
+            // modifiers held when a binding's control went down this frame (-1: none went down)
+            let anyPressMods = -1;
 
             for (const device of devices) {
                 let raw = 0;
+                let pressMods = -1;
 
                 for (const binding of action.bindings) {
-                    raw = Math.max(raw, this._bindingValue(binding, device));
+                    const value = this._bindingValue(binding, device);
+                    raw = Math.max(raw, value);
+
+                    const control = this._controls.get(device)?.get(controlId(binding));
+                    if (value > 0 && control?.pressed) pressMods = Math.max(0, pressMods) | control.mods;
                 }
 
                 anyRaw = Math.max(anyRaw, raw);
+                if (pressMods >= 0) anyPressMods = Math.max(0, anyPressMods) | pressMods;
 
                 const phase = this._advance(states, device, raw, action, time);
-                if (phase) fired.push({ action: name, phase, device, repeat: states.get(device)!.repeated });
+                const state = states.get(device)!;
+                if (phase) fired.push({ action: name, phase, device, repeat: state.repeated, mods: phase === 'pressed' && !state.repeated && pressMods >= 0 ? pressMods : heldMods });
             }
 
             const phase = this._advance(states, ANY, anyRaw, action, time);
-            if (phase) fired.push({ action: name, phase, device: ANY, repeat: states.get(ANY)!.repeated });
+            const state = states.get(ANY)!;
+            if (phase) fired.push({ action: name, phase, device: ANY, repeat: state.repeated, mods: phase === 'pressed' && !state.repeated && anyPressMods >= 0 ? anyPressMods : heldMods });
         }
 
         // presses are consumed once actions have seen them
@@ -338,10 +367,10 @@ export class InputActionMap {
             for (const state of controls.values()) state.pressed = false;
         }
 
-        for (const { action, phase, device, repeat } of fired) {
+        for (const { action, phase, device, repeat, mods } of fired) {
             for (const listener of [...this._actionListeners]) {
                 if (listener.action === action && listener.phase === phase && listener.device === device) {
-                    listener.callback({ action, repeat });
+                    listener.callback({ action, repeat, modifiers: modifiersOf(mods) });
                 }
             }
         }
@@ -601,17 +630,14 @@ export class InputActionMap {
 
         if (value === 0 || binding.type !== 'key' || !binding.modifiers) return value;
 
-        const held = (left: string, right: string) =>
-            this._controlValue(device, `key:${left}`) > 0 || this._controlValue(device, `key:${right}`) > 0;
+        // held now, or held when this key went down (Shift let go before the frame still counts)
+        const control = this._controls.get(device)?.get(controlId(binding));
+        let held = control?.pressed ? control.mods : 0;
+        for (const [code, bit] of MODIFIER_KEYS) if (this._controlValue(device, `key:${code}`) > 0) held |= bit;
 
-        const m = binding.modifiers;
+        const need = modifierBits(binding.modifiers);
 
-        if (m.shift && !held('ShiftLeft', 'ShiftRight')) return 0;
-        if (m.ctrl && !held('ControlLeft', 'ControlRight')) return 0;
-        if (m.alt && !held('AltLeft', 'AltRight')) return 0;
-        if (m.meta && !held('MetaLeft', 'MetaRight')) return 0;
-
-        return value;
+        return (held & need) === need ? value : 0;
     }
 
     private _control(device: InputDevice, binding: Binding): ControlState {
@@ -621,7 +647,7 @@ export class InputActionMap {
         const id = controlId(binding);
 
         let state = controls.get(id);
-        if (!state) controls.set(id, state = { value: 0, pressed: false, suppressed: false });
+        if (!state) controls.set(id, state = { value: 0, pressed: false, suppressed: false, mods: 0 });
 
         return state;
     }
@@ -635,7 +661,7 @@ export class InputActionMap {
 
         if (value >= 0.5 && !wasDown) {
             if (this._tryCapture(binding)) state.suppressed = true;
-            else state.pressed = true;
+            else { state.pressed = true; state.mods = this._heldMods(); }
         }
 
         if (value === 0) state.suppressed = false;
@@ -645,7 +671,17 @@ export class InputActionMap {
     protected _pulse(device: InputDevice, binding: Binding): void {
         const state = this._control(device, binding);
 
-        if (!this._tryCapture(binding)) state.pressed = true;
+        if (!this._tryCapture(binding)) { state.pressed = true; state.mods = this._heldMods(); }
+    }
+
+    /** the keyboard's modifier keys held right now (bits); they apply to every device's presses (Shift + click) */
+    private _heldMods(): number {
+        const keys = this._controls.get(0);
+        let bits = 0;
+
+        if (keys) for (const [code, bit] of MODIFIER_KEYS) if ((keys.get(`key:${code}`)?.value ?? 0) > 0) bits |= bit;
+
+        return bits;
     }
 
     private _tryCapture(binding: Binding): boolean {
